@@ -1,0 +1,225 @@
+import {
+  Card,
+  HStack,
+  Text,
+  VStack,
+} from "@gluestack-ui/themed";
+import { type ReactNode } from "react";
+import {
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
+import { colors, elevation, radius, spacing, type } from "../../theme";
+import { OrderStatus } from "../../types/pos";
+import { AppIcon, IconName } from "./interactive";
+
+export function Panel({
+  children,
+  style,
+  padding = spacing.lg,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  padding?: number;
+}) {
+  return <Card style={[styles.panel, { padding }, style]}>{children}</Card>;
+}
+
+export function SectionHeading({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <HStack style={styles.headingRow}>
+      <VStack style={{ flex: 1, gap: spacing.xs }}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {description ? (
+          <Text style={styles.sectionDescription}>{description}</Text>
+        ) : null}
+      </VStack>
+      {action}
+    </HStack>
+  );
+}
+
+const statusMeta: Record<
+  OrderStatus,
+  { label: string; background: string; text: string; icon: IconName }
+> = {
+  waiting: {
+    label: "Menunggu",
+    background: colors.warningSoft,
+    text: colors.warning,
+    icon: "clock-outline",
+  },
+  preparing: {
+    label: "Sedang dibuat",
+    background: colors.surfaceTint,
+    text: colors.primary,
+    icon: "progress-clock",
+  },
+  ready: {
+    label: "Siap disajikan",
+    background: colors.successSoft,
+    text: colors.success,
+    icon: "check-circle-outline",
+  },
+  completed: {
+    label: "Selesai",
+    background: "#EEF1F5",
+    text: colors.inkMuted,
+    icon: "check-all",
+  },
+};
+
+export function StatusBadge({ status }: { status: OrderStatus }) {
+  const meta = statusMeta[status];
+  return (
+    <HStack style={[styles.badge, { backgroundColor: meta.background }]}>
+      <AppIcon name={meta.icon} size={14} color={meta.text} />
+      <Text style={[styles.badgeText, { color: meta.text }]}>{meta.label}</Text>
+    </HStack>
+  );
+}
+
+export function MetricCard({
+  label,
+  value,
+  helper,
+  icon,
+  tint = colors.primarySoft,
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+  icon: IconName;
+  tint?: string;
+}) {
+  return (
+    <Panel style={styles.metricCard} padding={spacing.lg}>
+      <HStack style={styles.metricTop}>
+        <HStack style={[styles.iconBubble, { backgroundColor: tint }]}>
+          <AppIcon name={icon} size={20} color={colors.primary} />
+        </HStack>
+        {helper ? <Text style={styles.metricHelper}>{helper}</Text> : null}
+      </HStack>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </Panel>
+  );
+}
+
+export function EmptyState({
+  icon = "archive-outline",
+  title,
+  description,
+  action,
+}: {
+  icon?: IconName;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <VStack style={styles.emptyState}>
+      <HStack style={styles.emptyIcon}>
+        <AppIcon name={icon} size={28} color={colors.primary} />
+      </HStack>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyDescription}>{description}</Text>
+      {action}
+    </VStack>
+  );
+}
+
+export function Divider() {
+  return <View style={styles.divider} />;
+}
+
+const styles = StyleSheet.create({
+  panel: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...elevation.panel,
+  },
+  headingRow: {
+    alignItems: "center",
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: type.section,
+    lineHeight: 24,
+    color: colors.ink,
+    fontWeight: "800",
+  },
+  sectionDescription: {
+    fontSize: type.bodySmall,
+    lineHeight: 18,
+    color: colors.inkMuted,
+  },
+  badge: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+  },
+  badgeText: { fontSize: 11, fontWeight: "800" },
+  metricCard: { flex: 1, minWidth: 170, gap: spacing.sm },
+  metricTop: { alignItems: "center", justifyContent: "space-between" },
+  iconBubble: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  metricHelper: { fontSize: 11, fontWeight: "700", color: colors.success },
+  metricValue: {
+    color: colors.ink,
+    fontSize: type.numeric,
+    lineHeight: 30,
+    fontWeight: "800",
+    marginTop: spacing.sm,
+  },
+  metricLabel: {
+    color: colors.inkMuted,
+    fontSize: type.bodySmall,
+    fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+    padding: spacing.xxxl,
+    minHeight: 260,
+  },
+  emptyIcon: {
+    width: 62,
+    height: 62,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 99,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: "800" },
+  emptyDescription: {
+    maxWidth: 360,
+    color: colors.inkMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  divider: { height: 1, backgroundColor: colors.line },
+});
