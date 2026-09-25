@@ -147,7 +147,6 @@ export const CartPanel = memo(function CartPanel({
             <AppIcon name="printer-outline" size={19} color={colors.white} />
             <ButtonText style={styles.checkoutText}>Cetak &amp; Bayar</ButtonText>
           </HStack>
-          <Text style={styles.enterHint}>ENTER ↵</Text>
         </Button>
       </VStack>
     </Panel>

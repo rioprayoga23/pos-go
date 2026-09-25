@@ -9,7 +9,13 @@ import { quickTenderAmounts } from "../constants";
 import { styles } from "../styles";
 import { formatCashInput } from "../utils/formatCashInput";
 
-function CashOpeningField({ openingCash }: { openingCash: number | null }) {
+function CashOpeningField({
+  openingCash,
+  isTablet,
+}: {
+  openingCash: number | null;
+  isTablet: boolean;
+}) {
   const setOpeningCash = useTransactionStore((state) => state.setOpeningCash);
   const [draft, setDraft] = useState(String(openingCash ?? 0));
   const amount = draft === "" ? null : Number(draft);
@@ -18,7 +24,7 @@ function CashOpeningField({ openingCash }: { openingCash: number | null }) {
   return (
     <VStack style={styles.openingSection}>
       <HStack style={styles.openingHeading}>
-        <Text style={styles.microLabel}>UANG AWAL KASIR</Text>
+        <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>UANG AWAL KASIR</Text>
       </HStack>
       <HStack style={styles.openingEntry}>
         <AppInput
@@ -80,6 +86,8 @@ export function CashPanel({
   onApply,
 }: CashPanelProps) {
   const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
   const compactWideGrid = width >= 1024;
   const hasCash = cash.length > 0;
   const isPaid = hasCash && received >= subtotal;
@@ -93,16 +101,17 @@ export function CashPanel({
   return (
     <Panel style={styles.cashPanel} padding={spacing.md}>
       <VStack style={styles.cashContent}>
-        <CashOpeningField key={openingCash ?? "unset"} openingCash={openingCash} />
+        <CashOpeningField key={openingCash ?? "unset"} openingCash={openingCash} isTablet={isTablet} />
         <VStack style={styles.tenderSection}>
           <HStack style={styles.tenderHeading}>
-            <Text style={styles.microLabel}>PEMBAYARAN TUNAI</Text>
+            <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>PEMBAYARAN TUNAI</Text>
           </HStack>
           <View style={[styles.quickGrid, compactWideGrid && styles.quickGridCompact]}>
             {quickTenderAmounts.map((amount) => (
               <Pressable
                 key={amount}
                 onPress={() => setCash(String(amount))}
+                hitSlop={3}
                 style={[
                   styles.quickButton,
                   compactWideGrid && styles.quickButtonCompact,
@@ -112,7 +121,7 @@ export function CashPanel({
                 accessibilityLabel={`Uang diterima ${formatCurrency(amount)}`}
                 accessibilityState={{ selected: received === amount }}
               >
-                <Text style={[styles.quickButtonText, received === amount && styles.quickButtonTextActive]}>
+                <Text style={[styles.quickButtonText, isTablet && styles.quickButtonTextTablet, received === amount && styles.quickButtonTextActive]}>
                   {amount / 1000}k
                 </Text>
               </Pressable>
@@ -120,7 +129,7 @@ export function CashPanel({
           </View>
           <HStack style={styles.tenderAmounts}>
             <VStack style={styles.amountBox}>
-              <Text style={styles.microLabel}>UANG DITERIMA</Text>
+              <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>UANG DITERIMA</Text>
               <AppInput
                 value={formatCashInput(cash)}
                 onChangeText={setCash}
@@ -134,7 +143,7 @@ export function CashPanel({
               />
             </VStack>
             <VStack style={styles.amountBox}>
-              <Text style={styles.microLabel}>{!hasCash || isPaid ? "KEMBALIAN" : "KURANG BAYAR"}</Text>
+              <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>{!hasCash || isPaid ? "KEMBALIAN" : "KURANG BAYAR"}</Text>
               <HStack style={[styles.changeBox, isPaid && styles.changeBoxReady]}>
                 <Text style={[styles.moneyInputText, styles.changeValue, hasCash && !isPaid && styles.shortageValue]}>
                   {formatCurrency(hasCash ? Math.abs(change) : 0)}
@@ -143,9 +152,12 @@ export function CashPanel({
             </VStack>
           </HStack>
         </VStack>
-        <VStack style={styles.keypadGrid}>
+        <VStack style={[styles.keypadGrid, isMobile && styles.keypadGridMobile]}>
           {keypadRows.map((row, rowIndex) => (
-            <View key={`keypad-row-${rowIndex}`} style={styles.keypadRow}>
+            <View
+              key={`keypad-row-${rowIndex}`}
+              style={[styles.keypadRow, isMobile && styles.keypadRowMobile]}
+            >
               {row.map((key, cellIndex) => key === null ? (
                 <View key={`empty-${cellIndex}`} style={styles.keypadCell} />
               ) : (
@@ -156,7 +168,13 @@ export function CashPanel({
                     accessibilityRole="button"
                     accessibilityLabel={key === "C" ? "Kosongkan uang diterima" : key === "Backspace" ? "Hapus satu digit uang diterima" : `Ketik ${key}`}
                   >
-                    <Text style={[styles.keypadText, key === "C" && styles.keypadClearText]}>
+                    <Text
+                      style={[
+                        styles.keypadText,
+                        isMobile && styles.keypadTextMobile,
+                        key === "C" && styles.keypadClearText,
+                      ]}
+                    >
                       {key === "Backspace" ? "⌫" : key}
                     </Text>
                   </Pressable>
@@ -171,7 +189,7 @@ export function CashPanel({
                   accessibilityLabel="Terapkan uang diterima"
                   accessibilityState={{ disabled: !isPaid || openingCash === null }}
                 >
-                  <Text style={styles.applyButtonText}>{cashReady ? "Uang Diterapkan" : "Terapkan Uang"}</Text>
+                  <Text style={[styles.applyButtonText, isTablet && styles.applyButtonTextTablet]}>{cashReady ? "Uang Diterapkan" : "Terapkan Uang"}</Text>
                 </Pressable>
               ) : null}
             </View>

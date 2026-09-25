@@ -23,6 +23,8 @@ export function HistoryScreen(_props: Props) {
   } = useHistoryOrders();
   const isWide = width >= 1024;
   const isCompact = width < 520;
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
 
   return (
     <AppShell active="History" scrollable={!isWide}>
@@ -32,6 +34,8 @@ export function HistoryScreen(_props: Props) {
         <TransactionsPanel
           isWide={isWide}
           isCompact={isCompact}
+          isMobile={isMobile}
+          isTablet={isTablet}
           orders={filteredOrders}
           query={query}
           onQueryChange={setQuery}
@@ -40,7 +44,7 @@ export function HistoryScreen(_props: Props) {
           paymentFilter={paymentFilter}
           onPaymentFilterChange={setPaymentFilter}
         />
-        <SalesSummary isWide={isWide} />
+        <SalesSummary isWide={isWide} isMobile={isMobile} isTablet={isTablet} />
       </HStack>
     </AppShell>
   );

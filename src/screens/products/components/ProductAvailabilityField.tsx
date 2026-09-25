@@ -6,9 +6,13 @@ import { styles } from "../styles";
 
 export function ProductAvailabilityField({
   isActive,
+  isMobile,
+  isTablet,
   onChange,
 }: {
   isActive: boolean;
+  isMobile: boolean;
+  isTablet: boolean;
   onChange: (isActive: boolean) => void;
 }) {
   return (
@@ -16,7 +20,7 @@ export function ProductAvailabilityField({
       <HStack style={styles.availabilityRow}>
         <VStack style={styles.availabilityCopy}>
           <Text style={styles.stockLabel}>Status Aktif</Text>
-          <Text style={productFormStyles.description}>
+          <Text style={[productFormStyles.description, isMobile && productFormStyles.descriptionMobile, isTablet && productFormStyles.descriptionTablet]}>
             Tampilkan menu ini di kasir.
           </Text>
         </VStack>
@@ -24,8 +28,8 @@ export function ProductAvailabilityField({
           <Text
             style={
               isActive
-                ? styles.availabilityActiveText
-                : styles.availabilityInactiveText
+                ? [styles.availabilityActiveText, isMobile && styles.availabilityStatusMobile, isTablet && styles.availabilityStatusTablet]
+                : [styles.availabilityInactiveText, isMobile && styles.availabilityStatusMobile, isTablet && styles.availabilityStatusTablet]
             }
           >
             {isActive ? "Aktif" : "Nonaktif"}

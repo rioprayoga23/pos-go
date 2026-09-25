@@ -1,9 +1,6 @@
 import type { PaymentMethod } from "../../types/pos";
 
-export type DateRange = {
-  startDate: string;
-  endDate: string;
-};
+export type { DateRange } from "../../types/dateRange";
 
 export type PaymentFilter = "Semua Bayar" | PaymentMethod;
 

@@ -19,6 +19,7 @@ export function OrderScreen({ navigation }: Props) {
   const {
     categories,
     cardWidth,
+    mobile,
     filteredProducts,
     handleCatalogLayout,
     onSelectCategory,
@@ -44,6 +45,7 @@ export function OrderScreen({ navigation }: Props) {
           <MenuCatalog
             categories={categories}
             cardWidth={cardWidth}
+            mobile={mobile}
             filteredProducts={filteredProducts}
             onAddProduct={addItem}
             onLayout={handleCatalogLayout}

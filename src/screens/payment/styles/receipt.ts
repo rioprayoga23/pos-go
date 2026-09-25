@@ -48,13 +48,4 @@ export const receiptStyles = StyleSheet.create({
   },
   finalButtonText: { color: colors.white, fontSize: 13, fontWeight: "900" },
   finalButtonHint: { color: "#DBEAFE", fontSize: 10 },
-  enterKey: {
-    color: colors.white,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 10,
-    fontWeight: "900",
-  },
 });

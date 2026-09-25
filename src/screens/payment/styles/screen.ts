@@ -28,6 +28,8 @@ export const screenStyles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.6,
   },
+  billOrderCountLabelAdaptive: { fontSize: 11 },
+  billOrderCountLabelTablet: { fontSize: 12 },
   billOrderCountValue: { color: colors.ink, fontSize: 12, fontWeight: "800" },
   microLabel: {
     color: "#64748B",
@@ -43,7 +45,7 @@ export const screenStyles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "900",
   },
   billTotal: {
@@ -52,6 +54,10 @@ export const screenStyles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: "900",
   },
+  billTotalMobile: { fontSize: 26, lineHeight: 30 },
+  billTotalTablet: { fontSize: 28, lineHeight: 32 },
+  microLabelAdaptive: { fontSize: 11 },
+  microLabelTablet: { fontSize: 12 },
   methodSelector: {
     padding: 5,
     borderRadius: radius.pill,

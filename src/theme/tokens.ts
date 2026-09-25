@@ -50,6 +50,8 @@ export const type = {
   body: 15,
   bodySmall: 13,
   label: 12,
+  caption: 11,
+  micro: 10,
   numeric: 24,
 } as const;
 

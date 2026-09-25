@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius, spacing } from "../../../theme";
+import { colors, elevation, radius, spacing } from "../../theme";
 
 export const dateRangePickerStyles = StyleSheet.create({
   modal: {
@@ -29,7 +29,7 @@ export const dateRangePickerStyles = StyleSheet.create({
     backgroundColor: colors.surfaceTint,
     gap: 3,
   },
-  selectedLabel: { color: colors.inkSubtle, fontSize: 9, fontWeight: "800" },
+  selectedLabel: { color: colors.inkSubtle, fontSize: 10, fontWeight: "800" },
   selectedText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
   monthHeader: { alignItems: "center", justifyContent: "space-between" },
   monthTitle: { color: colors.ink, fontSize: 13, fontWeight: "900" },
@@ -69,7 +69,7 @@ export const dateRangePickerStyles = StyleSheet.create({
     width: `${100 / 7}%`,
     color: colors.inkSubtle,
     textAlign: "center",
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "800",
   },
   dayGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },

@@ -1,37 +1,30 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 import { Image, ScrollView, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../../navigation/types";
 import { useTransactionStore } from "../../store/transactionStore";
 import { colors } from "../../theme";
-import {
-  AppIcon,
-  AppPressable as Pressable,
-  type IconName,
-} from "../ui";
+import { AppIcon, AppPressable as Pressable } from "../ui";
 import { CloseShiftDialog } from "./components/CloseShiftDialog";
 import { HeaderActions } from "./components/HeaderActions";
+import { MobileBottomNavigation } from "./components/MobileNavigation";
+import { primaryNavigationItems } from "./navigationItems";
 import { styles } from "./styles";
 
 type Route = keyof RootStackParamList;
 
-const navItems: { route: Route; label: string; icon: IconName }[] = [
-  { route: "Order", label: "Kasir", icon: "point-of-sale" },
-  { route: "Queue", label: "Antrean", icon: "hand-wave-outline" },
-  { route: "Products", label: "Kelola Menu", icon: "coffee-outline" },
-  { route: "History", label: "Ringkasan", icon: "receipt-text-outline" },
-];
-
 export function AppShell({
   active,
   children,
+  scrollRef,
   scrollable = true,
 }: {
   active: Route;
   children: ReactNode;
+  scrollRef?: RefObject<ScrollView | null>;
   scrollable?: boolean;
 }) {
   const navigation =
@@ -40,11 +33,13 @@ export function AppShell({
   const [showCloseShiftConfirm, setShowCloseShiftConfirm] = useState(false);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const activeNav = active === "Payment" ? "Order" : active;
   const isMedium = width >= 768;
   const isLarge = width >= 1024;
-  const isExtraLarge = width >= 1280;
-  const blueStatus = active === "Order" || active === "Products";
+  const blueStatus =
+    active === "Order" || active === "Products" || active === "Stock" || active === "Cash";
+
   const contentStyle = [
     styles.content,
     {
@@ -58,10 +53,13 @@ export function AppShell({
     <VStack
       style={[
         styles.shell,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
+        {
+          paddingTop: insets.top,
+          paddingBottom: isMobile ? 0 : insets.bottom,
+        },
       ]}
     >
-      <HStack style={styles.topBar}>
+      <HStack style={[styles.topBar, isMobile && styles.topBarMobile]}>
         <HStack style={styles.brandBlock}>
           <Image
             source={require("../../../assets/stitch/order/logo.png")}
@@ -82,58 +80,64 @@ export function AppShell({
           ) : null}
         </HStack>
         <HeaderActions
-          isLarge={isLarge}
-          isExtraLarge={isExtraLarge}
+          showClockInHeader={isLarge}
+          isMobile={isMobile}
           onRequestCloseShift={() => setShowCloseShiftConfirm(true)}
         />
       </HStack>
       <HStack style={styles.body}>
-        <VStack style={[styles.sidebar, { width: isMedium ? 112 : 96 }]}>
-          <VStack style={styles.sideNav}>
-            {navItems.map((item, index) => {
-              const isActive = item.route === activeNav;
-              return (
-                <Pressable
-                  key={`${item.label}-${index}`}
-                  onPress={() => navigation.navigate(item.route)}
-                  style={[styles.navItem, isActive && styles.navItemActive]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Buka ${item.label}`}
-                >
-                  <View style={styles.navIconWrap}>
-                    <AppIcon
-                      name={item.icon}
-                      size={21}
-                      color={isActive ? colors.white : colors.inkMuted}
-                    />
-                    {item.label === "Antrean" ? (
-                      <View style={styles.queueBadge}>
-                        <Text style={styles.queueBadgeText}>4</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text
-                    style={[styles.navLabel, isActive && styles.navLabelActive]}
+        {!isMobile ? (
+          <VStack style={[styles.sidebar, { width: 128 }]}>
+            <VStack style={styles.sideNav}>
+              {primaryNavigationItems.map((item) => {
+                const isActive = item.route === activeNav;
+                return (
+                  <Pressable
+                    key={item.route}
+                    onPress={() => navigation.navigate(item.route)}
+                    style={[styles.navItem, isActive && styles.navItemActive]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Buka ${item.label}`}
                   >
-                    {item.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </VStack>
-          <HStack
-            style={[styles.onlinePill, blueStatus && styles.onlinePillBlue]}
-          >
-            <View style={[styles.greenDot, blueStatus && styles.blueDot]} />
-            <Text
-              style={[styles.onlineText, blueStatus && styles.onlineTextBlue]}
+                    <View style={styles.navIconWrap}>
+                      <AppIcon
+                        name={item.icon}
+                        size={21}
+                        color={isActive ? colors.white : colors.inkMuted}
+                      />
+                      {item.route === "Queue" ? (
+                        <View style={styles.queueBadge}>
+                          <Text style={styles.queueBadgeText}>4</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.navLabel,
+                        isActive && styles.navLabelActive,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </VStack>
+            <HStack
+              style={[styles.onlinePill, blueStatus && styles.onlinePillBlue]}
             >
-              Online
-            </Text>
-          </HStack>
-        </VStack>
+              <View style={[styles.greenDot, blueStatus && styles.blueDot]} />
+              <Text
+                style={[styles.onlineText, blueStatus && styles.onlineTextBlue]}
+              >
+                Online
+              </Text>
+            </HStack>
+          </VStack>
+        ) : null}
         {scrollable ? (
           <ScrollView
+            ref={scrollRef}
             style={styles.scroll}
             contentContainerStyle={contentStyle}
             showsVerticalScrollIndicator={false}
@@ -144,6 +148,13 @@ export function AppShell({
           <View style={contentStyle}>{children}</View>
         )}
       </HStack>
+      {isMobile ? (
+        <MobileBottomNavigation
+          active={activeNav}
+          bottomInset={insets.bottom}
+          onNavigate={(route) => navigation.navigate(route)}
+        />
+      ) : null}
       <CloseShiftDialog
         isOpen={showCloseShiftConfirm}
         onClose={() => setShowCloseShiftConfirm(false)}

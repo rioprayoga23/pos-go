@@ -6,26 +6,32 @@ import { styles } from '../styles';
 
 export const QueueSummary = memo(function QueueSummary({
   isWide,
+  isMobile,
+  isTablet,
 }: {
   isWide: boolean;
+  isMobile: boolean;
+  isTablet: boolean;
 }) {
   return (
     <Panel style={styles.summaryBar} padding={10}>
       <HStack style={[styles.summaryItems, !isWide && styles.summaryWrap]}>
-        <SummaryItem label="TOTAL ANTREAN" value="8" helper="18 Cup" icon="clipboard-text-outline" tone="amber" />
-        <SummaryItem label="SEDANG DIBUAT" value="3" helper="Pesanan" icon="progress-clock" tone="blue" />
-        <SummaryItem label="SIAP AMBIL" value="4" helper="Pesanan" icon="check-circle-outline" tone="green" />
+        <SummaryItem label="TOTAL ANTREAN" value="8" helper="18 Cup" icon="clipboard-text-outline" tone="amber" isMobile={isMobile} isTablet={isTablet} />
+        <SummaryItem label="SEDANG DIBUAT" value="3" helper="Pesanan" icon="progress-clock" tone="blue" isMobile={isMobile} isTablet={isTablet} />
+        <SummaryItem label="SIAP AMBIL" value="4" helper="Pesanan" icon="check-circle-outline" tone="green" isMobile={isMobile} isTablet={isTablet} />
       </HStack>
     </Panel>
   );
 });
 
-function SummaryItem({ label, value, helper, icon, tone }: {
+function SummaryItem({ label, value, helper, icon, tone, isMobile, isTablet }: {
   label: string;
   value: string;
   helper: string;
   icon: 'clipboard-text-outline' | 'progress-clock' | 'check-circle-outline';
   tone: 'blue' | 'amber' | 'green';
+  isMobile: boolean;
+  isTablet: boolean;
 }) {
   const color = tone === 'blue' ? colors.primary : tone === 'amber' ? colors.warning : colors.success;
   const background = tone === 'blue' ? colors.surfaceTint : tone === 'amber' ? colors.warningSoft : colors.successSoft;
@@ -33,10 +39,10 @@ function SummaryItem({ label, value, helper, icon, tone }: {
     <HStack style={[styles.summaryItem, { backgroundColor: background }]}>
       <HStack style={styles.summaryIcon}><AppIcon name={icon} size={21} color={color} /></HStack>
       <VStack style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.summaryLabel}>{label}</Text>
+        <Text style={[styles.summaryLabel, (isMobile || isTablet) && styles.summaryLabelAdaptive]}>{label}</Text>
         <HStack style={{ alignItems: 'baseline', gap: 6 }}>
-          <Text style={[styles.summaryValue, { color }]}>{value}</Text>
-          <Text style={styles.summaryHelper}>{helper}</Text>
+          <Text style={[styles.summaryValue, isMobile && styles.summaryValueMobile, isTablet && styles.summaryValueTablet, { color }]}>{value}</Text>
+          <Text style={[styles.summaryHelper, (isMobile || isTablet) && styles.summaryHelperAdaptive]}>{helper}</Text>
         </HStack>
       </VStack>
     </HStack>

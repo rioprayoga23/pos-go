@@ -10,6 +10,7 @@ import {
   Text,
   VStack,
 } from "@gluestack-ui/themed";
+import { useWindowDimensions } from "react-native";
 import {
   AppButton as Button,
   AppIcon,
@@ -39,17 +40,37 @@ export function CategoryModal({
   onClose: () => void;
   onSave: () => void;
 }) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 400;
+
   return (
     <Modal isOpen={visible} onClose={onClose} size="md">
       <ModalBackdrop />
       <ModalContent style={styles.categoryModal}>
         <ModalHeader>
-          <HStack style={styles.modalCategoryHeader}>
-            <HStack style={styles.modalCategoryIcon}>
+          <HStack
+            style={[
+              styles.modalCategoryHeader,
+              isCompact && styles.modalCategoryHeaderCompact,
+            ]}
+          >
+            <HStack
+              style={[
+                styles.modalCategoryIcon,
+                isCompact && styles.modalCategoryIconCompact,
+              ]}
+            >
               <AppIcon name="shape-outline" size={22} color={colors.primary} />
             </HStack>
             <VStack style={styles.modalCategoryCopy}>
-              <Text style={styles.modalTitle}>Tambah Kategori Produk</Text>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  isCompact && styles.modalTitleCompact,
+                ]}
+              >
+                Tambah Kategori Produk
+              </Text>
               <Text style={productFormStyles.description}>
                 Buat kategori baru untuk mengelompokkan menu.
               </Text>

@@ -15,6 +15,7 @@ import { styles } from "../styles";
 type Props = {
   categories: Category[];
   cardWidth?: number;
+  mobile: boolean;
   filteredProducts: Product[];
   onAddProduct: (product: Product) => void;
   onLayout: (width: number) => void;
@@ -28,6 +29,7 @@ type Props = {
 export const MenuCatalog = memo(function MenuCatalog({
   categories,
   cardWidth,
+  mobile,
   filteredProducts,
   onAddProduct,
   onLayout,
@@ -53,6 +55,7 @@ export const MenuCatalog = memo(function MenuCatalog({
             key={product.id}
             product={product}
             cardWidth={cardWidth}
+            mobile={mobile}
             onAddProduct={onAddProduct}
           />
         ))}
@@ -175,16 +178,20 @@ const productMeta: Record<string, { badge?: string }> = {
 const ProductCard = memo(function ProductCard({
   product,
   cardWidth,
+  mobile,
   onAddProduct,
 }: {
   product: Product;
   cardWidth?: number;
+  mobile: boolean;
   onAddProduct: (product: Product) => void;
 }) {
   const meta = productMeta[product.id] ?? {};
   const size = cardWidth
     ? { width: cardWidth, flexBasis: cardWidth }
-    : styles.productCardFallback;
+    : mobile
+      ? styles.productCardFallbackMobile
+      : styles.productCardFallback;
 
   return (
     <Pressable

@@ -25,6 +25,7 @@ type Props = {
   onOpen: () => void;
   onClose: () => void;
   onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
 };
 
 export function NotificationsMenu({
@@ -38,6 +39,7 @@ export function NotificationsMenu({
   onOpen,
   onClose,
   onMarkRead,
+  onMarkAllRead,
 }: Props) {
   return (
     <Popover
@@ -75,10 +77,23 @@ export function NotificationsMenu({
       >
         <PopoverHeader style={styles.notificationHeader}>
           <Text style={styles.notificationHeading}>Notifikasi</Text>
+        </PopoverHeader>
+        <HStack style={styles.notificationMetaRow}>
           <Text style={styles.notificationUnreadCount}>
             {unreadCount > 0 ? `${unreadCount} belum dibaca` : "Semua sudah dibaca"}
           </Text>
-        </PopoverHeader>
+          {unreadCount > 0 ? (
+            <Pressable
+              onPress={onMarkAllRead}
+              style={styles.notificationMarkAllButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Tandai semua notifikasi sebagai sudah dibaca"
+            >
+              <Text style={styles.notificationMarkAllText}>Tandai baca semua</Text>
+            </Pressable>
+          ) : null}
+        </HStack>
         <PopoverBody
           style={[
             styles.notificationBody,
@@ -93,22 +108,26 @@ export function NotificationsMenu({
           {notifications.length > 0 ? (
             <VStack style={styles.notificationList}>
               {notifications.map((notification, index) => (
-                <HStack
+                <Pressable
                   key={notification.id}
+                  onPress={() => onMarkRead(notification.id)}
+                  disabled={!notification.unread}
                   style={[
                     styles.notificationRow,
                     index > 0 && styles.notificationRowBorder,
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    notification.unread
+                      ? `Tandai ${notification.title} sebagai sudah dibaca`
+                      : `${notification.title}, sudah dibaca`
+                  }
+                  accessibilityState={{ disabled: !notification.unread }}
                 >
                   {notification.unread ? (
-                    <Pressable
-                      onPress={() => onMarkRead(notification.id)}
-                      style={styles.notificationBulletTarget}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Tandai ${notification.title} sebagai sudah dibaca`}
-                    >
+                    <View style={styles.notificationBulletTarget}>
                       <View style={styles.notificationUnreadBullet} />
-                    </Pressable>
+                    </View>
                   ) : (
                     <View style={styles.notificationBulletSpace} />
                   )}
@@ -121,7 +140,7 @@ export function NotificationsMenu({
                     </Text>
                     <Text style={styles.notificationTime}>{notification.time}</Text>
                   </VStack>
-                </HStack>
+                </Pressable>
               ))}
             </VStack>
           ) : (

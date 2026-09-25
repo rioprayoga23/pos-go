@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useProductStore } from '../../../store/productStore';
 import { spacing } from '../../../theme';
 
 export function useOrderCatalog() {
+  const { width } = useWindowDimensions();
   const categories = useProductStore((state) => state.categories);
   const products = useProductStore((state) => state.products);
   const [query, onQueryChange] = useState('');
@@ -20,10 +22,11 @@ export function useOrderCatalog() {
       ),
     [products, query, selectedCategory],
   );
-  const cardWidth =
-    catalogWidth > 0
-      ? Math.max(0, (catalogWidth - spacing.md * 2) / 3)
-      : undefined;
+  const mobile = width < 768;
+  const columns = mobile ? 2 : 3;
+  const cardWidth = catalogWidth > 0
+    ? Math.max(0, (catalogWidth - spacing.md * (columns - 1)) / columns)
+    : undefined;
   const handleCatalogLayout = useCallback(
     (nextWidth: number) => setCatalogWidth(nextWidth),
     [],
@@ -32,6 +35,7 @@ export function useOrderCatalog() {
   return {
     categories,
     cardWidth,
+    mobile,
     filteredProducts,
     handleCatalogLayout,
     onQueryChange,

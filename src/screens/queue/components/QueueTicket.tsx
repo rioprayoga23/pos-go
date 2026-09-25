@@ -8,11 +8,13 @@ import { styles } from '../styles';
 
 type Props = {
   order: Order;
+  isMobile: boolean;
+  isTablet: boolean;
   onAdvance: (id: string) => void;
   onTogglePreparedItem: (orderId: string, productId: string) => void;
 };
 
-export const QueueTicket = memo(function QueueTicket({ order, onAdvance, onTogglePreparedItem }: Props) {
+export const QueueTicket = memo(function QueueTicket({ order, isMobile, isTablet, onAdvance, onTogglePreparedItem }: Props) {
   const completed = order.status === 'completed';
   const preparedItemIds = order.preparedItemIds ?? [];
   const preparedCount = order.items.filter((item) => preparedItemIds.includes(item.product.id)).length;
@@ -25,12 +27,12 @@ export const QueueTicket = memo(function QueueTicket({ order, onAdvance, onToggl
     <Panel style={[styles.ticket, order.status === 'preparing' && styles.preparingTicket, order.status === 'ready' && styles.readyTicket, completed && styles.completedTicket]} padding={14}>
       <HStack style={styles.ticketTop}>
         <VStack style={{ gap: 3 }}>
-          <Text style={[styles.ticketNumber, order.status === 'preparing' && { color: colors.primary }, order.status === 'ready' && { color: colors.success }, completed && styles.completedText]}>{order.number}</Text>
-          <Text style={styles.ticketTime}>{order.createdAt} • {totalCups} Cup</Text>
+          <Text style={[styles.ticketNumber, isMobile && styles.ticketNumberMobile, isTablet && styles.ticketNumberTablet, order.status === 'preparing' && { color: colors.primary }, order.status === 'ready' && { color: colors.success }, completed && styles.completedText]}>{order.number}</Text>
+          <Text style={[styles.ticketTime, (isMobile || isTablet) && styles.ticketTimeAdaptive, isTablet && styles.ticketTimeTablet]}>{order.createdAt} • {totalCups} Cup</Text>
         </VStack>
         <StatusBadge status={order.status} />
       </HStack>
-      {order.status === 'preparing' ? <HStack style={styles.progressCount}><Text style={styles.progressCountText}>{preparedCount} / {totalMenus} Menu Selesai</Text></HStack> : null}
+      {order.status === 'preparing' ? <HStack style={styles.progressCount}><Text style={[styles.progressCountText, (isMobile || isTablet) && styles.progressCountTextAdaptive]}>{preparedCount} / {totalMenus} Menu Selesai</Text></HStack> : null}
       <VStack style={styles.ticketItems}>{order.items.map((item) => {
         const itemPrepared = order.status === 'ready' || completed || (order.status === 'preparing' && preparedItemIds.includes(item.product.id));
         const canToggleItem = order.status === 'preparing';
@@ -49,16 +51,16 @@ export const QueueTicket = memo(function QueueTicket({ order, onAdvance, onToggl
               </HStack>
             </Pressable>
             <VStack style={styles.itemCopy}>
-              <Text style={[styles.itemName, completed && styles.completedText]}>{item.quantity}x {item.product.name}</Text>
-              <Text style={styles.itemDetail}>{item.product.id === 'p-02' ? 'Large • Normal Ice • 50% Sugar' : 'Regular • Less Ice • Normal Sugar'}</Text>
+              <Text style={[styles.itemName, (isMobile || isTablet) && styles.itemNameAdaptive, completed && styles.completedText]}>{item.quantity}x {item.product.name}</Text>
+              <Text style={[styles.itemDetail, (isMobile || isTablet) && styles.itemDetailAdaptive]}>{item.product.id === 'p-02' ? 'Large • Normal Ice • 50% Sugar' : 'Regular • Less Ice • Normal Sugar'}</Text>
             </VStack>
-            {itemPrepared ? <HStack style={styles.preparedBadge}><Text style={styles.preparedBadgeText}>Selesai</Text></HStack> : null}
+            {itemPrepared ? <HStack style={styles.preparedBadge}><Text style={[styles.preparedBadgeText, (isMobile || isTablet) && styles.preparedBadgeTextAdaptive]}>Selesai</Text></HStack> : null}
           </HStack>
         );
       })}</VStack>
       {order.status === 'preparing' ? <VStack style={styles.progressTrack}><VStack style={[styles.progressFill, { width: `${totalMenus ? (preparedCount / totalMenus) * 100 : 0}%` }]} /></VStack> : null}
       <Button onPress={() => onAdvance(order.id)} isDisabled={actionDisabled} style={[styles.ticketButton, { backgroundColor: action.color }, actionDisabled && styles.disabledButton]}>
-        <ButtonText style={styles.ticketButtonText}>{action.label}</ButtonText>
+        <ButtonText style={[styles.ticketButtonText, (isMobile || isTablet) && styles.ticketButtonTextAdaptive]}>{action.label}</ButtonText>
         <AppIcon name={action.icon} size={15} color={colors.white} />
       </Button>
     </Panel>

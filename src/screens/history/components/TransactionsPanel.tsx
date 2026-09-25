@@ -17,12 +17,14 @@ import { Order } from "../../../types/pos";
 import type { DateRange, PaymentFilter } from "../types";
 import { formatDateRangeLabel } from "../utils/dateRange";
 import { styles } from "../styles";
-import { DateRangePickerModal } from "./DateRangePickerModal";
+import { DateRangePickerModal } from "../../../components/date-range-picker/DateRangePickerModal";
 import { TransactionCard } from "./TransactionCard";
 
 type Props = {
   isWide: boolean;
   isCompact: boolean;
+  isMobile: boolean;
+  isTablet: boolean;
   orders: Order[];
   query: string;
   onQueryChange: (query: string) => void;
@@ -43,6 +45,8 @@ const paymentOptions: PaymentFilter[] = ["Semua Bayar", "QRIS", "Tunai"];
 export function TransactionsPanel({
   isWide,
   isCompact,
+  isMobile,
+  isTablet,
   orders,
   query,
   onQueryChange,
@@ -62,7 +66,7 @@ export function TransactionsPanel({
       accessibilityState={{ expanded: isDatePickerOpen }}
     >
       <AppIcon name="calendar-outline" size={15} color={colors.primary} />
-      <Text style={styles.dateText} numberOfLines={1}>
+      <Text style={[styles.dateText, (isMobile || isTablet) && styles.readableTextAdaptive]} numberOfLines={1}>
         {formatDateRangeLabel(dateRange)}
       </Text>
       <AppIcon name="chevron-down" size={14} color={colors.inkMuted} />
@@ -79,7 +83,7 @@ export function TransactionsPanel({
             color={colors.primary}
           />
         </HStack>
-        <Text style={styles.pageTitle}>Riwayat Transaksi</Text>
+        <Text style={[styles.pageTitle, isTablet && styles.pageTitleTablet]}>Riwayat Transaksi</Text>
         {!isCompact ? dateButton : null}
       </HStack>
       {isCompact ? <HStack style={styles.compactDateRow}>{dateButton}</HStack> : null}
@@ -92,7 +96,7 @@ export function TransactionsPanel({
             onChangeText={onQueryChange}
             placeholder="Cari ID Bill (#B-042), antrean, atau menu..."
             placeholderTextColor={colors.inkSubtle}
-            style={styles.searchText}
+            style={[styles.searchText, (isMobile || isTablet) && styles.readableTextAdaptive]}
           />
         </Input>
         <Popover
@@ -110,7 +114,7 @@ export function TransactionsPanel({
               accessibilityState={{ expanded: isPaymentMenuOpen }}
             >
               <AppIcon name="tune-variant" size={16} color={colors.primary} />
-              <Text style={styles.filterText}>{paymentFilter}</Text>
+              <Text style={[styles.filterText, (isMobile || isTablet) && styles.readableTextAdaptive]}>{paymentFilter}</Text>
             </Pressable>
           )}
         >
@@ -133,10 +137,11 @@ export function TransactionsPanel({
                     accessibilityRole="button"
                     accessibilityState={{ selected: isActive }}
                   >
-                    <Text
-                      style={[
-                        styles.filterOptionText,
-                        isActive && styles.filterOptionTextActive,
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          (isMobile || isTablet) && styles.readableTextAdaptive,
+                          isActive && styles.filterOptionTextActive,
                       ]}
                     >
                       {option}
@@ -168,7 +173,7 @@ export function TransactionsPanel({
         <VStack style={styles.transactions}>
           {orders.length ? (
             orders.map((order) => (
-              <TransactionCard key={order.id} order={order} />
+              <TransactionCard key={order.id} order={order} density={isMobile ? "mobile" : isTablet ? "tablet" : "desktop"} />
             ))
           ) : (
             renderEmpty()

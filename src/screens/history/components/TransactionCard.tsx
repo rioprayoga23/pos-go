@@ -13,9 +13,13 @@ import { styles } from "../styles";
 
 export const TransactionCard = memo(function TransactionCard({
   order,
+  density = "desktop",
 }: {
   order: Order;
+  density?: "mobile" | "tablet" | "desktop";
 }) {
+  const compact = density !== "desktop";
+  const tablet = density === "tablet";
   const { billNumber: bill, queueNumber: queue, time, paymentMethod, amount, cupCount: cups, details } =
     getHistoryTransactionDisplay(order);
   const isQris = paymentMethod === "QRIS";
@@ -24,12 +28,12 @@ export const TransactionCard = memo(function TransactionCard({
   return (
     <VStack style={styles.transactionCard}>
       <HStack style={styles.transactionTop}>
-        <Text style={styles.transactionNumber}>{bill}</Text>
-        <Text style={styles.transactionTime}>{time} WIB</Text>
+        <Text style={[styles.transactionNumber, compact && styles.transactionNumberMobile, tablet && styles.transactionNumberTablet]}>{bill}</Text>
+        <Text style={[styles.transactionTime, compact && styles.readableTextAdaptive]}>{time} WIB</Text>
         <HStack style={styles.transactionTopActions}>
           <HStack style={styles.donePill}>
             <View style={styles.greenDot} />
-            <Text style={styles.doneText}>Selesai</Text>
+            <Text style={[styles.doneText, compact && styles.readableTextAdaptive]}>Selesai</Text>
           </HStack>
           <Pressable
             onPress={() =>
@@ -47,7 +51,7 @@ export const TransactionCard = memo(function TransactionCard({
             accessibilityLabel={`Lihat dan cetak ulang struk ${bill}`}
           >
             <AppIcon name="printer-outline" size={13} color={colors.ink} />
-            <Text style={styles.smallActionText}>Struk</Text>
+            <Text style={[styles.smallActionText, compact && styles.readableTextAdaptive]}>Struk</Text>
           </Pressable>
         </HStack>
       </HStack>
@@ -56,13 +60,13 @@ export const TransactionCard = memo(function TransactionCard({
           <AppIcon name="cup-outline" size={18} color={colors.primary} />
         </HStack>
         <VStack style={styles.transactionDetails}>
-          <Text style={styles.cupTitle}>Pesanan ({cups} Cup)</Text>
-          <Text style={styles.transactionCustomer} numberOfLines={1}>
+          <Text style={[styles.cupTitle, compact && styles.cupTitleAdaptive]}>{`Pesanan (${cups} Cup)`}</Text>
+          <Text style={[styles.transactionCustomer, compact && styles.readableTextAdaptive]} numberOfLines={1}>
             {details}
           </Text>
         </VStack>
         <VStack style={styles.transactionRight}>
-          <Text style={styles.transactionAmount}>{formatCurrency(amount)}</Text>
+          <Text style={[styles.transactionAmount, tablet && styles.transactionAmountTablet]}>{formatCurrency(amount)}</Text>
           <HStack
             style={[
               styles.methodPill,
@@ -77,6 +81,7 @@ export const TransactionCard = memo(function TransactionCard({
             <Text
               style={[
                 styles.methodText,
+                compact && styles.readableTextAdaptive,
                 { color: isQris ? colors.primary : colors.warning },
               ]}
             >

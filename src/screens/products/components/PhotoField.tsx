@@ -9,15 +9,17 @@ import { styles } from "../styles";
 type Props = {
   form: ProductEditorModel["form"];
   error: string;
+  isMobile: boolean;
+  isTablet: boolean;
   isPickingImage: boolean;
   onPick: () => Promise<void>;
   onClear: () => void;
 };
 
-export function PhotoField({ form, error, isPickingImage, onPick, onClear }: Props) {
+export function PhotoField({ form, error, isPickingImage, isMobile, isTablet, onPick, onClear }: Props) {
   return (
     <VStack>
-      <Text style={productFormStyles.fieldLabel}>
+      <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet]}>
         Foto Produk / Thumbnail Kasir
       </Text>
       <HStack style={styles.photoCard}>
@@ -26,7 +28,7 @@ export function PhotoField({ form, error, isPickingImage, onPick, onClear }: Pro
         ) : (
           <VStack style={styles.photoPlaceholder}>
             <AppIcon name="image-outline" size={23} color={colors.inkSubtle} />
-            <Text style={styles.photoPlaceholderText}>Belum dipilih</Text>
+            <Text style={[styles.photoPlaceholderText, (isMobile || isTablet) && styles.photoPlaceholderTextAdaptive]}>Belum dipilih</Text>
           </VStack>
         )}
         <VStack style={{ flex: 1, gap: 7 }}>
@@ -34,7 +36,7 @@ export function PhotoField({ form, error, isPickingImage, onPick, onClear }: Pro
             <Text style={styles.photoTitle}>Foto Produk &amp; Thumbnail POS</Text>
             {form.image ? <Text style={styles.savedBadge}>Tersimpan</Text> : null}
           </HStack>
-          <Text style={productFormStyles.description}>
+          <Text style={[productFormStyles.description, isMobile && productFormStyles.descriptionMobile, isTablet && productFormStyles.descriptionTablet]}>
             Format PNG, JPG, atau WEBP rasio 1:1
           </Text>
           <HStack style={{ gap: 7 }}>

@@ -63,7 +63,7 @@ export const ingredientModalStyles = StyleSheet.create({
     justifyContent: "center",
   },
   unitOptionSelected: { borderColor: colors.primary, backgroundColor: colors.surfaceTint },
-  unitOptionText: { color: colors.inkMuted, fontSize: 9, fontWeight: "800" },
+  unitOptionText: { color: colors.inkMuted, fontSize: 10, fontWeight: "800" },
   unitOptionTextSelected: { color: colors.primary },
   ingredientActions: {
     width: "100%",

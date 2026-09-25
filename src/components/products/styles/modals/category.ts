@@ -14,6 +14,7 @@ export const categoryModalStyles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
+  modalCategoryHeaderCompact: { gap: spacing.sm },
   modalCategoryCopy: { flex: 1, minWidth: 0, gap: 2 },
   modalCategoryIcon: {
     width: 44,
@@ -24,7 +25,9 @@ export const categoryModalStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  modalCategoryIconCompact: { width: 32, height: 32 },
   modalTitle: { color: colors.ink, fontSize: 18, fontWeight: "900" },
+  modalTitleCompact: { fontSize: 16, lineHeight: 20 },
   categoryModalActions: {
     width: "100%",
     alignItems: "stretch",

@@ -6,24 +6,27 @@ import { useNotificationStore } from "../../../store/notificationStore";
 import { colors } from "../../../theme";
 import { AppIcon, AppPressable as Pressable } from "../../ui";
 import { styles } from "../styles";
-import { PrinterStatusPill } from "./PrinterStatusPill";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { ProfileMenu } from "./ProfileMenu";
+import { PrinterStatusPill } from "./PrinterStatusPill";
 
 type Props = {
-  isLarge: boolean;
-  isExtraLarge: boolean;
+  showClockInHeader: boolean;
+  isMobile: boolean;
   onRequestCloseShift: () => void;
 };
 
 export function HeaderActions({
-  isLarge,
-  isExtraLarge,
+  showClockInHeader,
+  isMobile,
   onRequestCloseShift,
 }: Props) {
   const notifications = useNotificationStore((state) => state.notifications);
   const markNotificationRead = useNotificationStore(
     (state) => state.markAsRead,
+  );
+  const markAllNotificationsRead = useNotificationStore(
+    (state) => state.markAllAsRead,
   );
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -35,50 +38,54 @@ export function HeaderActions({
   );
 
   return (
-      <HStack style={styles.headerRight}>
-        {isLarge ? <PrinterStatusPill /> : null}
-        {isLarge ? (
+    <HStack style={styles.headerRight}>
+      {showClockInHeader ? (
+        <VStack style={styles.clockBlock}>
+          <Text style={styles.clock}>14:28:05</Text>
+          <Text style={styles.date}>Kamis, 24 Okt</Text>
+        </VStack>
+      ) : null}
+      {!isMobile ? (
+        <HStack style={styles.headerUtilityActions}>
+          <PrinterStatusPill />
           <Pressable
             onPress={onRequestCloseShift}
-            style={[styles.printerPill, styles.closeShiftPill]}
+            style={styles.headerCloseShift}
             accessibilityRole="button"
             accessibilityLabel="Tutup kasir hari ini"
           >
-            <AppIcon name="cash-register" size={15} color={colors.danger} />
-            <Text style={styles.closeShiftText} numberOfLines={1}>
-              Tutup Kasir Hari Ini
-            </Text>
+            <AppIcon name="cash-register" size={14} color={colors.danger} />
+            <Text style={styles.headerCloseShiftText}>Tutup kasir</Text>
           </Pressable>
-        ) : null}
-        {isExtraLarge ? (
-          <VStack style={styles.clockBlock}>
-            <Text style={styles.clock}>14:28:05</Text>
-            <Text style={styles.date}>Kamis, 24 Okt</Text>
-          </VStack>
-        ) : null}
-        <NotificationsMenu
-          isOpen={showNotifications}
-          notifications={notifications}
-          unreadCount={unreadNotificationCount}
-          width={width}
-          height={height}
-          topInset={insets.top}
-          bottomInset={insets.bottom}
-          onOpen={() => {
-            setShowProfileMenu(false);
-            setShowNotifications(true);
-          }}
-          onClose={() => setShowNotifications(false)}
-          onMarkRead={markNotificationRead}
-        />
-        <ProfileMenu
-          isOpen={showProfileMenu}
-          onOpen={() => {
-            setShowNotifications(false);
-            setShowProfileMenu(true);
-          }}
-          onClose={() => setShowProfileMenu(false)}
-        />
+        </HStack>
+      ) : null}
+      <NotificationsMenu
+        isOpen={showNotifications}
+        notifications={notifications}
+        unreadCount={unreadNotificationCount}
+        width={width}
+        height={height}
+        topInset={insets.top}
+        bottomInset={insets.bottom}
+        onOpen={() => {
+          setShowProfileMenu(false);
+          setShowNotifications(true);
+        }}
+        onClose={() => setShowNotifications(false)}
+        onMarkRead={markNotificationRead}
+        onMarkAllRead={markAllNotificationsRead}
+      />
+      <ProfileMenu
+        isOpen={showProfileMenu}
+        isMobile={isMobile}
+        showClockInProfile={!showClockInHeader}
+        onRequestCloseShift={onRequestCloseShift}
+        onOpen={() => {
+          setShowNotifications(false);
+          setShowProfileMenu(true);
+        }}
+        onClose={() => setShowProfileMenu(false)}
+      />
     </HStack>
   );
 }

@@ -11,6 +11,7 @@ export type PosNotification = {
 type NotificationState = {
   notifications: PosNotification[];
   markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
   addNotification: (notification: Omit<PosNotification, 'unread'>) => void;
 };
 
@@ -46,6 +47,12 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         notification.id === id
           ? { ...notification, unread: false }
           : notification,
+      ),
+    })),
+  markAllAsRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((notification) =>
+        notification.unread ? { ...notification, unread: false } : notification,
       ),
     })),
   addNotification: (notification) =>

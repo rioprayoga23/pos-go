@@ -43,6 +43,7 @@ export const cashStyles = StyleSheet.create({
   },
   quickButtonActive: { borderColor: colors.primary, backgroundColor: colors.surfaceTint },
   quickButtonText: { color: colors.ink, fontSize: 13, fontWeight: "800" },
+  quickButtonTextTablet: { fontSize: 14 },
   quickButtonTextActive: { color: colors.primary },
   quickButtonCompact: { width: undefined, flexBasis: 0, minWidth: 0, paddingHorizontal: spacing.xs },
   tenderAmounts: { gap: spacing.sm, alignItems: "stretch" },
@@ -69,6 +70,7 @@ export const cashStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   keypadGrid: { flex: 1, minHeight: 0, gap: spacing.sm },
+  keypadGridMobile: { flex: 0, flexGrow: 0, flexShrink: 0 },
   keypadRow: {
     flex: 1,
     minHeight: 48,
@@ -77,6 +79,7 @@ export const cashStyles = StyleSheet.create({
     position: "relative",
     marginHorizontal: -spacing.xs,
   },
+  keypadRowMobile: { flex: 0, height: 44, minHeight: 44 },
   keypadCell: {
     flexGrow: 1,
     flexBasis: 0,
@@ -95,6 +98,7 @@ export const cashStyles = StyleSheet.create({
     justifyContent: "center",
   },
   keypadText: { color: colors.ink, fontSize: 19, fontWeight: "800" },
+  keypadTextMobile: { fontSize: 17 },
   keypadClear: { borderColor: "#FECACA", backgroundColor: "#FFF7F7" },
   keypadClearText: { color: colors.danger },
   applyButton: {
@@ -111,6 +115,7 @@ export const cashStyles = StyleSheet.create({
     justifyContent: "center",
   },
   applyButtonText: { color: colors.white, fontSize: 12, fontWeight: "900" },
+  applyButtonTextTablet: { fontSize: 13 },
   disabledButton: { opacity: 0.5 },
   qrisPanel: { flex: 1, minHeight: 0 },
   verifyBox: {

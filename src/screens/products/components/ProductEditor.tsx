@@ -23,9 +23,13 @@ import { styles } from "../styles";
 export function ProductEditor({
   model,
   formScrollRef,
+  isMobile,
+  isTablet,
 }: {
   model: ProductEditorModel;
   formScrollRef: React.RefObject<ScrollView | null>;
+  isMobile: boolean;
+  isTablet: boolean;
 }) {
   const { editing, form, setForm } = model;
   const price = Number(form.price.replace(/\D/g, ""));
@@ -61,16 +65,92 @@ export function ProductEditor({
     form.accent !== emptyForm.accent ||
     form.icon !== emptyForm.icon ||
     form.image !== undefined;
+  const formFields = (
+    <VStack style={productFormStyles.formGap}>
+      <VStack>
+        <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet]}>
+          Nama Menu Minuman <Text style={productFormStyles.required}>*</Text>
+        </Text>
+        <AppInput
+          value={form.name}
+          onChangeText={(name) => setForm({ ...form, name })}
+          placeholder="Contoh: Brown Sugar Pearl Milk Tea"
+          accessibilityLabel="Nama menu minuman"
+          inputStyle={[styles.inputText, isMobile && styles.inputTextMobile, isTablet && styles.inputTextTablet]}
+          trailing={
+            <AppIcon
+              name="coffee-outline"
+              size={19}
+              color={colors.inkMuted}
+            />
+          }
+        />
+      </VStack>
+      <CategoryField
+        categories={model.categories}
+        selectedId={form.categoryId}
+        isMobile={isMobile}
+        isTablet={isTablet}
+        onSelect={(categoryId) => setForm({ ...form, categoryId })}
+        onAdd={model.categoryModal.open}
+      />
+      <StockField form={form} setForm={setForm} isMobile={isMobile} isTablet={isTablet} />
+      <ProductAvailabilityField
+        isActive={form.isAvailable}
+        isMobile={isMobile}
+        isTablet={isTablet}
+        onChange={(isAvailable) =>
+          setForm((current) => ({ ...current, isAvailable }))
+        }
+      />
+      <PhotoField
+        form={form}
+        error={model.photoError}
+        isPickingImage={model.isPickingImage}
+        isMobile={isMobile}
+        isTablet={isTablet}
+        onPick={model.pickProductImage}
+        onClear={model.clearPhoto}
+      />
+      <FinanceOverview
+        financials={model.financials}
+        onOpen={model.hppModal.open}
+        isMobile={isMobile}
+        isTablet={isTablet}
+      />
+      {model.formError ? (
+        <Text style={productFormStyles.errorText}>{model.formError}</Text>
+      ) : null}
+      <VStack style={styles.formActions}>
+        <Button
+          onPress={model.save}
+          isDisabled={!isFormComplete}
+          style={[
+            styles.formPublishButton,
+            !isFormComplete && { opacity: 0.45 },
+          ]}
+        >
+          <AppIcon name="check-circle" size={19} color={colors.white} />
+          <ButtonText style={[productFormStyles.publishText, isMobile && productFormStyles.publishTextMobile, isTablet && productFormStyles.publishTextTablet]}>
+            {editing ? "Simpan Perubahan" : "Simpan & Publikasikan Menu"}
+          </ButtonText>
+        </Button>
+      </VStack>
+    </VStack>
+  );
 
   return (
-    <VStack style={styles.formColumn}>
-      <Panel style={styles.formCard} padding={spacing.lg}>
+    <VStack style={[styles.formColumn, isMobile && styles.formColumnMobile]}>
+      <Panel
+        style={[styles.formCard, isMobile && styles.formCardMobile]}
+        padding={spacing.lg}
+      >
         <HStack style={styles.formHeader}>
           <VStack style={{ flex: 1, gap: 3 }}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               {editing ? "Edit Menu Minuman" : "Input Menu Minuman Baru"}
             </Text>
-            <Text style={productFormStyles.description}>
+            <Text style={[productFormStyles.description, isMobile && productFormStyles.descriptionMobile, isTablet && productFormStyles.descriptionTablet]}>
               {editing
                 ? `Perbarui detail ${editing.name}.`
                 : "Konfigurasikan item menu, harga, margin, dan kustomisasi varian."}
@@ -85,82 +165,23 @@ export function ProductEditor({
               accessibilityLabel="Kosongkan formulir menu"
             >
               <AppIcon name="refresh" size={15} color={colors.danger} />
-              <Text style={styles.resetText}>Reset</Text>
+              <Text style={[styles.resetText, isMobile && styles.resetTextMobile, isTablet && styles.resetTextTablet]}>Reset</Text>
             </Pressable>
           ) : null}
         </HStack>
-        <ScrollView
-          ref={formScrollRef}
-          style={styles.formScroll}
-          contentContainerStyle={styles.formScrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <VStack style={productFormStyles.formGap}>
-            <VStack>
-              <Text style={productFormStyles.fieldLabel}>
-                Nama Menu Minuman{" "}
-                <Text style={productFormStyles.required}>*</Text>
-              </Text>
-              <AppInput
-                value={form.name}
-                onChangeText={(name) => setForm({ ...form, name })}
-                placeholder="Contoh: Brown Sugar Pearl Milk Tea"
-                accessibilityLabel="Nama menu minuman"
-                inputStyle={styles.inputText}
-                trailing={
-                  <AppIcon
-                    name="coffee-outline"
-                    size={19}
-                    color={colors.inkMuted}
-                  />
-                }
-              />
-            </VStack>
-            <CategoryField
-              categories={model.categories}
-              selectedId={form.categoryId}
-              onSelect={(categoryId) => setForm({ ...form, categoryId })}
-              onAdd={model.categoryModal.open}
-            />
-            <StockField form={form} setForm={setForm} />
-            <ProductAvailabilityField
-              isActive={form.isAvailable}
-              onChange={(isAvailable) =>
-                setForm((current) => ({ ...current, isAvailable }))
-              }
-            />
-            <PhotoField
-              form={form}
-              error={model.photoError}
-              isPickingImage={model.isPickingImage}
-              onPick={model.pickProductImage}
-              onClear={model.clearPhoto}
-            />
-            <FinanceOverview
-              financials={model.financials}
-              onOpen={model.hppModal.open}
-            />
-            {model.formError ? (
-              <Text style={productFormStyles.errorText}>{model.formError}</Text>
-            ) : null}
-            <VStack style={styles.formActions}>
-              <Button
-                onPress={model.save}
-                isDisabled={!isFormComplete}
-                style={[
-                  styles.formPublishButton,
-                  !isFormComplete && { opacity: 0.45 },
-                ]}
-              >
-                <AppIcon name="check-circle" size={19} color={colors.white} />
-                <ButtonText style={productFormStyles.publishText}>
-                  {editing ? "Simpan Perubahan" : "Simpan & Publikasikan Menu"}
-                </ButtonText>
-              </Button>
-            </VStack>
-          </VStack>
-        </ScrollView>
+        {isMobile ? (
+          <VStack style={styles.mobileFormContent}>{formFields}</VStack>
+        ) : (
+          <ScrollView
+            ref={formScrollRef}
+            style={styles.formScroll}
+            contentContainerStyle={styles.formScrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {formFields}
+          </ScrollView>
+        )}
       </Panel>
       <CategoryModal
         visible={model.categoryModal.visible}

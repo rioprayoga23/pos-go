@@ -1,10 +1,13 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Platform } from 'react-native';
 import { colors } from '../theme';
 import { HistoryScreen } from '../screens/history';
 import { OrderScreen } from '../screens/order';
 import { PaymentScreen } from '../screens/payment';
 import { ProductsScreen } from '../screens/products';
+import { StockScreen } from '../screens/stock';
+import { CashScreen } from '../screens/cash';
 import { QueueScreen } from '../screens/queue';
 import { RootStackParamList } from './types';
 
@@ -18,9 +21,11 @@ const navigationTheme = {
 export function AppNavigator() {
   return (
     <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator initialRouteName="Order" screenOptions={{ headerShown: false, animation: 'fade' }}>
+      <Stack.Navigator initialRouteName={Platform.OS === 'web' ? 'Stock' : 'Order'} screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="Order" component={OrderScreen} />
         <Stack.Screen name="Products" component={ProductsScreen} />
+        <Stack.Screen name="Stock" component={StockScreen} />
+        <Stack.Screen name="Cash" component={CashScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="Queue" component={QueueScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />

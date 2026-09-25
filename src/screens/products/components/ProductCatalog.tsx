@@ -11,10 +11,32 @@ import { colors, spacing } from "../../../theme";
 import { ProductCatalogModel } from "../types";
 import { styles } from "../styles";
 
-export function ProductCatalog({ model }: { model: ProductCatalogModel }) {
+export function ProductCatalog({
+  model,
+  isMobile,
+  isTablet,
+}: {
+  model: ProductCatalogModel;
+  isMobile: boolean;
+  isTablet: boolean;
+}) {
+  const menuItems = model.filteredProducts.map((product) => (
+    <MenuListItem
+      key={product.id}
+      product={product}
+      selected={model.editing?.id === product.id}
+      isMobile={isMobile}
+      isTablet={isTablet}
+      onEdit={model.openEdit}
+    />
+  ));
+
   return (
-    <VStack style={styles.listColumn}>
-      <Panel style={styles.listCard} padding={spacing.md}>
+    <VStack style={[styles.listColumn, isMobile && styles.listColumnMobile]}>
+      <Panel
+        style={[styles.listCard, isMobile && styles.listCardMobile]}
+        padding={spacing.md}
+      >
         <HStack style={styles.listHeader}>
           <HStack style={{ alignItems: "center", gap: 8 }}>
             <AppIcon
@@ -24,7 +46,7 @@ export function ProductCatalog({ model }: { model: ProductCatalogModel }) {
             />
             <Text style={styles.sectionTitle}>Daftar Menu</Text>
           </HStack>
-          <Text style={styles.menuCount}>
+          <Text style={[styles.menuCount, (isMobile || isTablet) && styles.menuCountAdaptive, isTablet && styles.menuCountTablet]}>
             {model.productCounts.total} Menu Terdaftar
           </Text>
         </HStack>
@@ -36,7 +58,7 @@ export function ProductCatalog({ model }: { model: ProductCatalogModel }) {
           accessibilityLabel="Cari nama minuman "
           leading={<AppIcon name="magnify" size={18} color={colors.inkMuted} />}
           style={styles.listSearch}
-          inputStyle={styles.inputText}
+          inputStyle={[styles.inputText, isMobile && styles.inputTextMobile, isTablet && styles.inputTextTablet]}
         />
         <ScrollView
           horizontal
@@ -57,6 +79,8 @@ export function ProductCatalog({ model }: { model: ProductCatalogModel }) {
               <Text
                 style={[
                   styles.filterChipText,
+                  isMobile && styles.filterChipTextMobile,
+                  isTablet && styles.filterChipTextTablet,
                   model.selectedCategory === category.id &&
                     styles.filterChipTextActive,
                 ]}
@@ -66,28 +90,25 @@ export function ProductCatalog({ model }: { model: ProductCatalogModel }) {
             </Pressable>
           ))}
         </ScrollView>
-        <ScrollView
-          style={styles.menuListScroll}
-          contentContainerStyle={styles.menuList}
-          showsVerticalScrollIndicator={false}
-        >
-          {model.filteredProducts.map((product) => (
-            <MenuListItem
-              key={product.id}
-              product={product}
-              selected={model.editing?.id === product.id}
-              onEdit={model.openEdit}
-            />
-          ))}
-        </ScrollView>
+        {isMobile ? (
+          <VStack style={styles.mobileMenuList}>{menuItems}</VStack>
+        ) : (
+          <ScrollView
+            style={styles.menuListScroll}
+            contentContainerStyle={styles.menuList}
+            showsVerticalScrollIndicator={false}
+          >
+            {menuItems}
+          </ScrollView>
+        )}
         <HStack style={styles.listFooter}>
           <HStack style={{ alignItems: "center", gap: 5 }}>
             <View style={styles.greenDot} />
-            <Text style={styles.footerStrong}>
+            <Text style={[styles.footerStrong, (isMobile || isTablet) && styles.footerStrongAdaptive, isTablet && styles.footerStrongTablet]}>
               Total {model.productCounts.active} Menu Aktif
             </Text>
             <Text style={styles.footerBullet}>•</Text>
-            <Text style={styles.footerWarning}>2 Menu Menipis</Text>
+            <Text style={[styles.footerWarning, (isMobile || isTablet) && styles.footerWarningAdaptive, isTablet && styles.footerWarningTablet]}>2 Menu Menipis</Text>
           </HStack>
         </HStack>
       </Panel>

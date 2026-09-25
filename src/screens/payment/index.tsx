@@ -43,6 +43,8 @@ export function PaymentScreen({ navigation }: Props) {
     submitPayment,
   } = usePayment();
   const isWide = width >= 1024;
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
 
   if (!items.length && !showSuccess)
     return (
@@ -75,15 +77,15 @@ export function PaymentScreen({ navigation }: Props) {
             <Panel style={styles.billBar} padding={spacing.md}>
               <VStack style={styles.billSummary}>
                 <HStack style={styles.billHeader}>
-                  <Text style={styles.microLabel}>SUBTOTAL</Text>
+                  <Text style={[styles.microLabel, (isMobile || isTablet) && styles.microLabelAdaptive]}>SUBTOTAL</Text>
                   <Text style={styles.billOrderTag}>Order #B-042</Text>
                 </HStack>
                 <HStack style={styles.billAmountRow}>
-                  <Text style={styles.billTotal}>
+                  <Text style={[styles.billTotal, isMobile && styles.billTotalMobile, isTablet && styles.billTotalTablet]}>
                     {formatCurrency(subtotal)}
                   </Text>
                   <VStack style={styles.billOrderCount}>
-                    <Text style={styles.billOrderCountLabel}>
+                    <Text style={[styles.billOrderCountLabel, (isMobile || isTablet) && styles.billOrderCountLabelAdaptive, isTablet && styles.billOrderCountLabelTablet]}>
                       TOTAL PESANAN
                     </Text>
                     <Text style={styles.billOrderCountValue}>
@@ -162,7 +164,6 @@ export function PaymentScreen({ navigation }: Props) {
                   </Text>
                 </VStack>
               </HStack>
-              <Text style={styles.enterKey}>ENTER ↵</Text>
             </Button>
           </VStack>
         </HStack>

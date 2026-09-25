@@ -109,7 +109,7 @@ export const hppModalStyles = StyleSheet.create({
   },
   hppComponentCopy: { flex: 1, minWidth: 0, gap: 2 },
   hppComponentName: { color: colors.ink, fontSize: 11, fontWeight: "900" },
-  hppComponentDetail: { color: colors.inkMuted, fontSize: 9, lineHeight: 13 },
+  hppComponentDetail: { color: colors.inkMuted, fontSize: 10, lineHeight: 14 },
   hppComponentCostInput: {
     width: 138,
     minHeight: 42,
@@ -146,7 +146,7 @@ export const hppModalStyles = StyleSheet.create({
     justifyContent: "center",
   },
   hppSummaryCopy: { flex: 1, minWidth: 150, gap: 2 },
-  hppSummaryLabel: { color: colors.inkMuted, fontSize: 9, fontWeight: "800" },
+  hppSummaryLabel: { color: colors.inkMuted, fontSize: 10, fontWeight: "800" },
   hppProfit: { color: colors.success, fontSize: 11, fontWeight: "900" },
   hppProfitNegative: { color: colors.danger },
   hppTotalBadge: {
@@ -158,7 +158,7 @@ export const hppModalStyles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
-  hppTotalLabel: { color: colors.success, fontSize: 9, fontWeight: "800" },
+  hppTotalLabel: { color: colors.success, fontSize: 10, fontWeight: "800" },
   hppTotalValue: { color: colors.success, fontSize: 12, fontWeight: "900" },
   hppModalFooter: {
     width: "100%",

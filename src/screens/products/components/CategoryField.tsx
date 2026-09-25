@@ -13,15 +13,17 @@ import { styles } from "../styles";
 type Props = {
   categories: Category[];
   selectedId: string;
+  isMobile: boolean;
+  isTablet: boolean;
   onSelect: (categoryId: string) => void;
   onAdd: () => void;
 };
 
-export function CategoryField({ categories, selectedId, onSelect, onAdd }: Props) {
+export function CategoryField({ categories, selectedId, isMobile, isTablet, onSelect, onAdd }: Props) {
   return (
     <VStack style={styles.categoryGroup}>
       <HStack style={styles.labelRow}>
-        <Text style={[productFormStyles.fieldLabel, styles.categoryLabel]}>
+        <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet, styles.categoryLabel]}>
           Kategori Menu Minuman
         </Text>
         <ActionPill
@@ -51,6 +53,8 @@ export function CategoryField({ categories, selectedId, onSelect, onAdd }: Props
               <Text
                 style={[
                   styles.formCategoryText,
+                  isMobile && styles.formCategoryTextMobile,
+                  isTablet && styles.formCategoryTextTablet,
                   selectedId === category.id && styles.formCategoryTextActive,
                 ]}
               >

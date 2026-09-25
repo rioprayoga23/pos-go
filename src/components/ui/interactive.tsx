@@ -10,9 +10,13 @@ import {
   type PressableProps,
   StyleProp,
   StyleSheet,
+  useWindowDimensions,
   ViewStyle,
 } from "react-native";
 import { colors, radius } from "../../theme";
+
+const mobileBreakpoint = 768;
+const mobileButtonHeight = 44;
 
 export type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
@@ -46,6 +50,46 @@ function withPressedOpacity(style: PressableProps["style"], pressed: boolean) {
   ];
 }
 
+function compactMobileTouchStyle(
+  style: StyleProp<ViewStyle>,
+  width: number,
+): StyleProp<ViewStyle> {
+  if (width >= mobileBreakpoint) return style;
+
+  const flattenedStyle = StyleSheet.flatten(style);
+  if (!flattenedStyle) return style;
+
+  const hasOversizedHeight =
+    (typeof flattenedStyle.height === "number" &&
+      flattenedStyle.height > mobileButtonHeight) ||
+    (typeof flattenedStyle.minHeight === "number" &&
+      flattenedStyle.minHeight > mobileButtonHeight);
+
+  return hasOversizedHeight
+    ? {
+        ...flattenedStyle,
+        height: mobileButtonHeight,
+        minHeight: mobileButtonHeight,
+      }
+    : style;
+}
+
+function hasOversizedMobileTouchStyle(
+  style: StyleProp<ViewStyle>,
+  width: number,
+) {
+  if (width >= mobileBreakpoint) return false;
+
+  const flattenedStyle = StyleSheet.flatten(style);
+  return Boolean(
+    flattenedStyle &&
+      ((typeof flattenedStyle.height === "number" &&
+        flattenedStyle.height > mobileButtonHeight) ||
+        (typeof flattenedStyle.minHeight === "number" &&
+          flattenedStyle.minHeight > mobileButtonHeight)),
+  );
+}
+
 function getAndroidRipple(
   ripple: PressableProps["android_ripple"],
   enabled: boolean,
@@ -62,7 +106,14 @@ export function AppPressable({
   onPressOut,
   ...props
 }: ComponentProps<typeof GluestackPressable>) {
+  const { width } = useWindowDimensions();
   const [pressed, setPressed] = useState(false);
+  const resolvedStyle = typeof style === "function" ? style({ pressed }) : style;
+  const compactedForMobile = hasOversizedMobileTouchStyle(
+    resolvedStyle,
+    width,
+  );
+  const touchStyle = compactMobileTouchStyle(resolvedStyle, width);
   const feedbackEnabled =
     hasPressHandler({ ...props, onPressIn, onPressOut }) && !disabled;
 
@@ -79,10 +130,11 @@ export function AppPressable({
     <GluestackPressable
       {...props}
       disabled={disabled}
+      hitSlop={compactedForMobile ? (props.hitSlop ?? 2) : props.hitSlop}
       onPressIn={feedbackEnabled ? handlePressIn : onPressIn}
       onPressOut={feedbackEnabled ? handlePressOut : onPressOut}
       android_ripple={getAndroidRipple(android_ripple, feedbackEnabled)}
-      style={feedbackEnabled ? withPressedOpacity(style, pressed) : style}
+      style={feedbackEnabled ? withPressedOpacity(touchStyle, pressed) : touchStyle}
     />
   );
 }
@@ -96,7 +148,16 @@ export function AppButton({
   onPressOut,
   ...props
 }: ComponentProps<typeof GluestackButton>) {
+  const { width } = useWindowDimensions();
   const [pressed, setPressed] = useState(false);
+  const compactedForMobile = hasOversizedMobileTouchStyle(
+    style as StyleProp<ViewStyle>,
+    width,
+  );
+  const touchStyle = compactMobileTouchStyle(
+    style as StyleProp<ViewStyle>,
+    width,
+  );
   const feedbackEnabled =
     hasPressHandler({ ...props, onPressIn, onPressOut }) &&
     !disabled &&
@@ -116,13 +177,14 @@ export function AppButton({
       {...props}
       disabled={disabled}
       isDisabled={isDisabled}
+      hitSlop={compactedForMobile ? (props.hitSlop ?? 2) : props.hitSlop}
       onPressIn={feedbackEnabled ? handlePressIn : onPressIn}
       onPressOut={feedbackEnabled ? handlePressOut : onPressOut}
       android_ripple={getAndroidRipple(android_ripple, feedbackEnabled)}
       style={
         feedbackEnabled
-          ? withPressedOpacity(style as PressableProps["style"], pressed)
-          : style
+          ? withPressedOpacity(touchStyle as PressableProps["style"], pressed)
+          : touchStyle
       }
     />
   );
@@ -173,6 +235,7 @@ export function ActionPill({
   onPress: () => void;
   accessibilityLabel?: string;
 }) {
+  const { width } = useWindowDimensions();
   return (
     <AppPressable
       onPress={onPress}
@@ -182,7 +245,7 @@ export function ActionPill({
       accessibilityLabel={accessibilityLabel ?? label}
     >
       <AppIcon name={icon} size={16} color={colors.primary} />
-      <Text style={styles.actionPillText}>{label}</Text>
+      <Text style={[styles.actionPillText, width < 768 && styles.actionPillTextMobile, width >= 768 && width < 1024 && styles.actionPillTextTablet]}>{label}</Text>
     </AppPressable>
   );
 }
@@ -200,6 +263,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionPillText: { color: colors.primary, fontSize: 10, fontWeight: "900" },
+  actionPillTextMobile: { fontSize: 11 },
+  actionPillTextTablet: { fontSize: 12 },
   appModalCloseButton: {
     width: 44,
     height: 44,

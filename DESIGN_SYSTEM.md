@@ -14,18 +14,22 @@ YoSher Go uses the Stitch reference project `Tablet POS Interface` as its visual
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `ink` | `#11213F` | Primary heading, totals, dark QRIS panel |
-| `inkMuted` | `#61708C` | Supporting copy and labels |
-| `inkSubtle` | `#8793A8` | Secondary metadata and table headers |
-| `canvas` | `#F5F8FC` | App background |
+| `ink` | `#191C1E` | Primary heading, totals, dark QRIS panel |
+| `inkMuted` | `#434655` | Supporting copy and labels |
+| `inkSubtle` | `#737686` | Secondary metadata and table headers |
+| `canvas` | `#F7F9FB` | App background |
 | `surface` | `#FFFFFF` | Cards, inputs, content panels |
-| `surfaceTint` | `#EEF5FF` | Active navigation and soft emphasis |
-| `primary` | `#1565E9` | Primary action, active tabs, links |
-| `primaryDark` | `#0B4FC6` | Pressed/strong primary state |
-| `success` | `#129A68` | Ready, available, completed states |
-| `warning` | `#B97800` | Waiting and timer states |
-| `danger` | `#C73B52` | Delete and validation error states |
-| `line` | `#DFE7F2` | Borders and separators |
+| `surfaceTint` | `#EFF6FF` | Active navigation and soft emphasis |
+| `surfaceContainerLow` | `#F2F4F6` | Quiet controls and grouped surfaces |
+| `primary` | `#2563EB` | Primary action, active tabs, links |
+| `primaryDark` | `#004AC6` | Pressed/strong primary state |
+| `success` | `#16A34A` | Ready, available, completed states |
+| `successSoft` | `#D1FAE5` | Soft success surfaces |
+| `warning` | `#D97706` | Waiting and timer states |
+| `warningSoft` | `#FEF3C7` | Soft warning surfaces |
+| `danger` | `#DC2626` | Delete and validation error states |
+| `dangerSoft` | `#FEE2E2` | Soft danger surfaces |
+| `line` | `#E2E8F0` | Borders and separators |
 
 Tokens live in `src/theme/tokens.ts` and are merged into the Gluestack configuration in `src/theme/index.ts`. Screen files should import tokens instead of adding new raw colors.
 
@@ -37,6 +41,7 @@ Tokens live in `src/theme/tokens.ts` and are merged into the Gluestack configura
 - Body: 15 px, regular/600, used for primary copy.
 - Body small: 13 px, regular/600, used for metadata.
 - Label: 12 px, 700/800, used for fields, badges, and table headings.
+- Caption: 11 px for supporting labels and compact metadata; micro: 10 px for dense table metadata and compact controls.
 - Numeric: 24 px, 800, used for metric values.
 
 Text should remain readable at tablet viewing distance. Keep supporting copy short and use `numberOfLines` only where truncation is intentional.
@@ -71,6 +76,8 @@ Reusable app components live in `src/components/ui.tsx`:
 - `AppIcon`: MaterialCommunityIcons wrapper for one consistent icon system.
 
 The thermal receipt is shared through `src/components/receipt/ReceiptPaper.tsx` by the payment preview and the history reprint dialog. `ReceiptPrintModal` presents the receipt and opens the platform print interface.
+
+`DatePeriodFilter` in `src/components/date-period-filter/` is shared by Kelola Kas and the Kelola Stok mutation history. It pairs today/month presets with the shared date-range picker and uses the date-range helpers in `src/utils/date.ts`.
 
 ## Component states
 

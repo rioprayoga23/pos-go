@@ -8,15 +8,17 @@ import { styles } from "../styles";
 type Props = {
   form: ProductEditorModel["form"];
   setForm: ProductEditorModel["setForm"];
+  isMobile: boolean;
+  isTablet: boolean;
 };
 
-export function StockField({ form, setForm }: Props) {
+export function StockField({ form, setForm, isMobile, isTablet }: Props) {
   return (
     <Panel style={styles.stockPanel} padding={spacing.md}>
       <HStack style={styles.stockRow}>
         <VStack style={{ flex: 1, gap: 3 }}>
           <Text style={styles.stockLabel}>Stok Saat Ini</Text>
-          <Text style={productFormStyles.description}>
+          <Text style={[productFormStyles.description, isMobile && productFormStyles.descriptionMobile, isTablet && productFormStyles.descriptionTablet]}>
             Atur ketersediaan porsi di kasir.
           </Text>
         </VStack>
@@ -61,7 +63,7 @@ export function StockField({ form, setForm }: Props) {
           >
             <AppIcon name="plus" size={16} color={colors.primary} />
           </Pressable>
-          <Text style={styles.stockUnit}>Porsi</Text>
+          <Text style={[styles.stockUnit, isTablet && styles.stockUnitTablet]}>Porsi</Text>
         </HStack>
       </HStack>
     </Panel>

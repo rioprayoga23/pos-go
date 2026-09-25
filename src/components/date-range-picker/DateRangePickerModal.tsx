@@ -12,11 +12,11 @@ import {
 } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { AppIcon, AppModalCloseButton, AppPressable as Pressable } from "../../../components/ui";
-import { colors } from "../../../theme";
-import { dateFromKey, formatDateKey, getLocalDateKey } from "../../../utils/date";
-import type { DateRange } from "../types";
-import { dateRangePickerStyles as styles } from "../styles/dateRangePicker";
+import { AppIcon, AppModalCloseButton, AppPressable as Pressable } from "../ui";
+import { colors } from "../../theme";
+import { dateFromKey, formatDateKey, getLocalDateKey } from "../../utils/date";
+import type { DateRange } from "../../types/dateRange";
+import { dateRangePickerStyles as styles } from "./styles";
 
 const weekdays = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const monthOptions = Array.from({ length: 12 }, (_, month) => ({
