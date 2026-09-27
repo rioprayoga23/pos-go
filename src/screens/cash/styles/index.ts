@@ -69,10 +69,6 @@ export const styles = StyleSheet.create({
   categoryBadgeOperational: { backgroundColor: colors.surfaceContainerLow, borderColor: colors.line },
   categoryText: { color: colors.primaryDark, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
   categoryTextOperational: { color: colors.inkMuted },
-  sourceBadge: { minHeight: 22, paddingHorizontal: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: colors.tintYellowBold, alignItems: "center", alignSelf: "flex-start", justifyContent: "center" },
-  sourceBadgeTransfer: { backgroundColor: colors.surfaceContainerLow, borderColor: colors.line },
-  sourceText: { color: "#92400E", fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
-  sourceTextTransfer: { color: colors.inkMuted },
   amountText: { color: colors.ink, fontSize: type.label, fontWeight: "700", fontVariant: ["tabular-nums"] },
 
 

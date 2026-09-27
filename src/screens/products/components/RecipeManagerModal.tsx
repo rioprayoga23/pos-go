@@ -34,6 +34,7 @@ import type { Recipe, RecipeIngredient, RecipeKind } from "../../../types/stock"
 import {
   getAvailablePortions,
 } from "../../../utils/standardRecipe";
+import { digitsOnly } from "../../../utils/format";
 
 type DraftIngredient =
   | { type: "stock"; itemId: string; quantity: string }
@@ -298,7 +299,7 @@ export function RecipeManagerModal({
                               onChangeText={(value) => {
                                 setIngredients((current) => current.map((entry) => {
                                   const entryId = entry.type === "stock" ? `stock:${entry.itemId}` : `base:${entry.recipeId}`;
-                                  return entryId === ingredientId ? { ...entry, quantity: value.replace(/\D/g, "") } : entry;
+                                  return entryId === ingredientId ? { ...entry, quantity: digitsOnly(value) } : entry;
                                 }));
                                 setError("");
                               }}

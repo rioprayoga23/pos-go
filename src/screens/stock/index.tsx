@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
 import { LoadingScreen } from "../../components/loading-screen";
+import { QueryErrorNotice } from "../../components/query-error-notice";
 import {
   DataTable,
   DataTableActionButton,
@@ -29,6 +30,7 @@ import type { DatePeriod, DateRange } from "../../types/dateRange";
 import { getLocalDateKey, getPresetDateRange } from "../../utils/date";
 import { colors, spacing } from "../../theme";
 import { formatCurrency, formatThousands } from "../../utils/format";
+import { debounce } from "../../utils/debounce";
 import { StockPurchaseModal } from "./components/StockPurchaseModal";
 import { StockItemModal, type StockItemFormDraft } from "./components/StockItemModal";
 import { DeleteStockItemModal } from "./components/DeleteStockItemModal";
@@ -57,17 +59,6 @@ function getStockMovementTime(dateKey: string, time: string) {
         new Date(dateKey + "T12:00:00"),
       );
   return dateLabel + ", " + time + " WIB";
-}
-
-function QueryErrorNotice({ onRetry }: { onRetry: () => void }) {
-  return (
-    <HStack style={{ alignItems: "center", justifyContent: "space-between", gap: spacing.md, padding: spacing.md, backgroundColor: colors.dangerSoft }}>
-      <Text style={{ color: colors.danger, flex: 1 }}>Data gagal diperbarui.</Text>
-      <AppPressable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Coba muat ulang">
-        <Text style={{ color: colors.danger, fontWeight: "600" }}>Coba lagi</Text>
-      </AppPressable>
-    </HStack>
-  );
 }
 
 function RetryButton({ onRetry }: { onRetry: () => void }) {
@@ -104,6 +95,14 @@ export function StockScreen() {
     kind: "success" | "error";
   } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateDebouncedQuery = useMemo(
+    () => debounce(setDebouncedQuery, 250),
+    [],
+  );
+  const updateDebouncedHistoryQuery = useMemo(
+    () => debounce(setDebouncedHistoryQuery, 250),
+    [],
+  );
   const isToolbarCompact = width < 920;
   const inventoryWidth = Math.max(900, width - (isToolbarCompact ? 32 : 176));
   const historyWidth = Math.max(960, width - (isToolbarCompact ? 32 : 176));
@@ -170,14 +169,14 @@ export function StockScreen() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 250);
-    return () => clearTimeout(timer);
-  }, [query]);
+    updateDebouncedQuery(query.trim());
+    return () => updateDebouncedQuery.cancel();
+  }, [query, updateDebouncedQuery]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedHistoryQuery(historyQuery.trim()), 250);
-    return () => clearTimeout(timer);
-  }, [historyQuery]);
+    updateDebouncedHistoryQuery(historyQuery.trim());
+    return () => updateDebouncedHistoryQuery.cancel();
+  }, [historyQuery, updateDebouncedHistoryQuery]);
 
   const changeInventoryQuery = (nextQuery: string) => {
     setQuery(nextQuery);

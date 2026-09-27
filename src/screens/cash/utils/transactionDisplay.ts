@@ -1,11 +1,4 @@
-import type { CashTransaction } from "../../../types/cash";
 import { dateFromKey, formatDateKey, getLocalDateKey } from "../../../utils/date";
-
-export function getCashSourceLabel(source: CashTransaction["source"]) {
-  return source === "cash"
-    ? "Kas Laci (Pay-out)"
-    : "Rekening Usaha (Transfer)";
-}
 
 export function getCashDateLabel(dateKey: string, time: string) {
   const dateLabel = dateKey === getLocalDateKey()

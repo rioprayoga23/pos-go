@@ -1,8 +1,9 @@
 import type { Order } from '../types/pos';
+import { digitsOnly } from './format';
 
 export function getNextOrderNumber(orders: Pick<Order, 'number'>[]): string {
   const highestOrder = orders.reduce((highest, order) => {
-    const numeric = Number(order.number.replace(/\D/g, ''));
+    const numeric = Number(digitsOnly(order.number));
     return Math.max(highest, Number.isFinite(numeric) ? numeric : 0);
   }, 0);
 

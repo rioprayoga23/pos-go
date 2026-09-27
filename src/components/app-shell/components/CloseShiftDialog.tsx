@@ -12,9 +12,9 @@ import {
   VStack,
 } from "@gluestack-ui/themed";
 import { useState } from "react";
-import { useTransactionStore } from "../../../store/transactionStore";
+import type { CashRegister } from "../../../types/cash";
 import { colors } from "../../../theme";
-import { formatCurrency } from "../../../utils/format";
+import { digitsOnly, formatCurrency, formatThousands, parseWholeNumber } from "../../../utils/format";
 import {
   AppIcon,
   AppModalCloseButton,
@@ -25,17 +25,24 @@ import { styles } from "../styles";
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (countedCash: number) => void;
+  onConfirm: (countedCash: number) => Promise<void>;
+  register: CashRegister;
+  error: string;
+  isSubmitting: boolean;
 };
 
-export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
-  const openingCash = useTransactionStore((state) => state.openingCash);
-  const cashSalesInShift = useTransactionStore((state) => state.cashSalesInShift);
-  const cashOutflowsInShift = useTransactionStore((state) => state.cashOutflowsInShift);
+export function CloseShiftDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  register,
+  error,
+  isSubmitting,
+}: Props) {
   const [countedCash, setCountedCash] = useState("");
-  const expectedCash = (openingCash ?? 0) + cashSalesInShift - cashOutflowsInShift;
+  const expectedCash = register.expectedAmountRupiah;
   const hasCount = countedCash !== "";
-  const actualCash = Number(countedCash) || 0;
+  const actualCash = parseWholeNumber(countedCash);
   const difference = actualCash - expectedCash;
   const handleClose = () => {
     setCountedCash("");
@@ -51,7 +58,9 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
             <AppIcon name="cash-register" size={21} color={colors.danger} />
           </HStack>
           <VStack style={styles.closeShiftModalHeading}>
-            <Text style={styles.closeShiftModalTitle}>Tutup kasir hari ini?</Text>
+            <Text style={styles.closeShiftModalTitle}>
+              Tutup kasir hari ini?
+            </Text>
             <Text style={styles.closeShiftModalSubtitle}>
               Cocokkan uang fisik dengan perkiraan kas.
             </Text>
@@ -70,27 +79,39 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
           <VStack style={styles.closeShiftCashSummary}>
             <HStack style={styles.closeShiftCashRow}>
               <Text style={styles.closeShiftCashLabel}>Uang awal</Text>
-              <Text style={styles.closeShiftCashValue}>{formatCurrency(openingCash ?? 0)}</Text>
+              <Text style={styles.closeShiftCashValue}>
+                {formatCurrency(register.openingAmountRupiah)}
+              </Text>
             </HStack>
             <HStack style={styles.closeShiftCashRow}>
               <Text style={styles.closeShiftCashLabel}>Penjualan tunai</Text>
-              <Text style={styles.closeShiftCashValue}>{formatCurrency(cashSalesInShift)}</Text>
+              <Text style={styles.closeShiftCashValue}>
+                {formatCurrency(register.cashSalesRupiah)}
+              </Text>
             </HStack>
             <HStack style={styles.closeShiftCashRow}>
               <Text style={styles.closeShiftCashLabel}>Pengeluaran kas</Text>
-              <Text style={styles.closeShiftCashValue}>− {formatCurrency(cashOutflowsInShift)}</Text>
+              <Text style={styles.closeShiftCashValue}>
+                − {formatCurrency(register.cashOutflowsRupiah)}
+              </Text>
             </HStack>
             <HStack style={styles.closeShiftCashRow}>
-              <Text style={styles.closeShiftCashTotalLabel}>Perkiraan uang di laci</Text>
-              <Text style={styles.closeShiftCashTotal}>{formatCurrency(expectedCash)}</Text>
+              <Text style={styles.closeShiftCashTotalLabel}>
+                Perkiraan uang di laci
+              </Text>
+              <Text style={styles.closeShiftCashTotal}>
+                {formatCurrency(expectedCash)}
+              </Text>
             </HStack>
           </VStack>
-          <Text style={styles.closeShiftCountLabel}>UANG FISIK HASIL HITUNG</Text>
+          <Text style={styles.closeShiftCountLabel}>
+            UANG FISIK HASIL HITUNG
+          </Text>
           <Input style={styles.closeShiftCountInput}>
             <Text style={styles.closeShiftCountPrefix}>Rp</Text>
             <InputField
-              value={countedCash.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-              onChangeText={(value) => setCountedCash(value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 12))}
+              value={formatThousands(countedCash)}
+              onChangeText={(value) => setCountedCash(digitsOnly(value, 12))}
               keyboardType="number-pad"
               placeholder="0"
               placeholderTextColor={colors.inkSubtle}
@@ -99,25 +120,36 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
             />
           </Input>
           {hasCount ? (
-            <Text style={[
-              styles.closeShiftDifference,
-              difference === 0 ? styles.closeShiftDifferenceMatch : styles.closeShiftDifferenceMismatch,
-            ]}>
-              {difference === 0 ? "Kas sesuai" : difference > 0 ? `Selisih lebih ${formatCurrency(difference)}` : `Selisih kurang ${formatCurrency(Math.abs(difference))}`}
+            <Text
+              style={[
+                styles.closeShiftDifference,
+                difference === 0
+                  ? styles.closeShiftDifferenceMatch
+                  : styles.closeShiftDifferenceMismatch,
+              ]}
+            >
+              {difference === 0
+                ? "Kas sesuai"
+                : difference > 0
+                  ? `Selisih lebih ${formatCurrency(difference)}`
+                  : `Selisih kurang ${formatCurrency(Math.abs(difference))}`}
             </Text>
+          ) : null}
+          {error ? (
+            <Text style={styles.closeShiftDifferenceMismatch}>{error}</Text>
           ) : null}
         </ModalBody>
         <ModalFooter style={styles.closeShiftModalFooter}>
           <Pressable
-            onPress={() => {
-              onConfirm(actualCash);
-              setCountedCash("");
-            }}
-            disabled={!hasCount}
-            style={[styles.closeShiftConfirmButton, !hasCount && styles.closeShiftConfirmDisabled]}
+            onPress={() => void onConfirm(actualCash)}
+            disabled={!hasCount || isSubmitting}
+            style={[
+              styles.closeShiftConfirmButton,
+              (!hasCount || isSubmitting) && styles.closeShiftConfirmDisabled,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Konfirmasi tutup kasir"
-            accessibilityState={{ disabled: !hasCount }}
+            accessibilityState={{ disabled: !hasCount || isSubmitting }}
           >
             <AppIcon name="check" size={17} color={colors.white} />
             <Text style={styles.closeShiftConfirmText}>Tutup Kasir</Text>

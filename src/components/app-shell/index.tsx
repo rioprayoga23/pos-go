@@ -5,8 +5,13 @@ import { Image, ScrollView, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { routePaths, type RouteName } from "../../navigation/routes";
 import { useTransactionStore } from "../../store/transactionStore";
+import { LoadingScreen } from "../loading-screen";
 import { colors } from "../../theme";
 import { AppIcon, AppPressable as Pressable } from "../ui";
+import {
+  useCashMutations,
+  useCashRegister,
+} from "../../screens/cash/hooks/useCashApi";
 import { CloseShiftDialog } from "./components/CloseShiftDialog";
 import { HeaderActions } from "./components/HeaderActions";
 import { MobileBottomNavigation } from "./components/MobileNavigation";
@@ -29,21 +34,40 @@ export function AppShell({
   const queueCount = orders.filter(
     (order) => order.status !== "completed",
   ).length;
-  const cashRegisterOpen = useTransactionStore((state) =>
-    state.isCashRegisterOpen(),
-  );
-  const cashRegisterClosedToday = useTransactionStore((state) =>
-    state.isCashRegisterClosedToday(),
-  );
-  const openCashRegister = useTransactionStore(
-    (state) => state.openCashRegister,
-  );
-  const closeShift = useTransactionStore((state) => state.closeShift);
+  const cashRegisterQuery = useCashRegister();
+  const cashMutations = useCashMutations();
+  const register = cashRegisterQuery.data?.data;
+  const cashRegisterOpen = register?.status === "open";
+  const cashRegisterClosedToday = register?.status === "closed_today";
   const [showOpenCashDialog, setShowOpenCashDialog] = useState(false);
   const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false);
+  const [cashActionError, setCashActionError] = useState("");
   const handleCashAction = () => {
+    setCashActionError("");
     if (cashRegisterOpen) setShowCloseShiftDialog(true);
-    else if (!cashRegisterClosedToday) setShowOpenCashDialog(true);
+    else if (register?.status === "not_opened") setShowOpenCashDialog(true);
+  };
+  const handleOpenRegister = async (amount: number) => {
+    try {
+      await cashMutations.openRegister.mutateAsync(amount);
+      setShowOpenCashDialog(false);
+      setCashActionError("");
+    } catch (error) {
+      setCashActionError(
+        error instanceof Error ? error.message : "Kasir gagal dibuka.",
+      );
+    }
+  };
+  const handleCloseRegister = async (amount: number) => {
+    try {
+      await cashMutations.closeRegister.mutateAsync(amount);
+      setShowCloseShiftDialog(false);
+      setCashActionError("");
+    } catch (error) {
+      setCashActionError(
+        error instanceof Error ? error.message : "Kasir gagal ditutup.",
+      );
+    }
   };
   const content =
     typeof children === "function" ? children(handleCashAction) : children;
@@ -79,6 +103,12 @@ export function AppShell({
         },
       ]}
     >
+      <LoadingScreen
+        visible={
+          cashMutations.openRegister.isPending ||
+          cashMutations.closeRegister.isPending
+        }
+      />
       <HStack style={[styles.topBar, isMobile && styles.topBarMobile]}>
         <HStack style={styles.brandBlock}>
           <Image
@@ -184,19 +214,19 @@ export function AppShell({
         <OpenCashRegisterDialog
           isOpen
           onClose={() => setShowOpenCashDialog(false)}
-          onConfirm={(amount) => {
-            if (openCashRegister(amount)) setShowOpenCashDialog(false);
-          }}
+          onConfirm={handleOpenRegister}
+          error={cashActionError}
+          isSubmitting={cashMutations.openRegister.isPending}
         />
       ) : null}
-      {showCloseShiftDialog && cashRegisterOpen ? (
+      {showCloseShiftDialog && cashRegisterOpen && register ? (
         <CloseShiftDialog
           isOpen
           onClose={() => setShowCloseShiftDialog(false)}
-          onConfirm={(countedCash) => {
-            closeShift(countedCash);
-            setShowCloseShiftDialog(false);
-          }}
+          register={register}
+          onConfirm={handleCloseRegister}
+          error={cashActionError}
+          isSubmitting={cashMutations.closeRegister.isPending}
         />
       ) : null}
     </VStack>

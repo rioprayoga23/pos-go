@@ -1,4 +1,3 @@
-import type { CashTransaction } from "../types/cash";
 import type { Category, Order, Product } from "../types/pos";
 import type { StockMovement } from "../types/stock";
 import type { PosNotification } from "../store/notificationStore";
@@ -68,20 +67,6 @@ export const demoStockMovements: StockMovement[] = [
     quantity: 10,
     unit: "sachet",
     note: "Pembelian contoh · Transfer · Rp 65.000",
-  },
-];
-
-export const demoCashTransactions: CashTransaction[] = [
-  {
-    id: "demo-cash-transaction-001",
-    dateKey: demoDateKey,
-    time: demoTime,
-    description: "Beli 10 sachet Bubuk Matcha",
-    detail: "Masuk 10 sachet",
-    categoryKind: "stock_purchase",
-    category: "Pembelian Stok",
-    source: "transfer",
-    amount: 65000,
   },
 ];
 

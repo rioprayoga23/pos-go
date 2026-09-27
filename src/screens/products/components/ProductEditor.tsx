@@ -11,6 +11,7 @@ import {
 import { CategoryModal } from "../../../components/products/components/CategoryModal";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { colors, spacing } from "../../../theme";
+import { parseWholeNumber } from "../../../utils/format";
 import { CategoryField } from "./CategoryField";
 import { PriceField } from "./PriceField";
 import { ProductAvailabilityField } from "./ProductAvailabilityField";
@@ -34,7 +35,7 @@ export function ProductEditor({
 }) {
   const { editing, form, setForm } = model;
   const [recipeManagerOpen, setRecipeManagerOpen] = useState(false);
-  const price = Number(form.price.replace(/\D/g, ""));
+  const price = parseWholeNumber(form.price);
   const isFormComplete =
     form.name.trim().length > 0 &&
     price > 0 &&

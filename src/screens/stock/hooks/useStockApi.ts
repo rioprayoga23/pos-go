@@ -12,6 +12,7 @@ import {
   type StockMovementFilters,
   type StockPurchaseDraft,
 } from "../api";
+import { cashQueryKeys } from "../../cash/hooks/useCashApi";
 
 export const stockQueryKeys = {
   all: ["stock"] as const,
@@ -58,11 +59,18 @@ export function useStockMovements(filters: StockMovementFilters) {
 export function useStockMutations() {
   const queryClient = useQueryClient();
   const refreshStock = () => queryClient.invalidateQueries({ queryKey: stockQueryKeys.all });
+  const refreshAfterPurchase = async () => {
+    await refreshStock();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: cashQueryKeys.outflowsRoot }),
+      queryClient.invalidateQueries({ queryKey: cashQueryKeys.summaryRoot }),
+    ]);
+  };
 
   return {
     updateItem: useMutation({ mutationFn: ({ id, draft }: { id: string; draft: StockItemDraft }) => updateStockItem(id, draft), onSuccess: refreshStock }),
     deleteItem: useMutation({ mutationFn: (id: string) => deleteStockItem(id), onSuccess: refreshStock }),
-    purchase: useMutation({ mutationFn: (draft: StockPurchaseDraft) => createStockPurchase(draft), onSuccess: refreshStock }),
+    purchase: useMutation({ mutationFn: (draft: StockPurchaseDraft) => createStockPurchase(draft), onSuccess: refreshAfterPurchase }),
     adjust: useMutation({ mutationFn: ({ id, draft }: { id: string; draft: StockAdjustmentDraft }) => createStockAdjustment(id, draft), onSuccess: refreshStock }),
   };
 }

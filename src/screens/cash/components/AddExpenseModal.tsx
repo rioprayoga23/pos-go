@@ -11,84 +11,88 @@ import {
 } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { useWindowDimensions } from "react-native";
-import { AppIcon, AppInput, AppModalCloseButton, AppPressable } from "../../../components/ui";
+import { ApiError } from "../../../services/apiClient";
+import { digitsOnly, formatThousands, parseWholeNumber } from "../../../utils/format";
+import {
+  AppIcon,
+  AppInput,
+  AppModalCloseButton,
+  AppPressable,
+} from "../../../components/ui";
 import { colors } from "../../../theme";
-import { getLocalDateKey } from "../../../utils/date";
+import type { CashExpenseDraft, CashFundingSource } from "../../../types/cash";
 import { styles } from "../styles";
 
-function digitsOnly(value: string) {
-  return value.replace(/\D/g, "").slice(0, 12);
-}
-
-function formatAmountInput(value: string) {
-  return digitsOnly(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-export type OperationalExpenseDraft = {
-  dateKey: string;
-  time: string;
-  description: string;
-  detail: string;
-  category: string;
-  source: "cash" | "transfer";
-  amount: number;
-};
+export type OperationalExpenseDraft = CashExpenseDraft;
 
 export function AddExpenseModal({
   isOpen,
   onClose,
   onSave,
+  isSaving,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (expense: OperationalExpenseDraft) => boolean;
+  onSave: (expense: OperationalExpenseDraft) => Promise<void>;
+  isSaving: boolean;
 }) {
   const { height } = useWindowDimensions();
   const [description, setDescription] = useState("");
   const [detail, setDetail] = useState("");
   const [amountInput, setAmountInput] = useState("");
+  const [fundingSource, setFundingSource] =
+    useState<CashFundingSource>("cash_drawer");
   const [error, setError] = useState("");
-  const amount = Number(digitsOnly(amountInput));
-  const canSave = Boolean(description.trim() && amount > 0);
+  const amountRupiah = parseWholeNumber(amountInput);
+  const canSave = Boolean(description.trim() && amountRupiah > 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!description.trim()) {
       setError("Masukkan keterangan uang keluar.");
       return;
     }
-    if (amount <= 0) {
+    if (amountRupiah <= 0) {
       setError("Nominal harus lebih dari Rp 0.");
       return;
     }
-    const saved = onSave({
-      dateKey: getLocalDateKey(),
-      time: new Date().toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }),
-      description: description.trim(),
-      detail: detail.trim(),
-      category: "Pengeluaran dari laci",
-      source: "cash",
-      amount,
-    });
-    if (!saved) setError("Nominal melebihi uang tunai yang tersedia di laci.");
+    try {
+      await onSave({
+        description: description.trim(),
+        note: detail.trim(),
+        amountRupiah,
+        fundingSource,
+      });
+    } catch (saveError) {
+      setError(
+        saveError instanceof ApiError
+          ? saveError.message
+          : "Uang keluar gagal disimpan.",
+      );
+    }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalBackdrop />
-      <ModalContent style={[styles.modal, { maxHeight: Math.max(320, height - 24) }]}>
+      <ModalContent
+        style={[styles.modal, { maxHeight: Math.max(320, height - 24) }]}
+      >
         <ModalHeader style={styles.modalHeader}>
           <HStack style={styles.modalIcon}>
             <AppIcon name="cash-minus" size={18} color={colors.primary} />
           </HStack>
           <VStack style={styles.modalHeading}>
             <Text style={styles.modalTitle}>Catat Uang Keluar</Text>
-            <Text style={styles.modalSubtitle}>Nominal akan mengurangi uang di laci.</Text>
+            <Text style={styles.modalSubtitle}>
+              {fundingSource === "cash_drawer"
+                ? "Nominal akan mengurangi uang di laci."
+                : "Dicatat dari transfer dana luar; saldo laci tidak berubah."}
+            </Text>
           </VStack>
-          <AppModalCloseButton onPress={onClose} accessibilityLabel="Tutup form uang keluar" />
+          <AppModalCloseButton
+            onPress={onClose}
+            accessibilityLabel="Tutup form uang keluar"
+          />
         </ModalHeader>
         <ModalBody style={styles.modalBody}>
           <VStack style={styles.modalForm}>
@@ -105,11 +109,60 @@ export function AddExpenseModal({
               />
             </VStack>
             <VStack style={styles.formGroup}>
+              <Text style={styles.formLabel}>Sumber dana</Text>
+              <HStack style={styles.fundingRow}>
+                {([
+                  {
+                    value: "cash_drawer",
+                    label: "Uang laci",
+                    icon: "cash-register",
+                  },
+                  {
+                    value: "external_transfer",
+                    label: "Transfer dari dana luar",
+                    icon: "bank-transfer",
+                  },
+                ] as const).map((option) => {
+                  const selected = fundingSource === option.value;
+                  return (
+                    <AppPressable
+                      key={option.value}
+                      onPress={() => {
+                        setFundingSource(option.value);
+                        setError("");
+                      }}
+                      style={[
+                        styles.fundingButton,
+                        selected && styles.fundingButtonActive,
+                      ]}
+                      accessibilityRole="radio"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ selected }}
+                    >
+                      <AppIcon
+                        name={option.icon}
+                        size={16}
+                        color={selected ? colors.primary : colors.inkMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.fundingText,
+                          selected && styles.fundingTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </AppPressable>
+                  );
+                })}
+              </HStack>
+            </VStack>
+            <VStack style={styles.formGroup}>
               <Text style={styles.formLabel}>Nominal</Text>
               <AppInput
-                value={formatAmountInput(amountInput)}
+                value={formatThousands(amountInput)}
                 onChangeText={(value) => {
-                  setAmountInput(digitsOnly(value));
+                  setAmountInput(digitsOnly(value, 12));
                   setError("");
                 }}
                 keyboardType="number-pad"
@@ -133,15 +186,22 @@ export function AddExpenseModal({
         <ModalFooter style={styles.modalFooter}>
           <AppPressable
             onPress={handleSave}
-            disabled={!canSave}
-            style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
+            disabled={!canSave || isSaving}
+            style={[
+              styles.saveButton,
+              (!canSave || isSaving) && styles.saveButtonDisabled,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Simpan uang keluar"
-            accessibilityState={{ disabled: !canSave }}
+            accessibilityState={{ disabled: !canSave || isSaving }}
           >
             <Text style={styles.saveButtonText}>Simpan</Text>
           </AppPressable>
-          <AppPressable onPress={onClose} style={styles.cancelButton} accessibilityRole="button">
+          <AppPressable
+            onPress={onClose}
+            style={styles.cancelButton}
+            accessibilityRole="button"
+          >
             <Text style={styles.cancelButtonText}>Batal</Text>
           </AppPressable>
         </ModalFooter>

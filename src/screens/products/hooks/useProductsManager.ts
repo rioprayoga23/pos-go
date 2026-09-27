@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView } from "react-native";
 import { useProductStore } from "../../../store/productStore";
+import { parseWholeNumber } from "../../../utils/format";
 import { useStockStore } from "../../../store/stockStore";
 import { colors } from "../../../theme";
 import { Product } from "../../../types/pos";
@@ -137,7 +138,7 @@ export function useProductsManager() {
   };
 
   const save = () => {
-    const price = Number(form.price.replace(/\D/g, ""));
+    const price = parseWholeNumber(form.price);
     if (!form.name.trim() || !price) {
       setFormError("Nama menu dan harga wajib diisi.");
       return;

@@ -4,8 +4,15 @@ export const formatCurrency = (value: number) =>
 export const formatPreciseCurrency = (value: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 2 }).format(value);
 
+export const digitsOnly = (value: string, maxLength?: number) => {
+  const digits = value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return maxLength === undefined ? digits : digits.slice(0, maxLength);
+};
+
+export const parseWholeNumber = (value: string) => Number(digitsOnly(value)) || 0;
+
 export const formatThousands = (value: string | number) => {
-  const digits = String(value).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  const digits = digitsOnly(String(value));
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 };
 

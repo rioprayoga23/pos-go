@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { ButtonText, HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useWindowDimensions } from "react-native";
 import { AppShell } from "../../components/app-shell";
+import { LoadingScreen } from "../../components/loading-screen";
 import {
   AppButton as Button,
   AppIcon,
@@ -11,7 +12,10 @@ import {
 } from "../../components/ui";
 import { colors, spacing } from "../../theme";
 import { formatCurrency } from "../../utils/format";
-import { PaymentMethodButton, QrPaymentPanel } from "./components/PaymentPanels";
+import {
+  PaymentMethodButton,
+  QrPaymentPanel,
+} from "./components/PaymentPanels";
 import { CashPanel } from "./components/CashPanel";
 import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { ReceiptPreview } from "./components/ReceiptPreview";
@@ -46,16 +50,25 @@ export function PaymentScreen() {
     change,
     paymentError,
     submitPayment,
+    isSubmitting,
+    isRegisterLoading,
   } = usePayment();
   const isWide = width >= 1024;
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
   const orders = useTransactionStore((state) => state.orders);
   const nextOrderNumber = getNextOrderNumber(orders);
-  const displayedOrderNumber = showSuccess && lastOrder ? lastOrder.number : nextOrderNumber;
-  const receiptData = showSuccess && lastOrder
-    ? createHistoryReceiptData(lastOrder)
-    : createPaymentReceiptData(items, nextOrderNumber, orderType, paymentMethod);
+  const displayedOrderNumber =
+    showSuccess && lastOrder ? lastOrder.number : nextOrderNumber;
+  const receiptData =
+    showSuccess && lastOrder
+      ? createHistoryReceiptData(lastOrder)
+      : createPaymentReceiptData(
+          items,
+          nextOrderNumber,
+          orderType,
+          paymentMethod,
+        );
 
   if (!items.length && !showSuccess)
     return (
@@ -81,23 +94,54 @@ export function PaymentScreen() {
     <AppShell active="Payment" scrollable={!isWide}>
       {(requestCashAction) => (
         <>
+          <LoadingScreen visible={isSubmitting || isRegisterLoading} />
           <VStack style={[styles.page, isWide && styles.pageFill]}>
             <HStack
-              style={[styles.paymentLayout, !isWide && styles.paymentLayoutStack]}
+              style={[
+                styles.paymentLayout,
+                !isWide && styles.paymentLayoutStack,
+              ]}
             >
-              <VStack style={[styles.paymentColumn, !isWide && styles.paymentColumnStacked]}>
+              <VStack
+                style={[
+                  styles.paymentColumn,
+                  !isWide && styles.paymentColumnStacked,
+                ]}
+              >
                 <Panel style={styles.billBar} padding={spacing.md}>
                   <VStack style={styles.billSummary}>
                     <HStack style={styles.billHeader}>
-                      <Text style={[styles.microLabel, (isMobile || isTablet) && styles.microLabelAdaptive]}>SUBTOTAL</Text>
-                      <Text style={styles.billOrderTag}>Pesanan {displayedOrderNumber}</Text>
+                      <Text
+                        style={[
+                          styles.microLabel,
+                          (isMobile || isTablet) && styles.microLabelAdaptive,
+                        ]}
+                      >
+                        SUBTOTAL
+                      </Text>
+                      <Text style={styles.billOrderTag}>
+                        Pesanan {displayedOrderNumber}
+                      </Text>
                     </HStack>
                     <HStack style={styles.billAmountRow}>
-                      <Text style={[styles.billTotal, isMobile && styles.billTotalMobile, isTablet && styles.billTotalTablet]}>
+                      <Text
+                        style={[
+                          styles.billTotal,
+                          isMobile && styles.billTotalMobile,
+                          isTablet && styles.billTotalTablet,
+                        ]}
+                      >
                         {formatCurrency(subtotal)}
                       </Text>
                       <VStack style={styles.billOrderCount}>
-                        <Text style={[styles.billOrderCountLabel, (isMobile || isTablet) && styles.billOrderCountLabelAdaptive, isTablet && styles.billOrderCountLabelTablet]}>
+                        <Text
+                          style={[
+                            styles.billOrderCountLabel,
+                            (isMobile || isTablet) &&
+                              styles.billOrderCountLabelAdaptive,
+                            isTablet && styles.billOrderCountLabelTablet,
+                          ]}
+                        >
                           TOTAL PESANAN
                         </Text>
                         <Text style={styles.billOrderCountValue}>
@@ -147,11 +191,17 @@ export function PaymentScreen() {
                   <Panel padding={spacing.lg}>
                     <VStack style={styles.registerClosedContent}>
                       <HStack style={styles.registerClosedIcon}>
-                        <AppIcon name="cash-register" size={28} color={colors.primary} />
+                        <AppIcon
+                          name="cash-register"
+                          size={28}
+                          color={colors.primary}
+                        />
                       </HStack>
                       <VStack style={styles.registerClosedCopy}>
                         <Text style={styles.registerClosedTitle}>
-                          {cashRegisterClosedToday ? "Kasir sudah ditutup hari ini" : "Buka kasir sebelum menerima pembayaran"}
+                          {cashRegisterClosedToday
+                            ? "Kasir sudah ditutup hari ini"
+                            : "Buka kasir sebelum menerima pembayaran"}
                         </Text>
                         <Text style={styles.registerClosedDescription}>
                           {cashRegisterClosedToday
@@ -162,36 +212,48 @@ export function PaymentScreen() {
                       {!cashRegisterClosedToday ? (
                         <AppPressable
                           onPress={requestCashAction}
-                          style={[styles.primaryButton, styles.registerClosedAction]}
+                          style={[
+                            styles.primaryButton,
+                            styles.registerClosedAction,
+                          ]}
                           accessibilityRole="button"
                           accessibilityLabel="Buka Kasir"
                         >
-                          <AppIcon name="cash-register" size={17} color={colors.white} />
-                          <Text style={styles.primaryButtonText}>Buka Kasir</Text>
+                          <AppIcon
+                            name="cash-register"
+                            size={17}
+                            color={colors.white}
+                          />
+                          <Text style={styles.primaryButtonText}>
+                            Buka Kasir
+                          </Text>
                         </AppPressable>
                       ) : null}
                     </VStack>
                   </Panel>
                 )}
               </VStack>
-              <VStack style={[styles.receiptColumn, !isWide && styles.receiptColumnStacked]}>
-                <ReceiptPreview
-                  data={receiptData}
-                  bounded={isWide}
-                />
+              <VStack
+                style={[
+                  styles.receiptColumn,
+                  !isWide && styles.receiptColumnStacked,
+                ]}
+              >
+                <ReceiptPreview data={receiptData} bounded={isWide} />
                 {paymentError ? (
-                  <Text style={styles.paymentError}>
-                    {paymentError}
-                  </Text>
+                  <Text style={styles.paymentError}>{paymentError}</Text>
                 ) : null}
                 <Button
                   onPress={submitPayment}
                   isDisabled={
-                    !cashRegisterOpen || (paymentMethod === "QRIS" ? !qrisVerified : !cashReady)
+                    !cashRegisterOpen ||
+                    isSubmitting ||
+                    (paymentMethod === "QRIS" ? !qrisVerified : !cashReady)
                   }
                   style={[
                     styles.finalButton,
-                    (!cashRegisterOpen || (paymentMethod === "QRIS" && !qrisVerified) ||
+                    (!cashRegisterOpen ||
+                      (paymentMethod === "QRIS" && !qrisVerified) ||
                       (paymentMethod === "Tunai" && !cashReady)) && {
                       opacity: 0.5,
                     },
@@ -200,7 +262,11 @@ export function PaymentScreen() {
                   <HStack style={styles.finalButtonLeft}>
                     <HStack style={styles.finalIcon}>
                       <AppIcon
-                        name={cashRegisterOpen ? "check-circle-outline" : "lock-outline"}
+                        name={
+                          cashRegisterOpen
+                            ? "check-circle-outline"
+                            : "lock-outline"
+                        }
                         size={23}
                         color={colors.white}
                       />

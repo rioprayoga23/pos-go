@@ -4,7 +4,13 @@ import { StyleSheet } from "react-native";
 import { AppIcon, AppInput, AppPressable } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { colors, radius, spacing, type, typography } from "../../../theme";
-import { formatCurrency, formatPreciseCurrency, formatThousands } from "../../../utils/format";
+import {
+  digitsOnly,
+  formatCurrency,
+  formatPreciseCurrency,
+  formatThousands,
+  parseWholeNumber,
+} from "../../../utils/format";
 import type { RecipeCostLine } from "../../../utils/standardRecipe";
 
 export function PriceField({
@@ -17,7 +23,7 @@ export function PriceField({
   onChange: (value: string) => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const price = Number(value.replace(/\D/g, ""));
+  const price = parseWholeNumber(value);
   const hpp = costLines?.reduce((total, line) => total + line.total, 0) ?? null;
   const grossProfit = hpp !== null && price > 0 ? price - hpp : null;
   const margin = grossProfit !== null ? (grossProfit / price) * 100 : null;
@@ -32,7 +38,7 @@ export function PriceField({
       </Text>
       <AppInput
         value={formatThousands(value)}
-        onChangeText={(text) => onChange(text.replace(/\D/g, ""))}
+        onChangeText={(text) => onChange(digitsOnly(text))}
         keyboardType="number-pad"
         placeholder="0"
         leading={<Text style={styles.currency}>Rp</Text>}

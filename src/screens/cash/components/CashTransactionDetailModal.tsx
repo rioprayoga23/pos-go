@@ -18,7 +18,7 @@ import {
 import { colors } from "../../../theme";
 import type { CashTransaction } from "../../../types/cash";
 import { formatCurrency } from "../../../utils/format";
-import { getCashDateTimeLabel, getCashSourceLabel } from "../utils/transactionDisplay";
+import { getCashDateTimeLabel } from "../utils/transactionDisplay";
 import { styles } from "../styles";
 
 function DetailLine({ label, value }: { label: string; value: string }) {
@@ -78,10 +78,16 @@ export function CashTransactionDetailModal({
               value={getCashDateTimeLabel(transaction.dateKey, transaction.time)}
             />
             <DetailLine label="Kategori" value={transaction.category} />
-            <DetailLine
-              label="Sumber dana"
-              value={getCashSourceLabel(transaction.source)}
-            />
+            {transaction.categoryKind === "operational" ? (
+              <DetailLine
+                label="Sumber dana"
+                value={
+                  transaction.fundingSource === "external_transfer"
+                    ? "Transfer dari dana luar"
+                    : "Uang laci"
+                }
+              />
+            ) : null}
             <DetailLine
               label="Keterangan"
               value={transaction.detail || "Tidak ada catatan tambahan"}

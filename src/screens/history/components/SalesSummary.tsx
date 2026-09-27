@@ -2,14 +2,12 @@ import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { memo, useMemo } from "react";
 import { FlatList, Image, View } from "react-native";
 import { AppIcon, EmptyState, Panel } from "../../../components/ui";
-import { useCashLedgerStore } from "../../../store/cashLedgerStore";
 import { useStockStore } from "../../../store/stockStore";
 import { useTransactionStore } from "../../../store/transactionStore";
 import { colors } from "../../../theme";
 import { getLocalDateKey } from "../../../utils/date";
 import { formatCurrency } from "../../../utils/format";
 import { getRecipeHpp } from "../../../utils/standardRecipe";
-import type { CashTransaction } from "../../../types/cash";
 import type { Recipe, StockItem } from "../../../types/stock";
 import type { Order, Product } from "../../../types/pos";
 import { styles } from "../styles";
@@ -35,7 +33,6 @@ function summarizeOrders(
   date: string,
   inventoryItems: StockItem[],
   recipes: Recipe[],
-  cashTransactions: CashTransaction[],
 ) {
   const todayOrders = orders.filter((order) => order.createdOn === date);
   const revenue = todayOrders.reduce((total, order) => total + order.total, 0);
@@ -93,23 +90,13 @@ function summarizeOrders(
   const soldMenu = [...menuById.values()].sort(
     (left, right) => right.amount - left.amount,
   );
-  const operationalExpenses = cashTransactions.reduce(
-    (total, transaction) =>
-      transaction.dateKey === date && transaction.categoryKind === "operational"
-        ? total + transaction.amount
-        : total,
-    0,
-  );
-
   return {
     revenue,
     cash,
     qris,
     cups,
     transactionCount: todayOrders.length,
-    netMargin: hasCompleteHpp
-      ? Math.round(revenue - costOfGoods - operationalExpenses)
-      : null,
+    grossProfit: hasCompleteHpp ? Math.round(revenue - costOfGoods) : null,
     soldMenu,
   };
 }
@@ -128,7 +115,6 @@ export const SalesSummary = memo(function SalesSummary({
   const orders = useTransactionStore((state) => state.orders);
   const inventoryItems = useStockStore((state) => state.items);
   const recipes = useStockStore((state) => state.recipes);
-  const cashTransactions = useCashLedgerStore((state) => state.transactions);
   const reportDate = useMemo(() => {
     let latestDate = "";
     for (const order of orders) {
@@ -139,15 +125,8 @@ export const SalesSummary = memo(function SalesSummary({
     return latestDate || getLocalDateKey();
   }, [orders]);
   const summary = useMemo(
-    () =>
-      summarizeOrders(
-        orders,
-        reportDate,
-        inventoryItems,
-        recipes,
-        cashTransactions,
-      ),
-    [orders, reportDate, inventoryItems, recipes, cashTransactions],
+    () => summarizeOrders(orders, reportDate, inventoryItems, recipes),
+    [orders, reportDate, inventoryItems, recipes],
   );
   const dateLabel = new Date(`${reportDate}T00:00:00`).toLocaleDateString(
     "id-ID",
@@ -251,10 +230,14 @@ export const SalesSummary = memo(function SalesSummary({
           />
           <View style={styles.metricDivider} />
           <SmallMetric
-            label="LABA BERSIH"
-            value={summary.netMargin === null ? "—" : formatCurrency(summary.netMargin)}
-            success={summary.netMargin !== null && summary.netMargin >= 0}
-            negative={summary.netMargin !== null && summary.netMargin < 0}
+            label="LABA KOTOR"
+            value={
+              summary.grossProfit === null
+                ? "—"
+                : formatCurrency(summary.grossProfit)
+            }
+            success={summary.grossProfit !== null && summary.grossProfit >= 0}
+            negative={summary.grossProfit !== null && summary.grossProfit < 0}
             adaptive={responsiveText}
             tablet={isTablet}
             compact={isCompact}

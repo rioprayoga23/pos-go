@@ -19,16 +19,17 @@ import {
   AppPressable,
 } from "../../../components/ui";
 import { colors } from "../../../theme";
-import { formatCurrency, formatThousands } from "../../../utils/format";
+import {
+  digitsOnly,
+  formatCurrency,
+  formatThousands,
+  parseWholeNumber,
+} from "../../../utils/format";
 import type { StockItem } from "../../../types/stock";
 import { customItemOptionId, stockUnitOptions } from "../data/options";
 import type { PurchaseDraft } from "../types";
 import { getPurchaseUnit, getStockUnitsPerPurchaseUnit } from "../utils/stock";
 import { styles } from "../styles";
-
-function parseWholeNumber(value: string) {
-  return Math.max(0, Number(value.replace(/\D/g, "")) || 0);
-}
 
 export function StockPurchaseModal({
   items,
@@ -190,7 +191,7 @@ export function StockPurchaseModal({
               <Text style={styles.formLabel}>Jumlah dibeli ({purchaseUnit || "satuan"})</Text>
               <AppInput
                 value={formatThousands(quantityInput)}
-                onChangeText={(value) => setQuantityInput(value.replace(/\D/g, ""))}
+                onChangeText={(value) => setQuantityInput(digitsOnly(value))}
                 placeholder="0"
                 keyboardType="number-pad"
                 style={styles.formInput}
@@ -208,7 +209,7 @@ export function StockPurchaseModal({
               <Text style={styles.formLabel}>Total pembelian</Text>
               <AppInput
                 value={formatThousands(totalCostInput)}
-                onChangeText={(value) => setTotalCostInput(value.replace(/\D/g, ""))}
+                onChangeText={(value) => setTotalCostInput(digitsOnly(value))}
                 placeholder="0"
                 keyboardType="number-pad"
                 style={styles.formInput}

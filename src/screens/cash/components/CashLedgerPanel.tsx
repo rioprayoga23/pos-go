@@ -1,13 +1,5 @@
-import {
-  HStack,
-  Text,
-  VStack,
-} from "@gluestack-ui/themed";
-import {
-  AppIcon,
-  AppInput,
-  EmptyState,
-} from "../../../components/ui";
+import { HStack, Text, VStack } from "@gluestack-ui/themed";
+import { AppIcon, AppInput, EmptyState } from "../../../components/ui";
 import {
   DataTable,
   DataTableActionButton,
@@ -19,11 +11,11 @@ import {
 import { DateRangeButton } from "../../../components/date-period-filter";
 import { DropdownFilter } from "../../../components/dropdown-filter";
 import { colors, spacing } from "../../../theme";
-import type { CashTransaction } from "../../../types/cash";
+import type { CashOutflowSummary, CashTransaction } from "../../../types/cash";
 import type { DatePeriod, DateRange } from "../../../types/dateRange";
 import { formatCurrency } from "../../../utils/format";
 import type { CashTransactionFilter } from "../hooks/useCashLedger";
-import { getCashDateLabel, getCashSourceLabel } from "../utils/transactionDisplay";
+import { getCashDateLabel } from "../utils/transactionDisplay";
 import { styles } from "../styles";
 
 const filterOptions: { key: CashTransactionFilter; label: string }[] = [
@@ -49,22 +41,6 @@ function CashCategoryBadge({ transaction }: { transaction: CashTransaction }) {
         numberOfLines={1}
       >
         {transaction.category}
-      </Text>
-    </HStack>
-  );
-}
-
-function CashSourceBadge({ transaction }: { transaction: CashTransaction }) {
-  const isTransfer = transaction.source === "transfer";
-  return (
-    <HStack
-      style={[styles.sourceBadge, isTransfer && styles.sourceBadgeTransfer]}
-    >
-      <Text
-        style={[styles.sourceText, isTransfer && styles.sourceTextTransfer]}
-        numberOfLines={1}
-      >
-        {getCashSourceLabel(transaction.source)}
       </Text>
     </HStack>
   );
@@ -105,16 +81,7 @@ function createCashColumns(
       title: "KATEGORI",
       flex: 1.5,
       minWidth: 175,
-      render: (transaction) => (
-        <CashCategoryBadge transaction={transaction} />
-      ),
-    },
-    {
-      key: "source",
-      title: "SUMBER DANA",
-      flex: 1.7,
-      minWidth: 205,
-      render: (transaction) => <CashSourceBadge transaction={transaction} />,
+      render: (transaction) => <CashCategoryBadge transaction={transaction} />,
     },
     {
       key: "amount",
@@ -145,7 +112,8 @@ function createCashColumns(
 
 export function CashLedgerPanel({
   transactions,
-  rangedTransactions,
+  summary,
+  total,
   period,
   dateRange,
   filter,
@@ -159,7 +127,8 @@ export function CashLedgerPanel({
   onOpenDatePicker,
 }: {
   transactions: CashTransaction[];
-  rangedTransactions: CashTransaction[];
+  summary: CashOutflowSummary;
+  total: number;
   period: DatePeriod;
   dateRange: DateRange;
   filter: CashTransactionFilter;
@@ -173,17 +142,13 @@ export function CashLedgerPanel({
   onOpenDatePicker: () => void;
 }) {
   const columns = createCashColumns(onOpenTransaction);
-  const stockCount = rangedTransactions.filter(
-    (transaction) => transaction.categoryKind === "stock_purchase",
-  ).length;
-  const operationalCount = rangedTransactions.length - stockCount;
   const filters = filterOptions.map((option) => {
     const count =
       option.key === "all"
-        ? rangedTransactions.length
+        ? summary.stockCount + summary.operationalCount
         : option.key === "stock_purchase"
-          ? stockCount
-          : operationalCount;
+          ? summary.stockCount
+          : summary.operationalCount;
     return { ...option, count };
   });
   return (
@@ -225,7 +190,7 @@ export function CashLedgerPanel({
           rows={transactions}
           columns={columns}
           keyExtractor={(transaction) => transaction.id}
-          minWidth={1080}
+          minWidth={900}
           headerHeight={40}
           rowHeight={55}
           horizontalPadding={spacing.md}
@@ -234,6 +199,7 @@ export function CashLedgerPanel({
           pagination={{
             page,
             pageSize,
+            totalItems: total,
             onPageChange,
             itemLabel: "transaksi",
           }}

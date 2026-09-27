@@ -22,7 +22,12 @@ import {
   AppPressable,
 } from "../../../components/ui";
 import { colors } from "../../../theme";
-import { formatPreciseCurrency, formatThousands } from "../../../utils/format";
+import {
+  digitsOnly,
+  formatPreciseCurrency,
+  formatThousands,
+  parseWholeNumber,
+} from "../../../utils/format";
 import type { StockItem } from "../../../types/stock";
 import type { StockItemDraft } from "../api";
 import { stockUnitOptions } from "../data/options";
@@ -45,10 +50,6 @@ type Props = {
   onSubmit: (draft: StockItemFormDraft) => Promise<void>;
 };
 
-function toPositiveInteger(value: string) {
-  return Number(value.replace(/\D/g, "")) || 0;
-}
-
 export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description);
@@ -61,8 +62,8 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const actualStock = toPositiveInteger(actualStockInput);
-  const purchaseUnitPrice = toPositiveInteger(purchaseUnitPriceInput);
+  const actualStock = parseWholeNumber(actualStockInput);
+  const purchaseUnitPrice = parseWholeNumber(purchaseUnitPriceInput);
   const currentPurchaseUnitPrice = Math.round(getPurchaseUnitPrice(item));
   const stockChanged =
     actualStockInput.trim() !== "" && actualStock !== item.stock;
@@ -179,7 +180,7 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
               <AppInput
                 value={formatThousands(actualStockInput)}
                 onChangeText={(value) =>
-                  setActualStockInput(value.replace(/\D/g, ""))
+                  setActualStockInput(digitsOnly(value))
                 }
                 keyboardType="number-pad"
                 style={styles.formInput}
@@ -228,7 +229,7 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
               <AppInput
                 value={formatThousands(purchaseUnitPriceInput)}
                 onChangeText={(value) =>
-                  setPurchaseUnitPriceInput(value.replace(/\D/g, ""))
+                  setPurchaseUnitPriceInput(digitsOnly(value))
                 }
                 placeholder="0"
                 keyboardType="number-pad"

@@ -2,10 +2,9 @@ import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useWindowDimensions, View } from "react-native";
 import { AppInput, AppPressable as Pressable, Panel } from "../../../components/ui";
 import { colors, spacing } from "../../../theme";
-import { formatCurrency } from "../../../utils/format";
+import { formatCurrency, formatThousands } from "../../../utils/format";
 import { quickTenderAmounts } from "../constants";
 import { styles } from "../styles";
-import { formatCashInput } from "../utils/formatCashInput";
 
 type CashPanelProps = {
   cash: string;
@@ -103,7 +102,7 @@ export function CashPanel({
             <VStack style={styles.amountBox}>
               <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>UANG DITERIMA</Text>
               <AppInput
-                value={formatCashInput(cash)}
+                value={formatThousands(cash)}
                 onChangeText={setCash}
                 keyboardType="number-pad"
                 placeholder="0"

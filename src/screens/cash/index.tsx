@@ -3,44 +3,32 @@ import { useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { AppShell } from "../../components/app-shell";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
+import { LoadingScreen } from "../../components/loading-screen";
+import { QueryErrorNotice } from "../../components/query-error-notice";
 import {
   AppIcon,
   AppModalCloseButton,
   AppPressable,
   Panel,
 } from "../../components/ui";
-import { useCashLedgerStore } from "../../store/cashLedgerStore";
-import { useTransactionStore } from "../../store/transactionStore";
 import { colors } from "../../theme";
-import type { CashTransaction } from "../../types/cash";
+import type {
+  CashExpenseDraft,
+  CashRegister,
+  CashTransaction,
+} from "../../types/cash";
 import { formatCurrency } from "../../utils/format";
-import {
-  AddExpenseModal,
-  type OperationalExpenseDraft,
-} from "./components/AddExpenseModal";
+import { AddExpenseModal } from "./components/AddExpenseModal";
 import { CashLedgerPanel } from "./components/CashLedgerPanel";
 import { CashSummary } from "./components/CashSummary";
 import { CashTransactionDetailModal } from "./components/CashTransactionDetailModal";
 import { useCashLedger } from "./hooks/useCashLedger";
+import { useCashMutations, useCashRegister } from "./hooks/useCashApi";
 import { styles } from "./styles";
 
-function CashRegisterSummary({
-  isOpen,
-  isClosedToday,
-  openingCash,
-  cashSales,
-  cashOutflows,
-  lastShiftReport,
-}: {
-  isOpen: boolean;
-  isClosedToday: boolean;
-  openingCash: number | null;
-  cashSales: number;
-  cashOutflows: number;
-  lastShiftReport: ReturnType<
-    typeof useTransactionStore.getState
-  >["lastShiftReport"];
-}) {
+function CashRegisterSummary({ register }: { register: CashRegister }) {
+  const isOpen = register.status === "open";
+  const isClosedToday = register.status === "closed_today";
   const statusColor = isOpen
     ? colors.success
     : isClosedToday
@@ -56,7 +44,6 @@ function CashRegisterSummary({
     : isClosedToday
       ? "Transaksi berikutnya dimulai pada hari operasional berikutnya."
       : "Buka kasir dari tombol di header sebelum menerima pembayaran.";
-  const expectedCash = (openingCash ?? 0) + cashSales - cashOutflows;
 
   return (
     <Panel style={styles.registerSummary} padding={16}>
@@ -77,7 +64,7 @@ function CashRegisterSummary({
           <VStack style={styles.registerExpected}>
             <Text style={styles.registerExpectedLabel}>PERKIRAAN DI LACI</Text>
             <Text style={styles.registerExpectedValue}>
-              {formatCurrency(expectedCash)}
+              {formatCurrency(register.expectedAmountRupiah)}
             </Text>
           </VStack>
         ) : null}
@@ -87,36 +74,36 @@ function CashRegisterSummary({
           <VStack style={styles.registerBreakdownItem}>
             <Text style={styles.registerBreakdownLabel}>Uang awal</Text>
             <Text style={styles.registerBreakdownValue}>
-              {formatCurrency(openingCash ?? 0)}
+              {formatCurrency(register.openingAmountRupiah)}
             </Text>
           </VStack>
           <VStack style={styles.registerBreakdownItem}>
             <Text style={styles.registerBreakdownLabel}>Penjualan tunai</Text>
             <Text style={styles.registerBreakdownValue}>
-              + {formatCurrency(cashSales)}
+              + {formatCurrency(register.cashSalesRupiah)}
             </Text>
           </VStack>
           <VStack style={styles.registerBreakdownItem}>
             <Text style={styles.registerBreakdownLabel}>Uang keluar</Text>
             <Text style={styles.registerBreakdownValue}>
-              − {formatCurrency(cashOutflows)}
+              − {formatCurrency(register.cashOutflowsRupiah)}
             </Text>
           </VStack>
         </HStack>
       ) : null}
-      {!isOpen && isClosedToday && lastShiftReport ? (
+      {!isOpen && isClosedToday && register.differenceRupiah !== undefined ? (
         <HStack style={styles.closedRegisterReport}>
           <Text style={styles.registerBreakdownLabel}>Selisih tutup kasir</Text>
           <Text
             style={[
               styles.registerBreakdownValue,
-              lastShiftReport.difference === 0 && styles.registerBalanced,
-              lastShiftReport.difference !== 0 && styles.registerMismatch,
+              register.differenceRupiah === 0 && styles.registerBalanced,
+              register.differenceRupiah !== 0 && styles.registerMismatch,
             ]}
           >
-            {lastShiftReport.difference === 0
+            {register.differenceRupiah === 0
               ? "Sesuai"
-              : `${lastShiftReport.difference > 0 ? "Lebih " : "Kurang "}${formatCurrency(Math.abs(lastShiftReport.difference))}`}
+              : `${register.differenceRupiah > 0 ? "Lebih " : "Kurang "}${formatCurrency(Math.abs(register.differenceRupiah))}`}
           </Text>
         </HStack>
       ) : null}
@@ -131,40 +118,28 @@ export function CashScreen() {
     useState<CashTransaction | null>(null);
   const [savedNotice, setSavedNotice] = useState("");
   const ledger = useCashLedger();
+  const registerQuery = useCashRegister({ alwaysRefresh: true });
+  const mutations = useCashMutations();
+  const register = registerQuery.data?.data;
+  const cashRegisterOpen = register?.status === "open";
+  const isMutating = Object.values(mutations).some(
+    (mutation) => mutation.isPending,
+  );
+  const isLoading = registerQuery.isFetching || ledger.isFetching || isMutating;
   const { width } = useWindowDimensions();
   const isCompact = width < 1180;
   const isPhone = width < 620;
   const showSummarySideBySide = width >= 960;
 
-  const cashRegisterOpen = useTransactionStore((state) =>
-    state.isCashRegisterOpen(),
-  );
-  const cashRegisterClosedToday = useTransactionStore((state) =>
-    state.isCashRegisterClosedToday(),
-  );
-  const openingCash = useTransactionStore((state) => state.openingCash);
-  const cashSales = useTransactionStore((state) => state.cashSalesInShift);
-  const cashOutflows = useTransactionStore(
-    (state) => state.cashOutflowsInShift,
-  );
-  const lastShiftReport = useTransactionStore((state) => state.lastShiftReport);
-  const recordCashOutflow = useTransactionStore(
-    (state) => state.recordCashOutflow,
-  );
-
-  const saveExpense = (expense: OperationalExpenseDraft) => {
-    if (!cashRegisterOpen) return false;
-    if (!recordCashOutflow(expense.amount)) {
-      return false;
-    }
-    useCashLedgerStore.getState().addOperationalExpense(expense);
+  const saveExpense = async (expense: CashExpenseDraft) => {
+    await mutations.createExpense.mutateAsync(expense);
     setExpenseModalOpen(false);
     setSavedNotice("Uang keluar tercatat di kas hari ini.");
-    return true;
   };
 
   return (
     <AppShell active="Cash" scrollable>
+      <LoadingScreen visible={isLoading} />
       <VStack style={styles.page}>
         <HStack
           style={[styles.pageHeader, isCompact && styles.pageHeaderCompact]}
@@ -191,7 +166,7 @@ export function CashScreen() {
                   isPhone && styles.primaryButtonFull,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel="Catat uang keluar dari laci"
+                accessibilityLabel="Catat uang keluar"
               >
                 <AppIcon name="plus" size={17} color={colors.white} />
                 <Text style={styles.primaryButtonText}>Catat Uang Keluar</Text>
@@ -199,6 +174,15 @@ export function CashScreen() {
             ) : null}
           </HStack>
         </HStack>
+
+        {registerQuery.isError || ledger.isError ? (
+          <QueryErrorNotice
+            onRetry={() => {
+              void ledger.refetch();
+              void registerQuery.refetch();
+            }}
+          />
+        ) : null}
 
         {savedNotice ? (
           <HStack style={styles.successNotice}>
@@ -215,15 +199,8 @@ export function CashScreen() {
           </HStack>
         ) : null}
 
-        {cashRegisterOpen || cashRegisterClosedToday ? (
-          <CashRegisterSummary
-            isOpen={cashRegisterOpen}
-            isClosedToday={cashRegisterClosedToday}
-            openingCash={openingCash}
-            cashSales={cashSales}
-            cashOutflows={cashOutflows}
-            lastShiftReport={lastShiftReport}
-          />
+        {register && register.status !== "not_opened" ? (
+          <CashRegisterSummary register={register} />
         ) : null}
 
         <CashSummary
@@ -236,7 +213,8 @@ export function CashScreen() {
 
         <CashLedgerPanel
           transactions={ledger.transactions}
-          rangedTransactions={ledger.rangedTransactions}
+          summary={ledger.summary}
+          total={ledger.total}
           period={ledger.period}
           dateRange={ledger.dateRange}
           filter={ledger.filter}
@@ -256,6 +234,7 @@ export function CashScreen() {
           isOpen
           onClose={() => setExpenseModalOpen(false)}
           onSave={saveExpense}
+          isSaving={mutations.createExpense.isPending}
         />
       ) : null}
       {isDatePickerOpen ? (

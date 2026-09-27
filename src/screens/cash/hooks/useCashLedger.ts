@@ -1,87 +1,55 @@
-import { useMemo, useState } from "react";
-import { useCashLedgerStore } from "../../../store/cashLedgerStore";
-import type { CashTransaction } from "../../../types/cash";
+import { useEffect, useMemo, useState } from "react";
+import type { CashOutflowFilters } from "../../../types/cash";
 import type { DatePeriod, DateRange } from "../../../types/dateRange";
+import { debounce } from "../../../utils/debounce";
 import { getLocalDateKey, getPresetDateRange } from "../../../utils/date";
+import { useCashOutflowSummary, useCashOutflows } from "./useCashApi";
 
 export type CashPeriod = DatePeriod;
 export type CashTransactionFilter = "all" | "stock_purchase" | "operational";
 
-function compareTransactions(a: CashTransaction, b: CashTransaction) {
-  return `${b.dateKey} ${b.time}`.localeCompare(`${a.dateKey} ${a.time}`);
-}
+const pageSize = 10;
 
 export function useCashLedger() {
-  const transactions = useCashLedgerStore((state) => state.transactions);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filter, setFilter] = useState<CashTransactionFilter>("all");
   const [period, setPeriod] = useState<CashPeriod>("month");
   const [dateRange, setDateRange] = useState<DateRange>(() =>
     getPresetDateRange(getLocalDateKey(), "month"),
   );
   const [page, setPage] = useState(1);
-  const pageSize = 10;
-
-  const rangedTransactions = useMemo(
-    () =>
-      transactions
-        .filter(
-          (transaction) =>
-            transaction.dateKey >= dateRange.startDate &&
-            transaction.dateKey <= dateRange.endDate,
-        )
-        .sort(compareTransactions),
-    [dateRange.endDate, dateRange.startDate, transactions],
+  const updateDebouncedQuery = useMemo(
+    () => debounce(setDebouncedQuery, 250),
+    [],
   );
 
-  const filteredTransactions = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("id-ID");
-    return rangedTransactions.filter((transaction) => {
-      const matchesFilter =
-        filter === "all" || transaction.categoryKind === filter;
-      const sourceLabel =
-        transaction.source === "cash"
-          ? "kas laci pay-out"
-          : "rekening usaha transfer";
-      const searchableText = [
-        transaction.description,
-        transaction.detail,
-        transaction.category,
-        sourceLabel,
-      ]
-        .join(" ")
-        .toLocaleLowerCase("id-ID");
-      return (
-        matchesFilter &&
-        (!normalizedQuery || searchableText.includes(normalizedQuery))
-      );
-    });
-  }, [filter, query, rangedTransactions]);
+  useEffect(() => {
+    updateDebouncedQuery(query.trim());
+    return () => updateDebouncedQuery.cancel();
+  }, [query, updateDebouncedQuery]);
 
-  const summary = useMemo(
-    () =>
-      rangedTransactions.reduce(
-        (result, transaction) => {
-          if (transaction.categoryKind === "stock_purchase") {
-            result.stockAmount += transaction.amount;
-            result.stockCount += 1;
-          } else {
-            result.operationalAmount += transaction.amount;
-            result.operationalCount += 1;
-          }
-          return result;
-        },
-        {
-          stockAmount: 0,
-          stockCount: 0,
-          operationalAmount: 0,
-          operationalCount: 0,
-        },
-      ),
-    [rangedTransactions],
+  const rangeFilters = useMemo(
+    () => ({ from: dateRange.startDate, to: dateRange.endDate }),
+    [dateRange.endDate, dateRange.startDate],
+  );
+  const filters: CashOutflowFilters = useMemo(
+    () => ({
+      ...rangeFilters,
+      search: debouncedQuery,
+      category: filter,
+      page,
+      limit: pageSize,
+    }),
+    [debouncedQuery, filter, page, rangeFilters],
   );
 
-  const pageCount = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+  const outflowsQuery = useCashOutflows(filters);
+  const summaryQuery = useCashOutflowSummary(rangeFilters);
+  const pageCount = Math.max(
+    1,
+    Math.ceil((outflowsQuery.data?.total ?? 0) / pageSize),
+  );
   const activePage = Math.min(page, pageCount);
 
   const selectFilter = (nextFilter: CashTransactionFilter) => {
@@ -113,9 +81,18 @@ export function useCashLedger() {
     pageSize,
     period,
     query,
-    rangedTransactions,
-    summary,
-    transactions: filteredTransactions,
+    transactions: outflowsQuery.data?.data ?? [],
+    total: outflowsQuery.data?.total ?? 0,
+    summary: summaryQuery.data?.data ?? {
+      stockAmount: 0,
+      stockCount: 0,
+      operationalAmount: 0,
+      operationalCount: 0,
+    },
+    isFetching: outflowsQuery.isFetching || summaryQuery.isFetching,
+    isError: outflowsQuery.isError || summaryQuery.isError,
+    refetch: () =>
+      Promise.all([outflowsQuery.refetch(), summaryQuery.refetch()]),
     changeQuery,
     applyDateRange,
     selectFilter,
