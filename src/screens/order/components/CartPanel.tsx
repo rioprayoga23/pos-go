@@ -3,11 +3,13 @@ import { memo } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { LivePulseDot } from '../../../components/indicators/LivePulseDot';
 import { AppButton as Button, AppIcon, AppPressable as Pressable, EmptyState, Panel } from '../../../components/ui';
-import { getCartTotals } from '../../../store/cartStore';
+import { canAddToCart, getCartTotals } from '../../../store/cartStore';
 import type { CartItem } from '../../../types/pos';
 import { colors } from '../../../theme';
 import { formatCurrency } from '../../../utils/format';
-import { getCartItemName, getCartLineTotal } from '../../../utils/cartPricing';
+import { getCartLineTotal } from '../../../utils/cartPricing';
+import { getNextOrderNumber } from '../../../utils/orderNumber';
+import { useTransactionStore } from '../../../store/transactionStore';
 import { styles } from '../styles';
 
 type Props = {
@@ -31,6 +33,8 @@ export const CartPanel = memo(function CartPanel({
 }: Props) {
   const totals = getCartTotals(items);
   const cupCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const orders = useTransactionStore((state) => state.orders);
+  const orderNumber = getNextOrderNumber(orders);
 
   return (
     <Panel
@@ -41,7 +45,7 @@ export const CartPanel = memo(function CartPanel({
         <HStack style={styles.cartHeaderTitle}>
           <LivePulseDot active={isScreenFocused && items.length > 0} />
           <Text style={styles.cartTitle}>Pesanan Aktif</Text>
-          <Text style={styles.cartOrder}>#B-042</Text>
+          <Text style={styles.cartOrder}>{orderNumber}</Text>
         </HStack>
         <Pressable
           onPress={onClear}
@@ -62,7 +66,7 @@ export const CartPanel = memo(function CartPanel({
           <EmptyState
             icon="cart-outline"
             title="Keranjang kosong"
-            description="Pilih menu untuk membuat pesanan."
+            compact
           />
         ) : (
           items.map((item) => (
@@ -85,11 +89,11 @@ export const CartPanel = memo(function CartPanel({
               <VStack style={styles.cartItemInfo}>
                 <HStack style={styles.cartItemHeading}>
                   <Text style={styles.cartItemName} numberOfLines={2}>
-                    {getCartItemName(item.product.id, item.product.name)}
+                    {item.product.name}
                   </Text>
                   <Text style={styles.cartItemPrice}>
                     {formatCurrency(
-                      getCartLineTotal(item.product.id, item.quantity, item.product.price),
+                      getCartLineTotal(item.quantity, item.product.price),
                     )}
                   </Text>
                 </HStack>
@@ -109,6 +113,10 @@ export const CartPanel = memo(function CartPanel({
                       <Pressable
                         onPress={() => onQuantity(item.product.id, item.quantity + 1)}
                         style={styles.quantityButton}
+                        disabled={!canAddToCart(items, item.product)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Tambah jumlah ${item.product.name}`}
+                        accessibilityState={{ disabled: !canAddToCart(items, item.product) }}
                       >
                         <AppIcon name="plus" size={14} color={colors.ink} />
                       </Pressable>
@@ -144,8 +152,8 @@ export const CartPanel = memo(function CartPanel({
           style={[styles.checkoutButton, !items.length && { opacity: 0.45 }]}
         >
           <HStack style={{ alignItems: 'center', gap: 8 }}>
-            <AppIcon name="printer-outline" size={19} color={colors.white} />
-            <ButtonText style={styles.checkoutText}>Cetak &amp; Bayar</ButtonText>
+            <AppIcon name="arrow-right" size={19} color={colors.white} />
+            <ButtonText style={styles.checkoutText}>Lanjut ke Pembayaran</ButtonText>
           </HStack>
         </Button>
       </VStack>

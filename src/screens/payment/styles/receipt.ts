@@ -22,11 +22,11 @@ export const receiptStyles = StyleSheet.create({
   receiptScrollContent: { flexGrow: 1, alignItems: "center", paddingBottom: 1 },
   receiptStageTitle: {
     color: "#475569",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.7,
   },
-  readyPrint: { color: colors.success, fontSize: 10, fontWeight: "800" },
+  readyPrint: { color: colors.inkMuted, fontSize: 12, fontWeight: "800" },
   finalButton: {
     minHeight: 64,
     paddingHorizontal: 14,
@@ -47,5 +47,5 @@ export const receiptStyles = StyleSheet.create({
     justifyContent: "center",
   },
   finalButtonText: { color: colors.white, fontSize: 13, fontWeight: "900" },
-  finalButtonHint: { color: "#DBEAFE", fontSize: 10 },
+  finalButtonHint: { color: "#DBEAFE", fontSize: 12 },
 });

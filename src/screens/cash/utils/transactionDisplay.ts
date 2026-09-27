@@ -1,5 +1,5 @@
 import type { CashTransaction } from "../../../types/cash";
-import { dateFromKey, formatDateKey } from "../../../utils/date";
+import { dateFromKey, formatDateKey, getLocalDateKey } from "../../../utils/date";
 
 export function getCashSourceLabel(source: CashTransaction["source"]) {
   return source === "cash"
@@ -8,13 +8,12 @@ export function getCashSourceLabel(source: CashTransaction["source"]) {
 }
 
 export function getCashDateLabel(dateKey: string, time: string) {
-  const dateLabel =
-    dateKey === "2024-10-24"
-      ? "Hari ini"
-      : new Intl.DateTimeFormat("id-ID", {
-          day: "numeric",
-          month: "short",
-        }).format(dateFromKey(dateKey));
+  const dateLabel = dateKey === getLocalDateKey()
+    ? "Hari ini"
+    : new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "short",
+      }).format(dateFromKey(dateKey));
   return `${dateLabel}, ${time} WIB`;
 }
 

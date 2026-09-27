@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { initialCashTransactions } from "../data/cashTransactions";
 import type { CashTransaction, NewOperationalExpense } from "../types/cash";
 
 type NewStockPurchase = {
@@ -18,11 +17,14 @@ type CashLedgerState = {
 };
 
 function getTimeValue(label: string) {
-  return label.match(/\b\d{1,2}:\d{2}\b/)?.[0] ?? "10:20";
+  const match = label.match(/\b\d{1,2}:\d{2}\b/)?.[0];
+  if (match) return match;
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 export const useCashLedgerStore = create<CashLedgerState>((set) => ({
-  transactions: initialCashTransactions,
+  transactions: [],
   addStockPurchase: (purchase) => {
     if (!purchase.description.trim() || purchase.amount <= 0) return;
     const transaction: CashTransaction = {

@@ -15,32 +15,8 @@ type NotificationState = {
   addNotification: (notification: Omit<PosNotification, 'unread'>) => void;
 };
 
-const initialNotifications: PosNotification[] = [
-  {
-    id: 'order-o-a044',
-    title: 'Pesanan baru masuk',
-    message: '#A-044 · 2 menu menunggu diproses',
-    time: '14:24',
-    unread: true,
-  },
-  {
-    id: 'order-o-a041',
-    title: 'Pesanan sedang dibuat',
-    message: '#A-041 · 1 dari 2 menu selesai dibuat',
-    time: '14:18',
-    unread: true,
-  },
-  {
-    id: 'order-o-a039',
-    title: 'Pesanan siap disajikan',
-    message: '#A-039 · Pesanan siap diambil pelanggan',
-    time: '14:10',
-    unread: true,
-  },
-];
-
 export const useNotificationStore = create<NotificationState>((set) => ({
-  notifications: initialNotifications,
+  notifications: [],
   markAsRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((notification) =>

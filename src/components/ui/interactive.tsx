@@ -262,8 +262,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 4,
   },
-  actionPillText: { color: colors.primary, fontSize: 10, fontWeight: "900" },
-  actionPillTextMobile: { fontSize: 11 },
+  actionPillText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
+  actionPillTextMobile: { fontSize: 12 },
   actionPillTextTablet: { fontSize: 12 },
   appModalCloseButton: {
     width: 44,

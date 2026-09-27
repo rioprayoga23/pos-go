@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius, spacing } from "../../theme";
+import { colors, elevation, radius, spacing, type } from "../../theme";
 
 export const dateRangePickerStyles = StyleSheet.create({
   modal: {
@@ -17,8 +17,8 @@ export const dateRangePickerStyles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   heading: { flex: 1, minWidth: 0, gap: 3 },
-  title: { color: colors.ink, fontSize: 17, fontWeight: "900" },
-  subtitle: { color: colors.inkMuted, fontSize: 11 },
+  title: { color: colors.ink, fontSize: type.section, lineHeight: 24, fontWeight: "900" },
+  subtitle: { color: colors.inkMuted, fontSize: 12 },
   body: { minHeight: 0, paddingHorizontal: 0, paddingTop: spacing.sm },
   scroll: { flexGrow: 0, minHeight: 0 },
   scrollContent: { gap: spacing.md, paddingVertical: spacing.xs },
@@ -29,7 +29,7 @@ export const dateRangePickerStyles = StyleSheet.create({
     backgroundColor: colors.surfaceTint,
     gap: 3,
   },
-  selectedLabel: { color: colors.inkSubtle, fontSize: 10, fontWeight: "800" },
+  selectedLabel: { color: colors.inkSubtle, fontSize: 12, fontWeight: "800" },
   selectedText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
   monthHeader: { alignItems: "center", justifyContent: "space-between" },
   monthTitle: { color: colors.ink, fontSize: 13, fontWeight: "900" },
@@ -62,14 +62,14 @@ export const dateRangePickerStyles = StyleSheet.create({
     justifyContent: "center",
   },
   selectorOptionSelected: { backgroundColor: colors.primary },
-  selectorOptionText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
+  selectorOptionText: { color: colors.ink, fontSize: 12, fontWeight: "700" },
   selectorOptionTextSelected: { color: colors.white, fontWeight: "900" },
   weekdayRow: { flexDirection: "row", width: "100%" },
   weekday: {
     width: `${100 / 7}%`,
     color: colors.inkSubtle,
     textAlign: "center",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "800",
   },
   dayGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
@@ -88,7 +88,7 @@ export const dateRangePickerStyles = StyleSheet.create({
   },
   dayButtonInRange: { backgroundColor: colors.surfaceTint },
   dayButtonSelected: { backgroundColor: colors.primary },
-  dayText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
+  dayText: { color: colors.ink, fontSize: 12, fontWeight: "700" },
   dayTextSelected: { color: colors.white, fontWeight: "900" },
   footer: {
     width: "100%",
@@ -108,5 +108,5 @@ export const dateRangePickerStyles = StyleSheet.create({
     justifyContent: "center",
   },
   applyButtonDisabled: { opacity: 0.5 },
-  applyText: { color: colors.white, fontSize: 11, fontWeight: "900" },
+  applyText: { color: colors.white, fontSize: 12, fontWeight: "900" },
 });

@@ -2,13 +2,17 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView } from "react-native";
 import { useProductStore } from "../../../store/productStore";
+import { useStockStore } from "../../../store/stockStore";
 import { colors } from "../../../theme";
-import { HppComponent, Product } from "../../../types/pos";
-import { emptyForm, initialForm } from "../constants";
+import { Product } from "../../../types/pos";
+import { emptyForm } from "../constants";
 import { ProductForm } from "../types";
+import { getAvailablePortions, getRecipeCostBreakdown } from "../../../utils/standardRecipe";
 
 export function useProductsManager() {
   const products = useProductStore((state) => state.products);
+  const recipes = useStockStore((state) => state.recipes);
+  const inventoryItems = useStockStore((state) => state.items);
   const categories = useProductStore((state) => state.categories);
   const addProduct = useProductStore((state) => state.addProduct);
   const updateProduct = useProductStore((state) => state.updateProduct);
@@ -18,13 +22,14 @@ export function useProductsManager() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [editing, setEditing] = useState<Product | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showHppModal, setShowHppModal] = useState(false);
-  const [form, setForm] = useState<ProductForm>(initialForm);
+  const [form, setForm] = useState<ProductForm>(emptyForm);
+  const selectedRecipe = recipes.find((recipe) => recipe.id === form.recipeId);
+  const availableStock = getAvailablePortions(inventoryItems, selectedRecipe, recipes);
+  const recipeCostLines = getRecipeCostBreakdown(inventoryItems, selectedRecipe, recipes);
   const [formError, setFormError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [isPickingImage, setIsPickingImage] = useState(false);
   const [categoryName, setCategoryName] = useState("");
-  const [categoryIcon, setCategoryIcon] = useState("local_bar");
   const [categoryError, setCategoryError] = useState("");
   const formScrollRef = useRef<ScrollView>(null);
 
@@ -99,16 +104,7 @@ export function useProductsManager() {
     setForm({
       name: product.name,
       price: String(product.price),
-      stock: String(product.stock),
-      hppComponents: product.hppComponents?.map((component) => ({ ...component })) ?? [
-        {
-          id: `hpp-base-${product.id}`,
-          name: "Biaya bahan & kemasan",
-          detail: "Modal pokok per porsi",
-          icon: "cash-multiple",
-          cost: product.hpp ?? 11500,
-        },
-      ],
+      recipeId: product.recipeId,
       description: product.description,
       categoryId: product.categoryId,
       isAvailable: product.isAvailable,
@@ -130,7 +126,6 @@ export function useProductsManager() {
 
   const openCategoryModal = () => {
     setCategoryName("");
-    setCategoryIcon("local_bar");
     setCategoryError("");
     setShowCategoryModal(true);
   };
@@ -138,25 +133,8 @@ export function useProductsManager() {
   const closeCategoryModal = () => {
     setShowCategoryModal(false);
     setCategoryName("");
-    setCategoryIcon("local_bar");
     setCategoryError("");
   };
-
-  const saveHpp = (price: string, hppComponents: HppComponent[]) => {
-    setForm((current) => ({ ...current, price, hppComponents }));
-    setFormError("");
-    setShowHppModal(false);
-  };
-
-  const hppTotal = form.hppComponents.reduce(
-    (total, component) => total + component.cost,
-    0,
-  );
-  const salePrice = Number(form.price.replace(/\D/g, ""));
-  const estimatedProfit = salePrice - hppTotal;
-  const estimatedMargin = salePrice > 0
-    ? Math.round((estimatedProfit / salePrice) * 100)
-    : 0;
 
   const save = () => {
     const price = Number(form.price.replace(/\D/g, ""));
@@ -164,22 +142,19 @@ export function useProductsManager() {
       setFormError("Nama menu dan harga wajib diisi.");
       return;
     }
-    const stock = Number(form.stock);
-    if (!form.stock.trim() || !Number.isInteger(stock) || stock < 0) {
-      setFormError("Stok harus berupa angka bulat nol atau lebih.");
-      return;
-    }
     const category = categories.find((item) => item.id === form.categoryId);
     if (!category) {
       setFormError("Pilih kategori menu terlebih dahulu.");
       return;
     }
+    if (!recipes.some((recipe) => recipe.id === form.recipeId && recipe.kind === "menu")) {
+      setFormError("Pilih bahan menu yang tersedia.");
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       price,
-      stock,
-      hpp: form.hppComponents.reduce((total, component) => total + component.cost, 0),
-      hppComponents: form.hppComponents,
+      recipeId: form.recipeId,
       description: form.description.trim() || "Menu minuman pilihan",
       categoryId: category.id,
       categoryName: category.name,
@@ -211,6 +186,10 @@ export function useProductsManager() {
       return;
     }
     addCategory({ name: trimmedName, tint: colors.surfaceTint });
+    const addedCategory = useProductStore.getState().categories.at(-1);
+    if (addedCategory) {
+      setForm((current) => ({ ...current, categoryId: addedCategory.id }));
+    }
     closeCategoryModal();
   };
 
@@ -229,6 +208,9 @@ export function useProductsManager() {
     },
     editor: {
       categories,
+      recipes,
+      inventoryItems,
+      availableStock,
       editing,
       form,
       setForm,
@@ -245,17 +227,9 @@ export function useProductsManager() {
           setCategoryName(value);
           if (categoryError) setCategoryError("");
         },
-        icon: categoryIcon,
-        setIcon: setCategoryIcon,
         error: categoryError,
       },
-      hppModal: {
-        open: () => setShowHppModal(true),
-        close: () => setShowHppModal(false),
-        save: saveHpp,
-        visible: showHppModal,
-      },
-      financials: { hppTotal, salePrice, estimatedProfit, estimatedMargin },
+      recipeCostLines,
       pickProductImage,
       clearPhoto,
       save,

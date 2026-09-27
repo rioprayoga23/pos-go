@@ -1,10 +1,7 @@
-import type { RootStackParamList } from "../../navigation/types";
+import type { PrimaryRouteName } from "../../navigation/routes";
 import type { IconName } from "../ui";
 
-export type PrimaryNavigationRoute = Exclude<
-  keyof RootStackParamList,
-  "Payment"
->;
+export type PrimaryNavigationRoute = PrimaryRouteName;
 
 type PrimaryNavigationItem = {
   route: PrimaryNavigationRoute;

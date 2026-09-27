@@ -8,17 +8,25 @@ export const QueueSummary = memo(function QueueSummary({
   isWide,
   isMobile,
   isTablet,
+  waitingCount,
+  preparingCount,
+  readyCount,
+  activeCupCount,
 }: {
   isWide: boolean;
   isMobile: boolean;
   isTablet: boolean;
+  waitingCount: number;
+  preparingCount: number;
+  readyCount: number;
+  activeCupCount: number;
 }) {
   return (
     <Panel style={styles.summaryBar} padding={10}>
       <HStack style={[styles.summaryItems, !isWide && styles.summaryWrap]}>
-        <SummaryItem label="TOTAL ANTREAN" value="8" helper="18 Cup" icon="clipboard-text-outline" tone="amber" isMobile={isMobile} isTablet={isTablet} />
-        <SummaryItem label="SEDANG DIBUAT" value="3" helper="Pesanan" icon="progress-clock" tone="blue" isMobile={isMobile} isTablet={isTablet} />
-        <SummaryItem label="SIAP AMBIL" value="4" helper="Pesanan" icon="check-circle-outline" tone="green" isMobile={isMobile} isTablet={isTablet} />
+        <SummaryItem label="TOTAL ANTREAN" value={String(waitingCount + preparingCount + readyCount)} helper={`${activeCupCount} Cup`} icon="clipboard-text-outline" tone="amber" isMobile={isMobile} isTablet={isTablet} />
+        <SummaryItem label="SEDANG DIBUAT" value={String(preparingCount)} helper="Pesanan" icon="progress-clock" tone="blue" isMobile={isMobile} isTablet={isTablet} />
+        <SummaryItem label="SIAP AMBIL" value={String(readyCount)} helper="Pesanan" icon="check-circle-outline" tone="green" isMobile={isMobile} isTablet={isTablet} />
       </HStack>
     </Panel>
   );

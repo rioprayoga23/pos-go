@@ -52,7 +52,6 @@ export const QueueTicket = memo(function QueueTicket({ order, isMobile, isTablet
             </Pressable>
             <VStack style={styles.itemCopy}>
               <Text style={[styles.itemName, (isMobile || isTablet) && styles.itemNameAdaptive, completed && styles.completedText]}>{item.quantity}x {item.product.name}</Text>
-              <Text style={[styles.itemDetail, (isMobile || isTablet) && styles.itemDetailAdaptive]}>{item.product.id === 'p-02' ? 'Large • Normal Ice • 50% Sugar' : 'Regular • Less Ice • Normal Sugar'}</Text>
             </VStack>
             {itemPrepared ? <HStack style={styles.preparedBadge}><Text style={[styles.preparedBadgeText, (isMobile || isTablet) && styles.preparedBadgeTextAdaptive]}>Selesai</Text></HStack> : null}
           </HStack>

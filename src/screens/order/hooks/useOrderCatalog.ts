@@ -15,6 +15,7 @@ export function useOrderCatalog() {
       products.filter(
         (product) =>
           product.isAvailable &&
+          product.stock > 0 &&
           (selectedCategory === 'all' || product.categoryId === selectedCategory) &&
           `${product.name} ${product.categoryName}`
             .toLowerCase()

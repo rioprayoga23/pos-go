@@ -9,12 +9,14 @@ import { styles } from "../styles";
 type Props = {
   active: PrimaryNavigationRoute;
   bottomInset: number;
+  queueCount: number;
   onNavigate: (route: PrimaryNavigationRoute) => void;
 };
 
 export function MobileBottomNavigation({
   active,
   bottomInset,
+  queueCount,
   onNavigate,
 }: Props) {
   return (
@@ -47,9 +49,9 @@ export function MobileBottomNavigation({
                 size={19}
                 color={isActive ? colors.primary : colors.inkMuted}
               />
-              {item.route === "Queue" ? (
+              {item.route === "Queue" && queueCount > 0 ? (
                 <View style={styles.mobileQueueBadge}>
-                  <Text style={styles.queueBadgeText}>4</Text>
+                  <Text style={styles.queueBadgeText}>{queueCount > 99 ? "99+" : queueCount}</Text>
                 </View>
               ) : null}
             </View>

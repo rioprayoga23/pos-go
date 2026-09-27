@@ -20,9 +20,10 @@ export function ReceiptPaper({ data }: { data: ReceiptData }) {
       <HStack style={styles.receiptMeta}>
         <VStack>
           <Text style={styles.receiptTiny}>
-            No: <Text style={styles.receiptBold}>{data.billNumber}</Text>
+            No: <Text style={styles.receiptBold}>{data.orderNumber}</Text>
           </Text>
           <Text style={styles.receiptTiny}>Kasir: {data.cashier}</Text>
+          <Text style={styles.receiptTiny}>Pelanggan: {data.customer}</Text>
         </VStack>
         <VStack style={styles.receiptMetaRight}>
           <Text style={styles.receiptTiny}>{data.date}</Text>
@@ -32,7 +33,7 @@ export function ReceiptPaper({ data }: { data: ReceiptData }) {
       <Divider />
       <VStack style={styles.queueReceipt}>
         <Text style={styles.receiptTiny}>NOMOR ANTREAN</Text>
-        <Text style={styles.queueNumber}>{data.queueNumber}</Text>
+        <Text style={styles.queueNumber}>{data.orderNumber}</Text>
         <Text style={styles.receiptSmall}>
           {data.itemCount} Minuman • {data.orderType}
         </Text>
@@ -53,6 +54,10 @@ export function ReceiptPaper({ data }: { data: ReceiptData }) {
         <HStack style={styles.receiptLine}>
           <Text style={styles.receiptSmall}>Subtotal</Text>
           <Text style={styles.receiptBold}>{formatCurrency(data.subtotal)}</Text>
+        </HStack>
+        <HStack style={styles.receiptLine}>
+          <Text style={styles.receiptSmall}>Pembayaran</Text>
+          <Text style={styles.receiptBold}>{data.paymentMethod}</Text>
         </HStack>
       </VStack>
       <Divider />

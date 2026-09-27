@@ -10,7 +10,7 @@ import {
   VStack,
 } from "@gluestack-ui/themed";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView } from "react-native";
 import {
   AppIcon,
   AppInput,
@@ -18,11 +18,21 @@ import {
   AppPressable,
 } from "../../../components/ui";
 import { colors } from "../../../theme";
-import { formatCurrency } from "../../../utils/format";
+import { formatCurrency, formatPreciseCurrency, formatThousands } from "../../../utils/format";
 import { customItemOptionId, stockUnitOptions } from "../data/options";
-import { isLowStock } from "../utils/stock";
-import type { CorrectionDirection, ModalMode, StockDraft, StockItem } from "../types";
+import {
+  getPurchaseUnit,
+  getPurchaseUnitPrice,
+  getStockUnitsPerPurchaseUnit,
+} from "../utils/stock";
+import type { ModalMode, StockDraft, StockItem } from "../types";
 import { styles } from "../styles";
+
+const correctionReasons = ["Stok opname", "Rusak / kedaluwarsa", "Lainnya"];
+
+function parseWholeNumber(value: string) {
+  return Math.max(0, Number(value.replace(/\D/g, "")) || 0);
+}
 
 export function StockAdjustmentModal({
   mode,
@@ -39,92 +49,101 @@ export function StockAdjustmentModal({
   onClose: () => void;
   onSubmit: (draft: StockDraft) => void;
 }) {
-  const [itemId, setItemId] = useState(initialItemId ?? items[0]?.id ?? "");
+  const [itemId, setItemId] = useState(
+    initialItemId ?? items[0]?.id ?? (mode === "purchase" ? customItemOptionId : ""),
+  );
   const [itemMenuOpen, setItemMenuOpen] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customUnit, setCustomUnit] = useState("");
   const [unitMenuOpen, setUnitMenuOpen] = useState(false);
-  const [quantityInput, setQuantityInput] = useState(
-    mode === "purchase" ? "20" : "2",
-  );
-  const [priceMode, setPriceMode] = useState<"unit" | "total">("unit");
-  const [priceInput, setPriceInput] = useState(
-    mode === "purchase" ? "6500" : "",
-  );
-  const [fundingSource, setFundingSource] = useState<"cash" | "transfer">(
-    "cash",
-  );
-  const [purchaseTime, setPurchaseTime] = useState("24 Okt 2024, 10:20 WIB");
-  const [purchaseNote, setPurchaseNote] = useState(
-    "Supplier Utama CV Berkah Makmur",
-  );
-  const [correctionType, setCorrectionType] =
-    useState<CorrectionDirection>("subtract");
-  const [reason, setReason] = useState("Kerusakan Fisik / Kemasan Bocor");
+  const [quantityInput, setQuantityInput] = useState("");
+  const [totalCostInput, setTotalCostInput] = useState("");
+  const [fundingSource, setFundingSource] = useState<"cash" | "transfer">("cash");
+  const [actualStockInput, setActualStockInput] = useState("");
+  const [reason, setReason] = useState(correctionReasons[0]);
   const [reasonOpen, setReasonOpen] = useState(false);
-  const [correctionTime, setCorrectionTime] = useState(
-    "Hari ini, 10:20 WIB (Shift Sarah Putri)",
-  );
-  const [correctionNote, setCorrectionNote] = useState(
-    "Dua sachet kemasan robek dan serbuk menggumpal saat cek pagi.",
-  );
+  const [correctionNote, setCorrectionNote] = useState("");
+  const [purchaseUnitPriceInput, setPurchaseUnitPriceInput] = useState(() => {
+    const item = items.find((entry) => entry.id === initialItemId) ?? items[0];
+    return mode === "correction" && item
+      ? String(Math.round(getPurchaseUnitPrice(item)))
+      : "";
+  });
 
   const isCustomItem = mode === "purchase" && itemId === customItemOptionId;
   const selectedItem = isCustomItem
     ? undefined
-    : items.find((item) => item.id === itemId) ?? items[0];
+    : items.find((item) => item.id === itemId);
   const normalizedCustomName = customItemName.trim();
   const hasDuplicateCustomName =
     isCustomItem &&
     normalizedCustomName.length > 0 &&
-    items.some(
-      (item) =>
-        item.name.trim().toLowerCase() === normalizedCustomName.toLowerCase(),
-    );
-  const selectedItemIsLow = selectedItem ? isLowStock(selectedItem) : false;
-  const quantity = Math.max(0, Number(quantityInput.replace(/\D/g, "")) || 0);
-  const canSubmit = Boolean(
-    quantity &&
-      (isCustomItem
-        ? normalizedCustomName && customUnit && !hasDuplicateCustomName
-        : selectedItem),
+    items.some((item) => item.name.trim().toLowerCase() === normalizedCustomName.toLowerCase());
+  const quantity = parseWholeNumber(quantityInput);
+  const totalCost = parseWholeNumber(totalCostInput);
+  const actualStock = parseWholeNumber(actualStockInput);
+  const purchaseUnitPrice = parseWholeNumber(purchaseUnitPriceInput);
+  const purchaseUnit = selectedItem ? getPurchaseUnit(selectedItem) : customUnit;
+  const conversion = selectedItem ? getStockUnitsPerPurchaseUnit(selectedItem) : 1;
+  const incomingStock = quantity * conversion;
+  const currentStock = selectedItem?.stock ?? 0;
+  const nextStock = currentStock + incomingStock;
+  const correctionDelta = selectedItem ? actualStock - selectedItem.stock : 0;
+  const pricePreview = selectedItem
+    ? purchaseUnitPrice / getStockUnitsPerPurchaseUnit(selectedItem)
+    : 0;
+  const hasPurchaseQuantity = quantityInput.trim().length > 0 && quantity > 0;
+  const hasActualStock = actualStockInput.trim().length > 0;
+  const hasCorrectionChange = hasActualStock && correctionDelta !== 0;
+  const hasPriceChange = Boolean(
+    selectedItem &&
+    purchaseUnitPriceInput.trim().length > 0 &&
+    purchaseUnitPrice !== Math.round(getPurchaseUnitPrice(selectedItem)),
   );
-  const priceValue = Math.max(0, Number(priceInput.replace(/\D/g, "")) || 0);
-  const totalCost = priceMode === "unit" ? quantity * priceValue : priceValue;
-  const newStock = selectedItem
-    ? selectedItem.stock +
-      (correctionType === "subtract" ? -quantity : quantity)
-    : quantity;
-  const reasonOptions = [
-    "Kerusakan Fisik / Kemasan Bocor",
-    "Kadaluarsa / Expired Date",
-    "Selisih Hitung Stok Opname Kasir",
-    "Uji Rasa / Quality Check Bar",
-    "Koreksi Salah Input Transaksi",
-    "Lainnya (Tulis di catatan)",
-  ];
+  const canSubmit = mode === "purchase"
+    ? Boolean(
+        hasPurchaseQuantity &&
+        totalCost > 0 &&
+        (isCustomItem
+          ? normalizedCustomName && customUnit && !hasDuplicateCustomName
+          : selectedItem),
+      )
+    : Boolean(
+        selectedItem &&
+        (hasCorrectionChange || hasPriceChange) &&
+        (!hasCorrectionChange || reason !== "Lainnya" || correctionNote.trim()),
+      );
+
+  const changeSelectedItem = (nextId: string) => {
+    setItemId(nextId);
+    setItemMenuOpen(false);
+    setUnitMenuOpen(false);
+    if (mode === "purchase") {
+      setQuantityInput("");
+      setTotalCostInput("");
+    }
+    if (mode === "correction") {
+      const nextItem = items.find((item) => item.id === nextId);
+      setPurchaseUnitPriceInput(nextItem ? String(Math.round(getPurchaseUnitPrice(nextItem))) : "");
+      setActualStockInput("");
+      setCorrectionNote("");
+      setReason(correctionReasons[0]);
+      setReasonOpen(false);
+    }
+  };
 
   const handleSubmit = () => {
-    if (!quantity) return;
+    if (!canSubmit) return;
+
     if (mode === "purchase") {
       if (isCustomItem) {
-        if (
-          !normalizedCustomName ||
-          !customUnit ||
-          hasDuplicateCustomName
-        ) {
-          return;
-        }
         onSubmit({
           mode: "purchase",
           itemId: customItemOptionId,
           newItem: { name: normalizedCustomName, unit: customUnit },
           quantity,
-          priceMode,
-          priceValue,
+          totalCost,
           fundingSource,
-          time: purchaseTime,
-          note: purchaseNote,
         });
         return;
       }
@@ -133,183 +152,129 @@ export function StockAdjustmentModal({
         mode: "purchase",
         itemId: selectedItem.id,
         quantity,
-        priceMode,
-        priceValue,
+        totalCost,
         fundingSource,
-        time: purchaseTime,
-        note: purchaseNote,
       });
       return;
     }
+
     if (!selectedItem) return;
-    onSubmit({
-      mode: "correction",
-      itemId: selectedItem.id,
-      direction: correctionType,
-      quantity,
-      reason,
-      time: correctionTime,
-      note: correctionNote,
-    });
+    if (mode === "correction") {
+      onSubmit({
+        mode: "correction",
+        itemId: selectedItem.id,
+        actualStock: hasActualStock ? actualStock : selectedItem.stock,
+        purchaseUnitPrice,
+        reason,
+        note: correctionNote.trim(),
+      });
+      return;
+    }
   };
+
+  const title = mode === "purchase"
+    ? "Tambah Stok"
+    : "Sesuaikan Stok";
+  const icon = mode === "purchase" ? "plus" : "tune-variant";
+  const saveLabel = mode === "purchase" ? "Simpan Stok" : "Simpan Perubahan";
 
   return (
     <Modal isOpen onClose={onClose} size="md">
       <ModalBackdrop />
-      <ModalContent
-        style={[styles.modal, { maxHeight: Math.max(500, height - 28) }]}
-      >
+      <ModalContent style={[styles.modal, { maxHeight: Math.max(500, height - 28) }]}>
         <ModalHeader style={styles.modalHeader}>
           <HStack style={styles.modalIcon}>
-            <AppIcon
-              name={mode === "purchase" ? "plus" : "tune-variant"}
-              size={18}
-              color={colors.primary}
-            />
+            <AppIcon name={icon} size={18} color={colors.primary} />
           </HStack>
           <VStack style={styles.modalHeading}>
-            <Text style={styles.modalTitle}>
-              {mode === "purchase" ? "Catat Pembelian Stok" : "Koreksi Stok"}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              {mode === "purchase"
-                ? "Input barang masuk dan pemotongan saldo kas kasir"
-                : "Sesuaikan stok sistem dengan kondisi fisik di outlet"}
-            </Text>
+            <Text style={styles.modalTitle}>{title}</Text>
+            {mode === "purchase" ? (
+              <Text style={styles.modalSubtitle}>Catat jumlah masuk dan total pembayaran</Text>
+            ) : null}
           </VStack>
-          <AppModalCloseButton
-            onPress={onClose}
-            accessibilityLabel="Tutup form stok"
-          />
+          <AppModalCloseButton onPress={onClose} accessibilityLabel="Tutup form stok" />
         </ModalHeader>
+
         <ModalBody style={styles.modalBody}>
           <ScrollView
             style={styles.modalScroll}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.modalForm}
           >
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>
-                {mode === "purchase"
-                  ? "Pilih Bahan / Item yang Dibeli"
-                  : "Pilih Bahan / Item"}
-              </Text>
-              <AppPressable
-                onPress={() => {
-                  setUnitMenuOpen(false);
-                  setItemMenuOpen((current) => !current);
-                }}
-                style={styles.modalSelect}
-                accessibilityRole="button"
-                accessibilityLabel="Pilih bahan atau item yang dibeli"
-                accessibilityState={{ expanded: itemMenuOpen }}
-              >
-                <VStack style={styles.modalSelectCopy}>
-                  <Text style={styles.modalSelectTitle}>
-                    {isCustomItem ? "Lainnya" : (selectedItem?.name ?? "Pilih item")}
-                  </Text>
-                  <Text style={styles.modalSelectMeta}>
-                    {isCustomItem
-                      ? "Tambah bahan atau produk baru"
-                      : selectedItem?.category +
-                        " · Stok " +
-                        selectedItem?.stock}
-                  </Text>
-                </VStack>
-                <AppIcon
-                  name="chevron-down"
-                  size={17}
-                  color={colors.inkMuted}
-                />
-              </AppPressable>
-              {itemMenuOpen ? (
-                <ScrollView
-                  style={styles.modalOptionMenu}
-                  contentContainerStyle={styles.modalOptionMenuContent}
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator
+            {mode === "purchase" || mode === "correction" ? (
+              <VStack style={styles.formGroup}>
+                <Text style={styles.formLabel}>Bahan</Text>
+                <AppPressable
+                  onPress={() => {
+                    setUnitMenuOpen(false);
+                    setItemMenuOpen((current) => !current);
+                  }}
+                  style={styles.modalSelect}
+                  accessibilityRole="button"
+                  accessibilityLabel="Pilih bahan"
+                  accessibilityState={{ expanded: itemMenuOpen }}
                 >
-                  {items.map((item) => (
-                    <AppPressable
-                      key={item.id}
-                      onPress={() => {
-                        setItemId(item.id);
-                        setItemMenuOpen(false);
-                        setUnitMenuOpen(false);
-                      }}
-                      style={[
-                        styles.modalOption,
-                        item.id === selectedItem?.id &&
-                          styles.modalOptionActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.modalOptionTitle,
-                          item.id === selectedItem?.id &&
-                            styles.modalOptionTitleActive,
-                        ]}
+                  <Text style={styles.modalSelectTitle}>
+                    {isCustomItem ? "Bahan baru" : selectedItem?.name ?? "Pilih bahan"}
+                  </Text>
+                  <AppIcon name="chevron-down" size={17} color={colors.inkMuted} />
+                </AppPressable>
+                {itemMenuOpen ? (
+                  <ScrollView
+                    style={styles.modalOptionMenu}
+                    contentContainerStyle={styles.modalOptionMenuContent}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator
+                  >
+                    {items.map((item) => (
+                      <AppPressable
+                        key={item.id}
+                        onPress={() => changeSelectedItem(item.id)}
+                        style={[styles.modalOption, item.id === selectedItem?.id && styles.modalOptionActive]}
+                        accessibilityRole="button"
                       >
-                        {item.name}
-                      </Text>
-                      <Text style={styles.modalOptionMeta}>
-                        {item.stock} · {item.category}
-                      </Text>
-                    </AppPressable>
-                  ))}
-                  {mode === "purchase" ? (
-                    <AppPressable
-                      onPress={() => {
-                        setItemId(customItemOptionId);
-                        setItemMenuOpen(false);
-                        setUnitMenuOpen(false);
-                      }}
-                      style={[
-                        styles.modalOption,
-                        isCustomItem && styles.modalOptionActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <Text
-                        style={[
-                          styles.modalOptionTitle,
-                          isCustomItem && styles.modalOptionTitleActive,
-                        ]}
+                        <Text style={[styles.modalOptionTitle, item.id === selectedItem?.id && styles.modalOptionTitleActive]}>
+                          {item.name}
+                        </Text>
+                      </AppPressable>
+                    ))}
+                    {mode === "purchase" ? (
+                      <AppPressable
+                        onPress={() => changeSelectedItem(customItemOptionId)}
+                        style={[styles.modalOption, isCustomItem && styles.modalOptionActive]}
+                        accessibilityRole="button"
                       >
-                        Lainnya
-                      </Text>
-                      <Text style={styles.modalOptionMeta}>
-                        Tambah bahan atau produk baru
-                      </Text>
-                    </AppPressable>
-                  ) : null}
-                </ScrollView>
-              ) : null}
-            </VStack>
+                        <Text style={[styles.modalOptionTitle, isCustomItem && styles.modalOptionTitleActive]}>
+                          + Bahan baru
+                        </Text>
+                      </AppPressable>
+                    ) : null}
+                  </ScrollView>
+                ) : null}
+              </VStack>
+            ) : null}
 
             {mode === "purchase" ? (
               <>
                 {isCustomItem ? (
                   <>
                     <VStack style={styles.formGroup}>
-                      <Text style={styles.formLabel}>Nama Bahan / Produk</Text>
+                      <Text style={styles.formLabel}>Nama bahan</Text>
                       <AppInput
                         value={customItemName}
                         onChangeText={setCustomItemName}
-                        placeholder="Contoh: Susu UHT 1L"
+                        placeholder="Contoh: Susu UHT"
                         autoCapitalize="words"
                         style={styles.formInput}
                         inputStyle={styles.formInputText}
-                        accessibilityLabel="Nama bahan atau produk baru"
+                        accessibilityLabel="Nama bahan baru"
                       />
                       {hasDuplicateCustomName ? (
-                        <Text style={styles.formError}>
-                          Nama bahan sudah terdaftar. Pilih dari daftar item.
-                        </Text>
+                        <Text style={styles.formError}>Bahan dengan nama ini sudah ada.</Text>
                       ) : null}
                     </VStack>
                     <VStack style={styles.formGroup}>
-                      <Text style={styles.formLabel}>Satuan</Text>
+                      <Text style={styles.formLabel}>Satuan stok</Text>
                       <AppPressable
                         onPress={() => {
                           setItemMenuOpen(false);
@@ -317,19 +282,13 @@ export function StockAdjustmentModal({
                         }}
                         style={styles.modalSelect}
                         accessibilityRole="button"
-                        accessibilityLabel="Pilih satuan stok baru"
+                        accessibilityLabel="Pilih satuan stok"
                         accessibilityState={{ expanded: unitMenuOpen }}
                       >
                         <Text style={styles.modalSelectTitle}>
-                          {stockUnitOptions.find(
-                            (option) => option.value === customUnit,
-                          )?.label ?? "Pilih satuan"}
+                          {stockUnitOptions.find((option) => option.value === customUnit)?.label ?? "Pilih satuan"}
                         </Text>
-                        <AppIcon
-                          name="chevron-down"
-                          size={17}
-                          color={colors.inkMuted}
-                        />
+                        <AppIcon name="chevron-down" size={17} color={colors.inkMuted} />
                       </AppPressable>
                       {unitMenuOpen ? (
                         <ScrollView
@@ -345,20 +304,10 @@ export function StockAdjustmentModal({
                                 setCustomUnit(option.value);
                                 setUnitMenuOpen(false);
                               }}
-                              style={[
-                                styles.modalOption,
-                                customUnit === option.value &&
-                                  styles.modalOptionActive,
-                              ]}
+                              style={[styles.modalOption, customUnit === option.value && styles.modalOptionActive]}
                               accessibilityRole="button"
                             >
-                              <Text
-                                style={[
-                                  styles.modalOptionTitle,
-                                  customUnit === option.value &&
-                                    styles.modalOptionTitleActive,
-                                ]}
-                              >
+                              <Text style={[styles.modalOptionTitle, customUnit === option.value && styles.modalOptionTitleActive]}>
                                 {option.label}
                               </Text>
                             </AppPressable>
@@ -368,422 +317,189 @@ export function StockAdjustmentModal({
                     </VStack>
                   </>
                 ) : null}
-                <HStack style={styles.stockSnapshot}>
-                  <AppIcon
-                    name="archive-outline"
-                    size={16}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.stockSnapshotText}>
-                    {isCustomItem ? "Stok awal " : "Stok saat ini "}
-                    <Text style={styles.stockSnapshotStrong}>
-                      {selectedItem?.stock ?? 0}
-                    </Text>
-                  </Text>
-                </HStack>
+
                 <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Jumlah Beli / Masuk</Text>
+                  <Text style={styles.formLabel}>
+                    Jumlah dibeli ({purchaseUnit || "satuan"})
+                  </Text>
                   <AppInput
-                    value={quantityInput}
-                    onChangeText={(value) =>
-                      setQuantityInput(value.replace(/\D/g, ""))
-                    }
+                    value={formatThousands(quantityInput)}
+                    onChangeText={(value) => setQuantityInput(value.replace(/\D/g, ""))}
+                    placeholder="0"
                     keyboardType="number-pad"
                     style={styles.formInput}
                     inputStyle={styles.formInputText}
-                    accessibilityLabel="Jumlah beli atau masuk"
+                    accessibilityLabel={`Jumlah dibeli dalam ${purchaseUnit || "satuan"}`}
                   />
+                  {conversion > 1 ? (
+                    <Text style={styles.formHint}>
+                      1 {purchaseUnit} = {formatThousands(conversion)} {selectedItem?.unit ?? customUnit}
+                    </Text>
+                  ) : null}
                 </VStack>
+
                 <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Harga Pembelian</Text>
-                  <HStack style={styles.segmentedControl}>
-                    <AppPressable
-                      onPress={() => setPriceMode("unit")}
-                      style={[
-                        styles.segment,
-                        priceMode === "unit" && styles.segmentActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <Text
-                        style={[
-                          styles.segmentText,
-                          priceMode === "unit" && styles.segmentTextActive,
-                        ]}
-                      >
-                        Harga Satuan
-                      </Text>
-                    </AppPressable>
-                    <AppPressable
-                      onPress={() => setPriceMode("total")}
-                      style={[
-                        styles.segment,
-                        priceMode === "total" && styles.segmentActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <Text
-                        style={[
-                          styles.segmentText,
-                          priceMode === "total" && styles.segmentTextActive,
-                        ]}
-                      >
-                        Total Pembelian
-                      </Text>
-                    </AppPressable>
-                  </HStack>
+                  <Text style={styles.formLabel}>Total pembelian</Text>
                   <AppInput
-                    value={priceInput}
-                    onChangeText={(value) =>
-                      setPriceInput(value.replace(/\D/g, ""))
-                    }
+                    value={formatThousands(totalCostInput)}
+                    onChangeText={(value) => setTotalCostInput(value.replace(/\D/g, ""))}
+                    placeholder="0"
                     keyboardType="number-pad"
                     style={styles.formInput}
                     inputStyle={styles.formInputText}
                     leading={<Text style={styles.inputPrefix}>Rp</Text>}
-                    accessibilityLabel={
-                      priceMode === "unit"
-                        ? "Harga beli per satuan"
-                        : "Total pembelian"
-                    }
+                    accessibilityLabel="Total pembelian"
                   />
-                  <Text style={styles.formHint}>
-                    {priceMode === "unit"
-                      ? "Harga beli per satuan: " +
-                        formatCurrency(priceValue)
-                      : "Harga satuan dihitung: " +
-                        formatCurrency(quantity ? Math.round(priceValue / quantity) : 0)}
-                  </Text>
-                </VStack>
-                <VStack style={styles.summaryBox}>
-                  <HStack style={styles.summaryLine}>
-                    <Text style={styles.summaryLineLabel}>
-                      Total Pengeluaran
+                  {hasPurchaseQuantity && totalCost > 0 ? (
+                    <Text style={styles.formHint}>
+                      Harga beli: {formatCurrency(totalCost / quantity)} / {purchaseUnit}
                     </Text>
-                    <Text style={styles.summaryLineValue}>
-                      {formatCurrency(totalCost)}
-                    </Text>
-                  </HStack>
-                  <HStack style={styles.summaryLine}>
-                    <Text style={styles.summaryLineLabel}>
-                      Stok Baru Setelah Belanja
-                    </Text>
-                    <Text style={styles.summaryLineValue}>
-                      {(selectedItem?.stock ?? 0) + quantity}
-                    </Text>
-                  </HStack>
-                </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Sumber Dana</Text>
-                  <HStack style={styles.fundingRow}>
-                    <AppPressable
-                      onPress={() => setFundingSource("cash")}
-                      style={[
-                        styles.fundingButton,
-                        fundingSource === "cash" && styles.fundingButtonActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <AppIcon
-                        name="cash"
-                        size={15}
-                        color={
-                          fundingSource === "cash"
-                            ? colors.primary
-                            : colors.inkMuted
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.fundingText,
-                          fundingSource === "cash" && styles.fundingTextActive,
-                        ]}
-                      >
-                        Kas Laci
-                      </Text>
-                    </AppPressable>
-                    <AppPressable
-                      onPress={() => setFundingSource("transfer")}
-                      style={[
-                        styles.fundingButton,
-                        fundingSource === "transfer" &&
-                          styles.fundingButtonActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <AppIcon
-                        name="bank-transfer"
-                        size={15}
-                        color={
-                          fundingSource === "transfer"
-                            ? colors.primary
-                            : colors.inkMuted
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.fundingText,
-                          fundingSource === "transfer" &&
-                            styles.fundingTextActive,
-                        ]}
-                      >
-                        Dana Lainnya
-                      </Text>
-                    </AppPressable>
-                  </HStack>
-                </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Tanggal &amp; Waktu</Text>
-                  <AppInput
-                    value={purchaseTime}
-                    onChangeText={setPurchaseTime}
-                    style={styles.formInput}
-                    inputStyle={styles.formInputText}
-                    accessibilityLabel="Tanggal dan waktu pembelian"
-                  />
-                </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Catatan / Supplier</Text>
-                  <AppInput
-                    value={purchaseNote}
-                    onChangeText={setPurchaseNote}
-                    style={styles.formInput}
-                    inputStyle={styles.formInputText}
-                    accessibilityLabel="Catatan atau supplier"
-                  />
-                </VStack>
-              </>
-            ) : (
-              <>
-                <HStack style={styles.selectedItemBanner}>
-                  <View style={styles.largeAvatar}>
-                    <Text style={styles.largeAvatarText}>
-                      {selectedItem?.initials}
-                    </Text>
-                  </View>
-                  <VStack style={styles.selectedItemCopy}>
-                    <Text style={styles.selectedItemName}>
-                      {selectedItem?.name}
-                    </Text>
-                    <Text style={styles.selectedItemMeta}>
-                      {selectedItem?.category} · Stok {selectedItem?.stock}
-                    </Text>
-                  </VStack>
-                  <Text
-                    style={[
-                      styles.selectedItemStatus,
-                      selectedItemIsLow
-                        ? styles.textWarning
-                        : styles.textSuccess,
-                    ]}
-                  >
-                    {selectedItemIsLow ? "Menipis" : "Aman"}
-                  </Text>
-                </HStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Jenis Koreksi</Text>
-                  <HStack style={styles.directionRow}>
-                    <AppPressable
-                      onPress={() => setCorrectionType("add")}
-                      style={[
-                        styles.directionButton,
-                        correctionType === "add" &&
-                          styles.directionButtonActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <AppIcon
-                        name="plus"
-                        size={15}
-                        color={
-                          correctionType === "add"
-                            ? colors.primary
-                            : colors.inkMuted
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.directionText,
-                          correctionType === "add" &&
-                            styles.directionTextActive,
-                        ]}
-                      >
-                        Tambah Stok
-                      </Text>
-                    </AppPressable>
-                    <AppPressable
-                      onPress={() => setCorrectionType("subtract")}
-                      style={[
-                        styles.directionButton,
-                        correctionType === "subtract" &&
-                          styles.directionButtonDangerActive,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <AppIcon
-                        name="minus"
-                        size={15}
-                        color={
-                          correctionType === "subtract"
-                            ? colors.danger
-                            : colors.inkMuted
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.directionText,
-                          correctionType === "subtract" &&
-                            styles.directionTextDangerActive,
-                        ]}
-                      >
-                        Kurangi Stok
-                      </Text>
-                    </AppPressable>
-                  </HStack>
-                </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Alasan Koreksi</Text>
-                  <AppPressable
-                    onPress={() => setReasonOpen((current) => !current)}
-                    style={styles.modalSelect}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.modalSelectTitle}>{reason}</Text>
-                    <AppIcon
-                      name="chevron-down"
-                      size={17}
-                      color={colors.inkMuted}
-                    />
-                  </AppPressable>
-                  {reasonOpen ? (
-                    <ScrollView
-                      style={styles.modalOptionMenu}
-                      contentContainerStyle={styles.modalOptionMenuContent}
-                      nestedScrollEnabled
-                      showsVerticalScrollIndicator
-                    >
-                      {reasonOptions.map((option) => (
-                        <AppPressable
-                          key={option}
-                          onPress={() => {
-                            setReason(option);
-                            setReasonOpen(false);
-                          }}
-                          style={[
-                            styles.modalOption,
-                            option === reason && styles.modalOptionActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.modalOptionTitle,
-                              option === reason &&
-                                styles.modalOptionTitleActive,
-                            ]}
-                          >
-                            {option}
-                          </Text>
-                        </AppPressable>
-                      ))}
-                    </ScrollView>
                   ) : null}
                 </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>
-                    Jumlah{" "}
-                    {correctionType === "add" ? "Tambahan" : "Pengurangan"}
-                  </Text>
-                  <HStack style={styles.quantityStepperRow}>
-                    <AppPressable
-                      onPress={() =>
-                        setQuantityInput(String(Math.max(0, quantity - 1)))
-                      }
-                      style={styles.stepperButton}
-                      accessibilityRole="button"
-                      accessibilityLabel="Kurangi jumlah"
-                    >
-                      <AppIcon name="minus" size={15} color={colors.inkMuted} />
-                    </AppPressable>
-                    <AppInput
-                      value={quantityInput}
-                      onChangeText={(value) =>
-                        setQuantityInput(value.replace(/\D/g, ""))
-                      }
-                      keyboardType="number-pad"
-                      style={styles.stepperInput}
-                      inputStyle={styles.centerInput}
-                      accessibilityLabel="Jumlah koreksi"
-                    />
-                    <AppPressable
-                      onPress={() => setQuantityInput(String(quantity + 1))}
-                      style={styles.stepperButton}
-                      accessibilityRole="button"
-                      accessibilityLabel="Tambah jumlah"
-                    >
-                      <AppIcon name="plus" size={15} color={colors.inkMuted} />
-                    </AppPressable>
-                  </HStack>
-                </VStack>
+
                 <VStack style={styles.summaryBox}>
-                  <HStack style={styles.equationRow}>
-                    <Text style={styles.equationValue}>
-                      {selectedItem?.stock}
-                    </Text>
-                    <Text style={styles.equationOperator}>
-                      {correctionType === "add" ? "+" : "−"}
-                    </Text>
-                    <Text style={styles.equationValue}>{quantity}</Text>
-                    <Text style={styles.equationOperator}>=</Text>
-                    <Text
-                      style={[
-                        styles.equationValue,
-                        correctionType === "subtract" && styles.textWarning,
-                      ]}
-                    >
-                      {Math.max(0, newStock)}
+                  <HStack style={styles.summaryLine}>
+                    <Text style={styles.summaryLineLabel}>Stok setelah masuk</Text>
+                    <Text style={styles.summaryLineValue}>
+                      {formatThousands(nextStock)} {selectedItem?.unit ?? customUnit}
                     </Text>
                   </HStack>
-                  <Text style={[styles.formHint, styles.equationHint]}>
-                    Preview stok akhir setelah koreksi disimpan.
-                  </Text>
+                  <HStack style={styles.summaryLine}>
+                    <Text style={styles.summaryLineLabel}>Total dibayar</Text>
+                    <Text style={styles.summaryLineValue}>{formatCurrency(totalCost)}</Text>
+                  </HStack>
                 </VStack>
                 <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Tanggal &amp; Waktu</Text>
-                  <AppInput
-                    value={correctionTime}
-                    onChangeText={setCorrectionTime}
-                    style={styles.formInput}
-                    inputStyle={styles.formInputText}
-                    accessibilityLabel="Tanggal dan waktu koreksi"
-                  />
-                </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>
-                    Catatan Tambahan (Opsional)
-                  </Text>
-                  <AppInput
-                    value={correctionNote}
-                    onChangeText={setCorrectionNote}
-                    style={styles.formInput}
-                    inputStyle={styles.formInputText}
-                    accessibilityLabel="Catatan koreksi"
-                  />
+                  <Text style={styles.formLabel}>Bayar dari</Text>
+                  <HStack style={styles.fundingRow}>
+                    {(["cash", "transfer"] as const).map((source) => {
+                      const active = fundingSource === source;
+                      return (
+                        <AppPressable
+                          key={source}
+                          onPress={() => setFundingSource(source)}
+                          style={[styles.fundingButton, active && styles.fundingButtonActive]}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                        >
+                          <Text style={[styles.fundingText, active && styles.fundingTextActive]}>
+                            {source === "cash" ? "Kas laci" : "Transfer"}
+                          </Text>
+                        </AppPressable>
+                      );
+                    })}
+                  </HStack>
                 </VStack>
               </>
-            )}
+            ) : null}
+
+            {mode === "correction" && selectedItem ? (
+              <>
+                <VStack style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Stok fisik saat ini</Text>
+                  <AppInput
+                    value={formatThousands(actualStockInput)}
+                    onChangeText={(value) => setActualStockInput(value.replace(/\D/g, ""))}
+                    placeholder={String(selectedItem.stock)}
+                    keyboardType="number-pad"
+                    style={styles.formInput}
+                    inputStyle={styles.formInputText}
+                    trailing={<Text style={styles.inputPrefix}>{selectedItem.unit}</Text>}
+                    accessibilityLabel={`Stok fisik saat ini dalam ${selectedItem.unit}`}
+                  />
+                </VStack>
+                {hasActualStock ? (
+                  <VStack style={styles.summaryBox}>
+                    <HStack style={styles.summaryLine}>
+                      <Text style={styles.summaryLineLabel}>Stok sistem</Text>
+                      <Text style={styles.summaryLineValue}>
+                        {formatThousands(selectedItem.stock)} {selectedItem.unit}
+                      </Text>
+                    </HStack>
+                    <HStack style={styles.summaryLine}>
+                      <Text style={styles.summaryLineLabel}>Selisih</Text>
+                      <Text style={[styles.summaryLineValue, correctionDelta < 0 && styles.textWarning]}>
+                        {correctionDelta > 0 ? "+" : correctionDelta < 0 ? "−" : ""}{formatThousands(Math.abs(correctionDelta))} {selectedItem.unit}
+                      </Text>
+                    </HStack>
+                  </VStack>
+                ) : null}
+                <VStack style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Harga modal per {purchaseUnit}</Text>
+                  <AppInput
+                    value={formatThousands(purchaseUnitPriceInput)}
+                    onChangeText={(value) => setPurchaseUnitPriceInput(value.replace(/\D/g, ""))}
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    style={styles.formInput}
+                    inputStyle={styles.formInputText}
+                    leading={<Text style={styles.inputPrefix}>Rp</Text>}
+                    accessibilityLabel={`Harga modal per ${purchaseUnit}`}
+                  />
+                  <Text style={styles.formHint}>
+                    Setara {formatPreciseCurrency(pricePreview)} / {selectedItem.unit}
+                  </Text>
+                </VStack>
+                {hasCorrectionChange ? (
+                  <VStack style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Alasan koreksi</Text>
+                    <AppPressable
+                      onPress={() => setReasonOpen((current) => !current)}
+                      style={styles.modalSelect}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: reasonOpen }}
+                    >
+                      <Text style={styles.modalSelectTitle}>{reason}</Text>
+                      <AppIcon name="chevron-down" size={17} color={colors.inkMuted} />
+                    </AppPressable>
+                    {reasonOpen ? (
+                      <VStack style={styles.modalOptionMenu}>
+                        {correctionReasons.map((option) => (
+                          <AppPressable
+                            key={option}
+                            onPress={() => {
+                              setReason(option);
+                              setReasonOpen(false);
+                            }}
+                            style={[styles.modalOption, option === reason && styles.modalOptionActive]}
+                            accessibilityRole="button"
+                          >
+                            <Text style={[styles.modalOptionTitle, option === reason && styles.modalOptionTitleActive]}>
+                              {option}
+                            </Text>
+                          </AppPressable>
+                        ))}
+                      </VStack>
+                    ) : null}
+                  </VStack>
+                ) : null}
+                {hasCorrectionChange && reason === "Lainnya" ? (
+                  <VStack style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Catatan</Text>
+                    <AppInput
+                      value={correctionNote}
+                      onChangeText={setCorrectionNote}
+                      placeholder="Tulis alasan koreksi"
+                      style={styles.formInput}
+                      inputStyle={styles.formInputText}
+                      accessibilityLabel="Catatan koreksi"
+                    />
+                  </VStack>
+                ) : null}
+              </>
+            ) : null}
           </ScrollView>
         </ModalBody>
+
         <ModalFooter style={styles.modalFooter}>
           <AppPressable
             onPress={handleSubmit}
             disabled={!canSubmit}
-            style={[
-              styles.saveButton,
-              !canSubmit && styles.saveButtonDisabled,
-            ]}
+            style={[styles.saveButton, !canSubmit && styles.saveButtonDisabled]}
             accessibilityRole="button"
+            accessibilityState={{ disabled: !canSubmit }}
           >
-            <Text style={styles.saveButtonText}>Simpan</Text>
+            <Text style={styles.saveButtonText}>{saveLabel}</Text>
           </AppPressable>
         </ModalFooter>
       </ModalContent>

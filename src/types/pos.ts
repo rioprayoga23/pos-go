@@ -2,6 +2,7 @@ import { ImageSourcePropType } from 'react-native';
 
 export type PaymentMethod = 'QRIS' | 'Tunai';
 export type OrderStatus = 'waiting' | 'preparing' | 'ready' | 'completed';
+export type OrderType = 'Dine in' | 'Take away';
 
 export type Category = {
   id: string;
@@ -10,23 +11,14 @@ export type Category = {
   tint: string;
 };
 
-export type HppComponent = {
-  id: string;
-  name: string;
-  detail: string;
-  icon: string;
-  cost: number;
-};
-
 export type Product = {
   id: string;
   name: string;
+  recipeId: string;
   categoryId: string;
   categoryName: string;
   price: number;
   stock: number;
-  hpp?: number;
-  hppComponents?: HppComponent[];
   description: string;
   isAvailable: boolean;
   accent: string;
@@ -49,12 +41,6 @@ export type Order = {
   preparedItemIds?: string[];
   status: OrderStatus;
   paymentMethod: PaymentMethod;
+  orderType: OrderType;
   total: number;
-};
-
-export type DailySummary = {
-  revenue: number;
-  orders: number;
-  averageOrder: number;
-  cashOnHand: number;
 };

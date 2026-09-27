@@ -4,10 +4,13 @@ import {
   AppIcon,
   AppInput,
   AppPressable as Pressable,
+  EmptyState,
   Panel,
 } from "../../../components/ui";
 import { MenuListItem } from "../../../components/products/components/MenuListItem";
+import { useStockStore } from "../../../store/stockStore";
 import { colors, spacing } from "../../../theme";
+import { getRecipeHpp } from "../../../utils/standardRecipe";
 import { ProductCatalogModel } from "../types";
 import { styles } from "../styles";
 
@@ -20,10 +23,13 @@ export function ProductCatalog({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const inventoryItems = useStockStore((state) => state.items);
+  const recipes = useStockStore((state) => state.recipes);
   const menuItems = model.filteredProducts.map((product) => (
     <MenuListItem
       key={product.id}
       product={product}
+      hpp={getRecipeHpp(inventoryItems, recipes.find((recipe) => recipe.id === product.recipeId), recipes)}
       selected={model.editing?.id === product.id}
       isMobile={isMobile}
       isTablet={isTablet}
@@ -90,7 +96,13 @@ export function ProductCatalog({
             </Pressable>
           ))}
         </ScrollView>
-        {isMobile ? (
+        {menuItems.length === 0 ? (
+          <EmptyState
+            icon={model.productCounts.total === 0 ? "coffee-outline" : "magnify-close"}
+            title={model.productCounts.total === 0 ? "Belum ada menu" : "Menu tidak ditemukan"}
+            compact
+          />
+        ) : isMobile ? (
           <VStack style={styles.mobileMenuList}>{menuItems}</VStack>
         ) : (
           <ScrollView
@@ -107,8 +119,6 @@ export function ProductCatalog({
             <Text style={[styles.footerStrong, (isMobile || isTablet) && styles.footerStrongAdaptive, isTablet && styles.footerStrongTablet]}>
               Total {model.productCounts.active} Menu Aktif
             </Text>
-            <Text style={styles.footerBullet}>•</Text>
-            <Text style={[styles.footerWarning, (isMobile || isTablet) && styles.footerWarningAdaptive, isTablet && styles.footerWarningTablet]}>2 Menu Menipis</Text>
           </HStack>
         </HStack>
       </Panel>

@@ -20,7 +20,7 @@ export function ReceiptPreview({
           <AppIcon name="printer-outline" size={17} color={colors.primary} />
           <Text style={styles.receiptStageTitle}>PREVIEW KERTAS TERMAL 80MM</Text>
         </HStack>
-        <Text style={styles.readyPrint}>● Siap Cetak</Text>
+        <Text style={styles.readyPrint}>Pratinjau struk</Text>
       </HStack>
       {bounded ? (
         <ScrollView

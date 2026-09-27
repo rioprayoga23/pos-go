@@ -8,6 +8,7 @@ import {
   AppIcon,
   AppInput,
   AppPressable,
+  EmptyState,
   Panel,
 } from "../../../components/ui";
 import { DataTable, type DataTableColumn } from "../../../components/data-table";
@@ -266,12 +267,11 @@ export function CashLedgerPanel({
             itemLabel: "transaksi",
           }}
           emptyState={
-            <VStack style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>Transaksi tidak ditemukan</Text>
-              <Text style={styles.emptyCopy}>
-                Coba ubah kata pencarian, kategori, atau rentang tanggal.
-              </Text>
-            </VStack>
+            <EmptyState
+              icon="cash-register"
+              title="Transaksi tidak ditemukan"
+              compact
+            />
           }
         />
 

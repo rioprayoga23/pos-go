@@ -1,17 +1,13 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { HStack, VStack } from "@gluestack-ui/themed";
 import { useRef } from "react";
 import { useWindowDimensions, type ScrollView } from "react-native";
 import { AppShell } from "../../components/app-shell";
-import { RootStackParamList } from "../../navigation/types";
 import { ProductCatalog } from "./components/ProductCatalog";
 import { ProductEditor } from "./components/ProductEditor";
 import { styles } from "./styles";
 import { useProductsManager } from "./hooks/useProductsManager";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Products">;
-
-export function ProductsScreen(_props: Props) {
+export function ProductsScreen() {
   const { width } = useWindowDimensions();
   const { formScrollRef, editor, catalog } = useProductsManager();
   const pageScrollRef = useRef<ScrollView>(null);

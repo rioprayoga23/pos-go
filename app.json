@@ -14,7 +14,8 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-router"
     ],
     "ios": {
       "supportsTablet": true

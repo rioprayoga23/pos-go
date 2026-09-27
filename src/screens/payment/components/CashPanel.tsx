@@ -1,60 +1,11 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { AppInput, AppPressable as Pressable, Panel } from "../../../components/ui";
-import { useTransactionStore } from "../../../store/transactionStore";
 import { colors, spacing } from "../../../theme";
 import { formatCurrency } from "../../../utils/format";
 import { quickTenderAmounts } from "../constants";
 import { styles } from "../styles";
 import { formatCashInput } from "../utils/formatCashInput";
-
-function CashOpeningField({
-  openingCash,
-  isTablet,
-}: {
-  openingCash: number | null;
-  isTablet: boolean;
-}) {
-  const setOpeningCash = useTransactionStore((state) => state.setOpeningCash);
-  const [draft, setDraft] = useState(String(openingCash ?? 0));
-  const amount = draft === "" ? null : Number(draft);
-  const canSave = openingCash === null && amount !== null;
-
-  return (
-    <VStack style={styles.openingSection}>
-      <HStack style={styles.openingHeading}>
-        <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>UANG AWAL KASIR</Text>
-      </HStack>
-      <HStack style={styles.openingEntry}>
-        <AppInput
-          value={formatCashInput(draft)}
-          onChangeText={(value) => setDraft(value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 12))}
-          keyboardType="number-pad"
-          editable={openingCash === null}
-          placeholder="0"
-          placeholderTextColor={colors.success}
-          accessibilityLabel="Uang awal kasir"
-          leading={<Text style={styles.moneyPrefix}>Rp</Text>}
-          style={[styles.openingInput, openingCash !== null && styles.openingInputLocked]}
-          inputStyle={styles.moneyInputText}
-        />
-        {openingCash === null ? (
-          <Pressable
-            onPress={() => amount !== null && setOpeningCash(amount)}
-            disabled={!canSave}
-            style={[styles.openingSaveButton, !canSave && styles.disabledButton]}
-            accessibilityRole="button"
-            accessibilityLabel="Simpan uang awal kasir"
-            accessibilityState={{ disabled: !canSave }}
-          >
-            <Text style={styles.openingSaveText}>Simpan</Text>
-          </Pressable>
-        ) : null}
-      </HStack>
-    </VStack>
-  );
-}
 
 type CashPanelProps = {
   cash: string;
@@ -63,7 +14,6 @@ type CashPanelProps = {
   change: number;
   subtotal: number;
   cashReady: boolean;
-  openingCash: number | null;
   onApply: () => void;
 };
 
@@ -82,7 +32,6 @@ export function CashPanel({
   change,
   subtotal,
   cashReady,
-  openingCash,
   onApply,
 }: CashPanelProps) {
   const { width } = useWindowDimensions();
@@ -101,7 +50,6 @@ export function CashPanel({
   return (
     <Panel style={styles.cashPanel} padding={spacing.md}>
       <VStack style={styles.cashContent}>
-        <CashOpeningField key={openingCash ?? "unset"} openingCash={openingCash} isTablet={isTablet} />
         <VStack style={styles.tenderSection}>
           <HStack style={styles.tenderHeading}>
             <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>PEMBAYARAN TUNAI</Text>
@@ -183,11 +131,11 @@ export function CashPanel({
               {rowIndex === keypadRows.length - 1 ? (
                 <Pressable
                   onPress={onApply}
-                  disabled={!isPaid || openingCash === null}
-                  style={[styles.applyButton, (!isPaid || openingCash === null) && styles.disabledButton]}
+                  disabled={!isPaid}
+                  style={[styles.applyButton, !isPaid && styles.disabledButton]}
                   accessibilityRole="button"
                   accessibilityLabel="Terapkan uang diterima"
-                  accessibilityState={{ disabled: !isPaid || openingCash === null }}
+                  accessibilityState={{ disabled: !isPaid }}
                 >
                   <Text style={[styles.applyButtonText, isTablet && styles.applyButtonTextTablet]}>{cashReady ? "Uang Diterapkan" : "Terapkan Uang"}</Text>
                 </Pressable>

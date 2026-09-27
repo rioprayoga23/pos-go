@@ -1,16 +1,74 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { FlatList, View } from "react-native";
-import { AppIcon, Panel } from "../../../components/ui";
+import { AppIcon, EmptyState, Panel } from "../../../components/ui";
+import { useTransactionStore } from "../../../store/transactionStore";
 import { colors } from "../../../theme";
+import { getLocalDateKey } from "../../../utils/date";
 import { formatCurrency } from "../../../utils/format";
-import { revenue, soldMenu } from "../data/salesSummary";
+import type { Order } from "../../../types/pos";
 import { styles } from "../styles";
 
-const renderSoldMenuRow = ({ item }: { item: (typeof soldMenu)[number] }) => (
+type MenuSales = {
+  id: string;
+  name: string;
+  sub: string;
+  qty: number;
+  amount: number;
+  color: string;
+};
+
+const renderSoldMenuRow = ({ item }: { item: MenuSales }) => (
   <MenuSalesRow item={item} />
 );
-const soldMenuKey = (item: (typeof soldMenu)[number]) => item.name;
+const soldMenuKey = (item: MenuSales) => item.id;
+
+function summarizeOrders(orders: Order[], date: string) {
+  const todayOrders = orders.filter((order) => order.createdOn === date);
+  const revenue = todayOrders.reduce((total, order) => total + order.total, 0);
+  const cash = todayOrders.reduce(
+    (total, order) => total + (order.paymentMethod === "Tunai" ? order.total : 0),
+    0,
+  );
+  const qris = todayOrders.reduce(
+    (total, order) => total + (order.paymentMethod === "QRIS" ? order.total : 0),
+    0,
+  );
+  const cups = todayOrders.reduce(
+    (total, order) => total + order.items.reduce((count, item) => count + item.quantity, 0),
+    0,
+  );
+  const menuById = new Map<string, MenuSales>();
+
+  for (const order of todayOrders) {
+    for (const { product, quantity } of order.items) {
+      const existing = menuById.get(product.id);
+      const amount = quantity * product.price;
+      menuById.set(product.id, {
+        id: product.id,
+        name: product.name,
+        sub: product.categoryName,
+        qty: (existing?.qty ?? 0) + quantity,
+        amount: (existing?.amount ?? 0) + amount,
+        color: product.accent,
+      });
+    }
+  }
+
+  const soldMenu = [...menuById.values()].sort(
+    (left, right) => right.amount - left.amount,
+  );
+
+  return {
+    revenue,
+    cash,
+    qris,
+    cups,
+    transactionCount: todayOrders.length,
+    averageOrder: todayOrders.length ? Math.round(revenue / todayOrders.length) : 0,
+    soldMenu,
+  };
+}
 
 export const SalesSummary = memo(function SalesSummary({
   isWide,
@@ -21,6 +79,19 @@ export const SalesSummary = memo(function SalesSummary({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const orders = useTransactionStore((state) => state.orders);
+  const reportDate = orders[0]?.createdOn ?? getLocalDateKey();
+  const summary = useMemo(() => summarizeOrders(orders, reportDate), [orders, reportDate]);
+  const dateLabel = new Date(`${reportDate}T00:00:00`).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const qrisPercent = summary.revenue ? Math.round((summary.qris / summary.revenue) * 100) : 0;
+  const cashPercent = summary.revenue ? Math.round((summary.cash / summary.revenue) * 100) : 0;
+  const responsiveText = isMobile || isTablet;
+
   return (
     <VStack style={[styles.summaryColumn, isWide && styles.panelFill]}>
       <Panel padding={14}>
@@ -28,74 +99,78 @@ export const SalesSummary = memo(function SalesSummary({
           <HStack style={styles.titleIcon}>
             <AppIcon name="chart-bar" size={19} color={colors.primary} />
           </HStack>
-          <Text style={[styles.summaryTitle, isMobile && styles.summaryTitleMobile, isTablet && styles.summaryTitleTablet]}>Ringkasan Penjualan Hari Ini</Text>
-          <Text style={styles.datePill}>Kamis, 24 Okt 2024</Text>
+          <Text style={[styles.summaryTitle, isMobile && styles.summaryTitleMobile, isTablet && styles.summaryTitleTablet]}>
+            Ringkasan Penjualan
+          </Text>
+          <Text style={styles.datePill}>{dateLabel}</Text>
         </HStack>
         <View style={styles.rule} />
 
         <VStack style={styles.revenueCard}>
-          <Text style={[styles.microLabel, (isMobile || isTablet) && styles.readableTextAdaptive]}>TOTAL OMZET PENJUALAN</Text>
-          <Text style={[styles.revenueValue, isMobile && styles.revenueValueMobile, isTablet && styles.revenueValueTablet]}>{formatCurrency(revenue)}</Text>
+          <Text style={[styles.microLabel, responsiveText && styles.readableTextAdaptive]}>TOTAL OMZET PENJUALAN</Text>
+          <Text style={[styles.revenueValue, isMobile && styles.revenueValueMobile, isTablet && styles.revenueValueTablet]}>
+            {formatCurrency(summary.revenue)}
+          </Text>
           <View style={styles.rule} />
           <HStack style={styles.paymentCards}>
             <PaymentCard
               icon="qrcode-scan"
               label="QRIS"
-              amount="Rp 2.470.000"
-              percent="72%"
+              amount={formatCurrency(summary.qris)}
+              percent={`${qrisPercent}%`}
               color={colors.primary}
-              adaptive={isMobile || isTablet}
+              adaptive={responsiveText}
             />
             <View style={styles.paymentDivider} />
             <PaymentCard
               icon="cash-multiple"
               label="Tunai / Cash"
-              amount="Rp 950.000"
-              percent="28%"
+              amount={formatCurrency(summary.cash)}
+              percent={`${cashPercent}%`}
               color={colors.warning}
-              adaptive={isMobile || isTablet}
+              adaptive={responsiveText}
             />
           </HStack>
         </VStack>
 
         <HStack style={styles.metrics}>
-          <SmallMetric label="TOTAL TRANSAKSI" value="58 Trx" adaptive={isMobile || isTablet} tablet={isTablet} />
+          <SmallMetric label="TOTAL TRANSAKSI" value={`${summary.transactionCount} Trx`} adaptive={responsiveText} tablet={isTablet} />
           <View style={styles.metricDivider} />
-          <SmallMetric label="MINUMAN TERJUAL" value="142 Cup" active adaptive={isMobile || isTablet} tablet={isTablet} />
+          <SmallMetric label="MINUMAN TERJUAL" value={`${summary.cups} Cup`} active adaptive={responsiveText} tablet={isTablet} />
           <View style={styles.metricDivider} />
-          <SmallMetric label="RATA-RATA (AOV)" value="Rp 58.965" success adaptive={isMobile || isTablet} tablet={isTablet} />
+          <SmallMetric label="RATA-RATA (AOV)" value={formatCurrency(summary.averageOrder)} success adaptive={responsiveText} tablet={isTablet} />
         </HStack>
       </Panel>
 
-      <Panel
-        style={[styles.menuPanel, isWide && styles.panelFill]}
-        padding={14}
-      >
+      <Panel style={[styles.menuPanel, isWide && styles.panelFill]} padding={14}>
         <HStack style={styles.summaryHeader}>
           <HStack style={styles.titleIcon}>
             <AppIcon name="archive-outline" size={19} color={colors.primary} />
           </HStack>
           <VStack style={styles.menuHeading}>
-          <Text style={[styles.summaryTitle, isMobile && styles.summaryTitleMobile, isTablet && styles.summaryTitleTablet]}>Rincian Menu Terjual</Text>
-            <Text style={[styles.description, (isMobile || isTablet) && styles.readableTextAdaptive]}>
-              Kontribusi penjualan 4 menu utama hari ini
+            <Text style={[styles.summaryTitle, isMobile && styles.summaryTitleMobile, isTablet && styles.summaryTitleTablet]}>
+              Rincian Menu Terjual
             </Text>
           </VStack>
-          <Text style={styles.datePill}>142 Cup Total</Text>
+          <Text style={styles.datePill}>{summary.cups} Cup Total</Text>
         </HStack>
         <View style={styles.rule} />
 
         <HStack style={styles.menuHead}>
           <Text style={[styles.menuCell, styles.menuName]}>MENU MINUMAN</Text>
           <Text style={[styles.menuCell, styles.menuQty]}>VOLUME</Text>
-          <Text style={[styles.menuCell, styles.menuAmount]}>
-            NILAI PENJUALAN
-          </Text>
+          <Text style={[styles.menuCell, styles.menuAmount]}>NILAI PENJUALAN</Text>
         </HStack>
 
-        {isWide ? (
+        {summary.soldMenu.length === 0 ? (
+          <EmptyState
+            icon="chart-box-outline"
+            title="Belum ada penjualan"
+            compact
+          />
+        ) : isWide ? (
           <FlatList
-            data={soldMenu}
+            data={summary.soldMenu}
             keyExtractor={soldMenuKey}
             renderItem={renderSoldMenuRow}
             style={styles.listScroll}
@@ -105,8 +180,8 @@ export const SalesSummary = memo(function SalesSummary({
           />
         ) : (
           <VStack style={styles.menuListContent}>
-            {soldMenu.map((item) => (
-              <MenuSalesRow key={item.name} item={item} adaptive={isMobile || isTablet} />
+            {summary.soldMenu.map((item) => (
+              <MenuSalesRow key={item.id} item={item} adaptive={responsiveText} />
             ))}
           </VStack>
         )}
@@ -115,7 +190,7 @@ export const SalesSummary = memo(function SalesSummary({
   );
 });
 
-function MenuSalesRow({ item, adaptive = false }: { item: (typeof soldMenu)[number]; adaptive?: boolean }) {
+function MenuSalesRow({ item, adaptive = false }: { item: MenuSales; adaptive?: boolean }) {
   return (
     <HStack style={styles.menuRow}>
       <View style={[styles.menuDot, { backgroundColor: item.color }]} />
@@ -127,12 +202,8 @@ function MenuSalesRow({ item, adaptive = false }: { item: (typeof soldMenu)[numb
           {item.sub}
         </Text>
       </VStack>
-      <Text style={[styles.menuCell, styles.menuQty, styles.volumePill]}>
-        {item.qty}
-      </Text>
-      <Text style={[styles.menuCell, styles.menuAmount, styles.menuValue]}>
-        {item.amount}
-      </Text>
+      <Text style={[styles.menuCell, styles.menuQty, styles.volumePill]}>{item.qty} Cup</Text>
+      <Text style={[styles.menuCell, styles.menuAmount, styles.menuValue]}>{formatCurrency(item.amount)}</Text>
     </HStack>
   );
 }
@@ -184,15 +255,7 @@ function SmallMetric({
       <Text style={[styles.microLabel, adaptive && styles.readableTextAdaptive, active && styles.activeMetricLabel]}>
         {label}
       </Text>
-      <Text
-        style={[
-          styles.smallMetricValue,
-          adaptive && styles.smallMetricValueAdaptive,
-          tablet && styles.smallMetricValueTablet,
-          active && styles.activeMetricValue,
-          success && styles.successMetricValue,
-        ]}
-      >
+      <Text style={[styles.smallMetricValue, adaptive && styles.smallMetricValueAdaptive, tablet && styles.smallMetricValueTablet, active && styles.activeMetricValue, success && styles.successMetricValue]}>
         {value}
       </Text>
     </VStack>

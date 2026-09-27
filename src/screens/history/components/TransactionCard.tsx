@@ -1,9 +1,8 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { memo, useState } from "react";
-import { View } from "react-native";
 import { ReceiptPrintModal } from "../../../components/receipt/ReceiptPrintModal";
 import type { ReceiptData } from "../../../components/receipt/types";
-import { AppIcon, AppPressable as Pressable } from "../../../components/ui";
+import { AppIcon, AppPressable as Pressable, StatusBadge } from "../../../components/ui";
 import { colors } from "../../../theme";
 import type { Order } from "../../../types/pos";
 import { formatCurrency } from "../../../utils/format";
@@ -20,7 +19,7 @@ export const TransactionCard = memo(function TransactionCard({
 }) {
   const compact = density !== "desktop";
   const tablet = density === "tablet";
-  const { billNumber: bill, queueNumber: queue, time, paymentMethod, amount, cupCount: cups, details } =
+  const { orderNumber, time, paymentMethod, amount, cupCount: cups, details } =
     getHistoryTransactionDisplay(order);
   const isQris = paymentMethod === "QRIS";
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
@@ -28,27 +27,20 @@ export const TransactionCard = memo(function TransactionCard({
   return (
     <VStack style={styles.transactionCard}>
       <HStack style={styles.transactionTop}>
-        <Text style={[styles.transactionNumber, compact && styles.transactionNumberMobile, tablet && styles.transactionNumberTablet]}>{bill}</Text>
+        <Text style={[styles.transactionNumber, compact && styles.transactionNumberMobile, tablet && styles.transactionNumberTablet]}>{orderNumber}</Text>
         <Text style={[styles.transactionTime, compact && styles.readableTextAdaptive]}>{time} WIB</Text>
         <HStack style={styles.transactionTopActions}>
-          <HStack style={styles.donePill}>
-            <View style={styles.greenDot} />
-            <Text style={[styles.doneText, compact && styles.readableTextAdaptive]}>Selesai</Text>
-          </HStack>
+          <StatusBadge status={order.status} />
           <Pressable
             onPress={() =>
               setReceiptData(
-                createHistoryReceiptData(order, {
-                  billNumber: bill,
-                  queueNumber: queue,
-                  time,
-                }),
+                createHistoryReceiptData(order),
               )
             }
             style={styles.smallAction}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel={`Lihat dan cetak ulang struk ${bill}`}
+            accessibilityLabel={`Lihat dan cetak ulang struk ${orderNumber}`}
           >
             <AppIcon name="printer-outline" size={13} color={colors.ink} />
             <Text style={[styles.smallActionText, compact && styles.readableTextAdaptive]}>Struk</Text>

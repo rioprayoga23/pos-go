@@ -121,19 +121,25 @@ export function EmptyState({
   title,
   description,
   action,
+  compact = false,
 }: {
   icon?: IconName;
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <VStack style={styles.emptyState}>
-      <HStack style={styles.emptyIcon}>
-        <AppIcon name={icon} size={28} color={colors.primary} />
+    <VStack style={[styles.emptyState, compact && styles.emptyStateCompact]}>
+      <HStack style={[styles.emptyIcon, compact && styles.emptyIconCompact]}>
+        <AppIcon name={icon} size={compact ? 22 : 28} color={colors.primary} />
       </HStack>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyDescription}>{description}</Text>
+      <Text style={[styles.emptyTitle, compact && styles.emptyTitleCompact]}>
+        {title}
+      </Text>
+      {description ? (
+        <Text style={styles.emptyDescription}>{description}</Text>
+      ) : null}
       {action}
     </VStack>
   );
@@ -175,7 +181,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.pill,
   },
-  badgeText: { fontSize: 11, fontWeight: "800" },
+  badgeText: { fontSize: 12, fontWeight: "800" },
   metricCard: { flex: 1, minWidth: 170, gap: spacing.sm },
   metricTop: { alignItems: "center", justifyContent: "space-between" },
   iconBubble: {
@@ -185,7 +191,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  metricHelper: { fontSize: 11, fontWeight: "700", color: colors.success },
+  metricHelper: { fontSize: 12, fontWeight: "700", color: colors.success },
   metricValue: {
     color: colors.ink,
     fontSize: type.numeric,
@@ -199,11 +205,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   emptyState: {
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.md,
     padding: spacing.xxxl,
     minHeight: 260,
+  },
+  emptyStateCompact: {
+    minHeight: 128,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
   },
   emptyIcon: {
     width: 62,
@@ -213,7 +226,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: "800" },
+  emptyIconCompact: { width: 44, height: 44 },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  emptyTitleCompact: { fontSize: 14, lineHeight: 18 },
   emptyDescription: {
     maxWidth: 360,
     color: colors.inkMuted,

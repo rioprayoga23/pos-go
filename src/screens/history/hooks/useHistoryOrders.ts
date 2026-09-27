@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTransactionStore } from "../../../store/transactionStore";
 import { getLocalDateKey } from "../../../utils/date";
-import { defaultHistoryDate, getHistoryTransactionDisplay } from "../data/transactions";
+import { getHistoryTransactionDisplay } from "../data/transactions";
 import type { DateRange, PaymentFilter } from "../types";
 
 export function useHistoryOrders() {
@@ -13,7 +13,7 @@ export function useHistoryOrders() {
     let latestDate = "";
 
     for (const order of orders) {
-      const orderDate = order.createdOn ?? defaultHistoryDate;
+      const orderDate = order.createdOn ?? getLocalDateKey();
       if (orderDate > latestDate) latestDate = orderDate;
     }
 
@@ -33,7 +33,7 @@ export function useHistoryOrders() {
       const matches: typeof orders = [];
 
       for (const order of orders) {
-        const orderDate = order.createdOn ?? defaultHistoryDate;
+        const orderDate = order.createdOn ?? getLocalDateKey();
         if (orderDate < dateRange.startDate || orderDate > dateRange.endDate) {
           continue;
         }

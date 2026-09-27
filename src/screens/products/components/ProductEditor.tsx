@@ -1,4 +1,5 @@
 import { ButtonText, HStack, Text, VStack } from "@gluestack-ui/themed";
+import { useState } from "react";
 import { ScrollView } from "react-native";
 import {
   AppButton as Button,
@@ -8,14 +9,14 @@ import {
   Panel,
 } from "../../../components/ui";
 import { CategoryModal } from "../../../components/products/components/CategoryModal";
-import { HppModal } from "../../../components/products/components/HppModal";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { colors, spacing } from "../../../theme";
 import { CategoryField } from "./CategoryField";
-import { FinanceOverview } from "./FinanceOverview";
+import { PriceField } from "./PriceField";
 import { ProductAvailabilityField } from "./ProductAvailabilityField";
 import { PhotoField } from "./PhotoField";
-import { StockField } from "./StockField";
+import { RecipeField } from "./RecipeField";
+import { RecipeManagerModal } from "./RecipeManagerModal";
 import { emptyForm } from "../constants";
 import { ProductEditorModel } from "../types";
 import { styles } from "../styles";
@@ -32,35 +33,22 @@ export function ProductEditor({
   isTablet: boolean;
 }) {
   const { editing, form, setForm } = model;
+  const [recipeManagerOpen, setRecipeManagerOpen] = useState(false);
   const price = Number(form.price.replace(/\D/g, ""));
-  const stock = Number(form.stock);
-  const isHppComplete =
-    form.hppComponents.length > 0 &&
-    form.hppComponents.every(
-      (component) =>
-        component.name.trim().length > 0 &&
-        component.detail.trim().length > 0 &&
-        Number.isFinite(component.cost) &&
-        component.cost > 0,
-    );
   const isFormComplete =
     form.name.trim().length > 0 &&
     price > 0 &&
-    form.stock.trim().length > 0 &&
-    Number.isInteger(stock) &&
-    stock >= 0 &&
     model.categories.some(
       (category) => category.id === form.categoryId && category.id !== "all",
     ) &&
-    isHppComplete;
+    model.recipes.some((recipe) => recipe.id === form.recipeId && recipe.kind === "menu");
   const hasFormContent =
     editing !== null ||
     form.name.trim().length > 0 ||
     (form.price.trim().length > 0 && form.price !== emptyForm.price) ||
-    form.stock.trim().length > 0 ||
     form.description.trim().length > 0 ||
     form.categoryId !== emptyForm.categoryId ||
-    form.hppComponents.length > 0 ||
+    form.recipeId !== emptyForm.recipeId ||
     form.isAvailable !== emptyForm.isAvailable ||
     form.accent !== emptyForm.accent ||
     form.icon !== emptyForm.icon ||
@@ -94,11 +82,21 @@ export function ProductEditor({
         onSelect={(categoryId) => setForm({ ...form, categoryId })}
         onAdd={model.categoryModal.open}
       />
-      <StockField form={form} setForm={setForm} isMobile={isMobile} isTablet={isTablet} />
+      <RecipeField
+        recipes={model.recipes}
+        items={model.inventoryItems}
+        selectedId={form.recipeId}
+        availableStock={model.availableStock}
+        onSelect={(recipeId) => setForm((current) => ({ ...current, recipeId }))}
+        onManage={() => setRecipeManagerOpen(true)}
+      />
+      <PriceField
+        value={form.price}
+        costLines={model.recipeCostLines}
+        onChange={(priceValue) => setForm((current) => ({ ...current, price: priceValue }))}
+      />
       <ProductAvailabilityField
         isActive={form.isAvailable}
-        isMobile={isMobile}
-        isTablet={isTablet}
         onChange={(isAvailable) =>
           setForm((current) => ({ ...current, isAvailable }))
         }
@@ -111,12 +109,6 @@ export function ProductEditor({
         isTablet={isTablet}
         onPick={model.pickProductImage}
         onClear={model.clearPhoto}
-      />
-      <FinanceOverview
-        financials={model.financials}
-        onOpen={model.hppModal.open}
-        isMobile={isMobile}
-        isTablet={isTablet}
       />
       {model.formError ? (
         <Text style={productFormStyles.errorText}>{model.formError}</Text>
@@ -150,11 +142,6 @@ export function ProductEditor({
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               {editing ? "Edit Menu Minuman" : "Input Menu Minuman Baru"}
             </Text>
-            <Text style={[productFormStyles.description, isMobile && productFormStyles.descriptionMobile, isTablet && productFormStyles.descriptionTablet]}>
-              {editing
-                ? `Perbarui detail ${editing.name}.`
-                : "Konfigurasikan item menu, harga, margin, dan kustomisasi varian."}
-            </Text>
           </VStack>
           {hasFormContent ? (
             <Pressable
@@ -187,18 +174,16 @@ export function ProductEditor({
         visible={model.categoryModal.visible}
         name={model.categoryModal.name}
         setName={model.categoryModal.setName}
-        icon={model.categoryModal.icon}
-        setIcon={model.categoryModal.setIcon}
         error={model.categoryModal.error}
         onClose={model.categoryModal.close}
         onSave={model.categoryModal.save}
       />
-      {model.hppModal.visible ? (
-        <HppModal
-          initialPrice={form.price}
-          initialComponents={form.hppComponents}
-          onClose={model.hppModal.close}
-          onSave={model.hppModal.save}
+      {recipeManagerOpen ? (
+        <RecipeManagerModal
+          onClose={() => setRecipeManagerOpen(false)}
+          onCreate={(recipeId) => setForm((current) => ({ ...current, recipeId }))}
+          selectedRecipeId={form.recipeId}
+          onSelectedDeleted={() => setForm((current) => ({ ...current, recipeId: "" }))}
         />
       ) : null}
     </VStack>

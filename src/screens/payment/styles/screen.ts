@@ -24,16 +24,16 @@ export const screenStyles = StyleSheet.create({
   billOrderCount: { alignItems: "flex-end", paddingBottom: 3 },
   billOrderCountLabel: {
     color: "#64748B",
-    fontSize: 8,
+    fontSize: 11,
     fontWeight: "900",
     letterSpacing: 0.6,
   },
-  billOrderCountLabelAdaptive: { fontSize: 11 },
+  billOrderCountLabelAdaptive: { fontSize: 12 },
   billOrderCountLabelTablet: { fontSize: 12 },
   billOrderCountValue: { color: colors.ink, fontSize: 12, fontWeight: "800" },
   microLabel: {
     color: "#64748B",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 1,
   },
@@ -45,7 +45,7 @@ export const screenStyles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "900",
   },
   billTotal: {
@@ -56,7 +56,7 @@ export const screenStyles = StyleSheet.create({
   },
   billTotalMobile: { fontSize: 26, lineHeight: 30 },
   billTotalTablet: { fontSize: 28, lineHeight: 32 },
-  microLabelAdaptive: { fontSize: 11 },
+  microLabelAdaptive: { fontSize: 12 },
   microLabelTablet: { fontSize: 12 },
   methodSelector: {
     padding: 5,

@@ -1,10 +1,10 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNotificationStore } from "../../../store/notificationStore";
 import { colors } from "../../../theme";
-import { AppIcon, AppPressable as Pressable } from "../../ui";
+import { AppIcon, AppPressable } from "../../ui";
 import { styles } from "../styles";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { ProfileMenu } from "./ProfileMenu";
@@ -13,13 +13,17 @@ import { PrinterStatusPill } from "./PrinterStatusPill";
 type Props = {
   showClockInHeader: boolean;
   isMobile: boolean;
-  onRequestCloseShift: () => void;
+  cashRegisterOpen: boolean;
+  cashRegisterClosedToday: boolean;
+  onRequestCashAction: () => void;
 };
 
 export function HeaderActions({
   showClockInHeader,
   isMobile,
-  onRequestCloseShift,
+  cashRegisterOpen,
+  cashRegisterClosedToday,
+  onRequestCashAction,
 }: Props) {
   const notifications = useNotificationStore((state) => state.notifications);
   const markNotificationRead = useNotificationStore(
@@ -30,35 +34,78 @@ export function HeaderActions({
   );
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  const showCashActionLabel = !isMobile || width >= 380;
   const unreadNotificationCount = notifications.reduce(
     (count, notification) => count + Number(notification.unread),
     0,
   );
+  const cashActionLabel = cashRegisterOpen
+    ? "Tutup Kasir"
+    : cashRegisterClosedToday
+      ? "Kasir Ditutup"
+      : "Buka Kasir";
+  const cashActionIcon = cashRegisterOpen ? "lock-outline" : "cash-register";
+  const clockLabel = now.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const dateLabel = now.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <HStack style={styles.headerRight}>
       {showClockInHeader ? (
         <VStack style={styles.clockBlock}>
-          <Text style={styles.clock}>14:28:05</Text>
-          <Text style={styles.date}>Kamis, 24 Okt</Text>
+          <Text style={styles.clock}>{clockLabel}</Text>
+          <Text style={styles.date}>{dateLabel}</Text>
         </VStack>
       ) : null}
-      {!isMobile ? (
-        <HStack style={styles.headerUtilityActions}>
-          <PrinterStatusPill />
-          <Pressable
-            onPress={onRequestCloseShift}
-            style={styles.headerCloseShift}
-            accessibilityRole="button"
-            accessibilityLabel="Tutup kasir hari ini"
+      <AppPressable
+        onPress={onRequestCashAction}
+        disabled={cashRegisterClosedToday}
+        style={[
+          showCashActionLabel
+            ? isMobile
+              ? styles.headerCashActionMobileLabeled
+              : styles.headerCashAction
+            : styles.headerCashActionCompact,
+          cashRegisterOpen && styles.headerCashActionClose,
+          cashRegisterClosedToday && styles.headerCashActionDisabled,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={cashActionLabel}
+        accessibilityState={{ disabled: cashRegisterClosedToday }}
+      >
+        <AppIcon
+          name={cashActionIcon}
+          size={16}
+          color={cashRegisterOpen ? colors.danger : cashRegisterClosedToday ? colors.inkSubtle : colors.primary}
+        />
+        {showCashActionLabel ? (
+          <Text
+            style={[
+              styles.headerCashActionText,
+              cashRegisterOpen && styles.headerCashActionCloseText,
+              cashRegisterClosedToday && styles.headerCashActionDisabledText,
+            ]}
           >
-            <AppIcon name="cash-register" size={14} color={colors.danger} />
-            <Text style={styles.headerCloseShiftText}>Tutup kasir</Text>
-          </Pressable>
-        </HStack>
-      ) : null}
+            {cashActionLabel}
+          </Text>
+        ) : null}
+      </AppPressable>
+      {!isMobile ? <PrinterStatusPill /> : null}
       <NotificationsMenu
         isOpen={showNotifications}
         notifications={notifications}
@@ -79,7 +126,8 @@ export function HeaderActions({
         isOpen={showProfileMenu}
         isMobile={isMobile}
         showClockInProfile={!showClockInHeader}
-        onRequestCloseShift={onRequestCloseShift}
+        clockLabel={clockLabel}
+        dateLabel={dateLabel}
         onOpen={() => {
           setShowNotifications(false);
           setShowProfileMenu(true);

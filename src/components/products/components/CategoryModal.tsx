@@ -25,8 +25,6 @@ export function CategoryModal({
   visible,
   name,
   setName,
-  icon,
-  setIcon,
   error,
   onClose,
   onSave,
@@ -34,8 +32,6 @@ export function CategoryModal({
   visible: boolean;
   name: string;
   setName: (value: string) => void;
-  icon: string;
-  setIcon: (value: string) => void;
   error: string;
   onClose: () => void;
   onSave: () => void;
@@ -96,22 +92,6 @@ export function CategoryModal({
               {error ? (
                 <Text style={productFormStyles.errorText}>{error}</Text>
               ) : null}
-            </VStack>
-            <VStack>
-              <Text style={productFormStyles.fieldLabel}>Ikon / Simbol Menu</Text>
-              <AppInput
-                value={icon}
-                onChangeText={setIcon}
-                placeholder="local_bar"
-                accessibilityLabel="Ikon kategori"
-                trailing={
-                  <AppIcon
-                    name="glass-cocktail"
-                    size={19}
-                    color={colors.primary}
-                  />
-                }
-              />
             </VStack>
           </VStack>
         </ModalBody>

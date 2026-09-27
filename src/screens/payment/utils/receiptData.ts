@@ -1,25 +1,33 @@
 import type { ReceiptData } from "../../../components/receipt/types";
-import type { CartItem } from "../../../types/pos";
+import type { CartItem, OrderType } from "../../../types/pos";
+import { getLocalDateKey } from "../../../utils/date";
 import {
-  getCartItemName,
   getCartLineTotal,
   getCartSubtotal,
 } from "../../../utils/cartPricing";
 
-export function createPaymentReceiptData(items: CartItem[]): ReceiptData {
+export function createPaymentReceiptData(
+  items: CartItem[],
+  orderNumber: string,
+  orderType: OrderType,
+  paymentMethod: ReceiptData["paymentMethod"],
+): ReceiptData {
+  const now = new Date();
+  const date = getLocalDateKey().split("-").reverse().join("/");
   return {
-    billNumber: "#B-042",
-    queueNumber: "#A-042",
-    cashier: "Sarah",
-    date: "24/10/2024",
-    time: "14:28:05",
+    orderNumber,
+    cashier: "Kasir",
+    customer: "Pelanggan umum",
+    date,
+    time: now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     itemCount: items.reduce((total, item) => total + item.quantity, 0),
-    orderType: "Take Away",
+    orderType,
+    paymentMethod,
     items: items.map(({ product, quantity }) => ({
       id: product.id,
-      name: getCartItemName(product.id, product.name),
+      name: product.name,
       quantity,
-      amount: getCartLineTotal(product.id, quantity, product.price),
+      amount: getCartLineTotal(quantity, product.price),
     })),
     subtotal: getCartSubtotal(items),
   };

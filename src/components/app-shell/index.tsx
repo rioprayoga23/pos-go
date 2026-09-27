@@ -1,20 +1,18 @@
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { router } from "expo-router";
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useState, type ReactNode, type RefObject } from "react";
 import { Image, ScrollView, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { RootStackParamList } from "../../navigation/types";
+import { routePaths, type RouteName } from "../../navigation/routes";
 import { useTransactionStore } from "../../store/transactionStore";
 import { colors } from "../../theme";
 import { AppIcon, AppPressable as Pressable } from "../ui";
 import { CloseShiftDialog } from "./components/CloseShiftDialog";
 import { HeaderActions } from "./components/HeaderActions";
 import { MobileBottomNavigation } from "./components/MobileNavigation";
+import { OpenCashRegisterDialog } from "./components/OpenCashRegisterDialog";
 import { primaryNavigationItems } from "./navigationItems";
 import { styles } from "./styles";
-
-type Route = keyof RootStackParamList;
 
 export function AppShell({
   active,
@@ -22,15 +20,19 @@ export function AppShell({
   scrollRef,
   scrollable = true,
 }: {
-  active: Route;
+  active: RouteName;
   children: ReactNode;
   scrollRef?: RefObject<ScrollView | null>;
   scrollable?: boolean;
 }) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const orders = useTransactionStore((state) => state.orders);
+  const queueCount = orders.filter((order) => order.status !== "completed").length;
+  const cashRegisterOpen = useTransactionStore((state) => state.isCashRegisterOpen());
+  const cashRegisterClosedToday = useTransactionStore((state) => state.isCashRegisterClosedToday());
+  const openCashRegister = useTransactionStore((state) => state.openCashRegister);
   const closeShift = useTransactionStore((state) => state.closeShift);
-  const [showCloseShiftConfirm, setShowCloseShiftConfirm] = useState(false);
+  const [showOpenCashDialog, setShowOpenCashDialog] = useState(false);
+  const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -74,7 +76,7 @@ export function AppShell({
               <View style={styles.headerSeparator} />
               <HStack style={styles.cashierPill}>
                 <View style={[styles.greenDot, blueStatus && styles.blueDot]} />
-                <Text style={styles.cashierText}>Kasir: Sarah</Text>
+                <Text style={styles.cashierText}>Kasir</Text>
               </HStack>
             </>
           ) : null}
@@ -82,7 +84,12 @@ export function AppShell({
         <HeaderActions
           showClockInHeader={isLarge}
           isMobile={isMobile}
-          onRequestCloseShift={() => setShowCloseShiftConfirm(true)}
+          cashRegisterOpen={cashRegisterOpen}
+          cashRegisterClosedToday={cashRegisterClosedToday}
+          onRequestCashAction={() => {
+            if (cashRegisterOpen) setShowCloseShiftDialog(true);
+            else if (!cashRegisterClosedToday) setShowOpenCashDialog(true);
+          }}
         />
       </HStack>
       <HStack style={styles.body}>
@@ -94,7 +101,7 @@ export function AppShell({
                 return (
                   <Pressable
                     key={item.route}
-                    onPress={() => navigation.navigate(item.route)}
+                    onPress={() => router.navigate(routePaths[item.route])}
                     style={[styles.navItem, isActive && styles.navItemActive]}
                     accessibilityRole="button"
                     accessibilityLabel={`Buka ${item.label}`}
@@ -105,9 +112,9 @@ export function AppShell({
                         size={21}
                         color={isActive ? colors.white : colors.inkMuted}
                       />
-                      {item.route === "Queue" ? (
+                      {item.route === "Queue" && queueCount > 0 ? (
                         <View style={styles.queueBadge}>
-                          <Text style={styles.queueBadgeText}>4</Text>
+                          <Text style={styles.queueBadgeText}>{queueCount > 99 ? "99+" : queueCount}</Text>
                         </View>
                       ) : null}
                     </View>
@@ -130,7 +137,7 @@ export function AppShell({
               <Text
                 style={[styles.onlineText, blueStatus && styles.onlineTextBlue]}
               >
-                Online
+                Mode lokal
               </Text>
             </HStack>
           </VStack>
@@ -152,18 +159,29 @@ export function AppShell({
         <MobileBottomNavigation
           active={activeNav}
           bottomInset={insets.bottom}
-          onNavigate={(route) => navigation.navigate(route)}
+          queueCount={queueCount}
+          onNavigate={(route) => router.navigate(routePaths[route])}
         />
       ) : null}
-      <CloseShiftDialog
-        isOpen={showCloseShiftConfirm}
-        onClose={() => setShowCloseShiftConfirm(false)}
-        onConfirm={(countedCash) => {
-          closeShift(countedCash);
-          setShowCloseShiftConfirm(false);
-          navigation.navigate("History");
-        }}
-      />
+      {showOpenCashDialog ? (
+        <OpenCashRegisterDialog
+          isOpen
+          onClose={() => setShowOpenCashDialog(false)}
+          onConfirm={(amount) => {
+            if (openCashRegister(amount)) setShowOpenCashDialog(false);
+          }}
+        />
+      ) : null}
+      {showCloseShiftDialog && cashRegisterOpen ? (
+        <CloseShiftDialog
+          isOpen
+          onClose={() => setShowCloseShiftDialog(false)}
+          onConfirm={(countedCash) => {
+            closeShift(countedCash);
+            setShowCloseShiftDialog(false);
+          }}
+        />
+      ) : null}
     </VStack>
   );
 }

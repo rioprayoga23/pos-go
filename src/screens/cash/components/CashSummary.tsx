@@ -58,7 +58,7 @@ export function CashSummary({
         label="Pembelian Stok"
         count={stockCount}
         amount={stockAmount}
-        hint="Sinkron dari inventaris bahan baku & kemasan"
+        hint="Pembelian bahan dan kemasan yang tercatat"
       />
       <SummaryCard
         label="Pengeluaran Operasional"

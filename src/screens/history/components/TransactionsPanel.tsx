@@ -11,7 +11,7 @@ import {
 } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { FlatList, View, type ListRenderItem } from "react-native";
-import { AppIcon, AppPressable as Pressable, Panel } from "../../../components/ui";
+import { AppIcon, AppPressable as Pressable, EmptyState, Panel } from "../../../components/ui";
 import { colors } from "../../../theme";
 import { Order } from "../../../types/pos";
 import type { DateRange, PaymentFilter } from "../types";
@@ -38,7 +38,11 @@ const keyExtractor = (order: Order) => order.id;
 const renderTransaction: ListRenderItem<Order> = ({ item }) => <TransactionCard order={item} />;
 const renderSeparator = () => <View style={styles.transactionSeparator} />;
 const renderEmpty = () => (
-  <Text style={styles.emptyText}>Transaksi tidak ditemukan.</Text>
+  <EmptyState
+    icon="receipt-text-outline"
+    title="Transaksi tidak ditemukan"
+    compact
+  />
 );
 const paymentOptions: PaymentFilter[] = ["Semua Bayar", "QRIS", "Tunai"];
 
@@ -94,7 +98,7 @@ export function TransactionsPanel({
           <InputField
             value={query}
             onChangeText={onQueryChange}
-            placeholder="Cari ID Bill (#B-042), antrean, atau menu..."
+            placeholder="Cari nomor antrean (#001), pelanggan, atau menu..."
             placeholderTextColor={colors.inkSubtle}
             style={[styles.searchText, (isMobile || isTablet) && styles.readableTextAdaptive]}
           />

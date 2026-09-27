@@ -1,24 +1,36 @@
 import { create } from 'zustand';
-import { orders as seedOrders } from '../data/dummy';
-import { CartItem, Order, OrderStatus, PaymentMethod } from '../types/pos';
+import { CartItem, Order, OrderStatus, OrderType, PaymentMethod } from '../types/pos';
 import { getCartTotals } from './cartStore';
 import { useNotificationStore } from './notificationStore';
+import { useProductStore } from './productStore';
+import { useStockStore } from './stockStore';
 import { getLocalDateKey } from '../utils/date';
+import { getNextOrderNumber } from '../utils/orderNumber';
 
 type TransactionState = {
   orders: Order[];
   openingCash: number | null;
+  openingCashDefault: number;
+  cashRegisterOpenedOn: string | null;
+  cashRegisterOpenedAt: string | null;
+  cashRegisterClosedOn: string | null;
   cashSalesInShift: number;
+  cashOutflowsInShift: number;
   lastShiftReport: {
     openingCash: number;
     cashSales: number;
+    cashOutflows: number;
     expectedCash: number;
     countedCash: number;
     difference: number;
     closedOn: string;
   } | null;
-  setOpeningCash: (amount: number) => void;
-  completeOrder: (items: CartItem[], customer: string, paymentMethod: PaymentMethod) => Order;
+  openCashRegister: (amount: number) => boolean;
+  isCashRegisterOpen: () => boolean;
+  isCashRegisterClosedToday: () => boolean;
+  getExpectedCash: () => number;
+  recordCashOutflow: (amount: number) => boolean;
+  completeOrder: (items: CartItem[], customer: string, paymentMethod: PaymentMethod, orderType: OrderType) => Order | null;
   advanceStatus: (id: string) => void;
   togglePreparedItem: (orderId: string, productId: string) => void;
   closeShift: (countedCash: number) => void;
@@ -27,31 +39,75 @@ type TransactionState = {
 const nextStatus: Record<OrderStatus, OrderStatus> = { waiting: 'preparing', preparing: 'ready', ready: 'completed', completed: 'completed' };
 
 export const useTransactionStore = create<TransactionState>((set, get) => ({
-  orders: seedOrders,
+  orders: [],
   openingCash: null,
+  openingCashDefault: 100_000,
+  cashRegisterOpenedOn: null,
+  cashRegisterOpenedAt: null,
+  cashRegisterClosedOn: null,
   cashSalesInShift: 0,
+  cashOutflowsInShift: 0,
   lastShiftReport: null,
-  setOpeningCash: (amount) => {
-    if (Number.isFinite(amount) && amount >= 0) {
-      set((state) => state.openingCash === null ? { openingCash: amount } : state);
-    }
+  openCashRegister: (amount) => {
+    if (!Number.isFinite(amount) || amount < 0 || get().isCashRegisterOpen()) return false;
+    const today = getLocalDateKey();
+    if (get().cashRegisterClosedOn === today) return false;
+    set({
+      openingCash: amount,
+      cashRegisterOpenedOn: today,
+      cashRegisterOpenedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      cashSalesInShift: 0,
+      cashOutflowsInShift: 0,
+    });
+    return true;
   },
-  completeOrder: (items, customer, paymentMethod) => {
-    const highestOrder = get().orders.reduce((highest, order) => {
-      const numeric = Number(order.number.replace(/\D/g, ''));
-      return Math.max(highest, Number.isFinite(numeric) ? numeric : 0);
-    }, 42);
+  isCashRegisterOpen: () => {
+    const state = get();
+    const today = getLocalDateKey();
+    return state.openingCash !== null &&
+      state.cashRegisterOpenedOn === today &&
+      state.cashRegisterClosedOn !== today;
+  },
+  isCashRegisterClosedToday: () => get().cashRegisterClosedOn === getLocalDateKey(),
+  getExpectedCash: () => {
+    const state = get();
+    return (state.openingCash ?? 0) + state.cashSalesInShift - state.cashOutflowsInShift;
+  },
+  recordCashOutflow: (amount) => {
+    if (!Number.isFinite(amount) || amount <= 0 || !get().isCashRegisterOpen()) return false;
+    const state = get();
+    const expectedCash = (state.openingCash ?? 0) + state.cashSalesInShift - state.cashOutflowsInShift;
+    if (amount > expectedCash) return false;
+    set((state) => ({ cashOutflowsInShift: state.cashOutflowsInShift + amount }));
+    return true;
+  },
+  completeOrder: (items, customer, paymentMethod, orderType) => {
+    if (!get().isCashRegisterOpen()) return null;
+    const currentProducts = useProductStore.getState().products;
+    if (!items.length || items.some((item) => {
+      const current = currentProducts.find((product) => product.id === item.product.id);
+      return !current || !current.isAvailable || !Number.isInteger(item.quantity) || item.quantity <= 0;
+    })) return null;
+    const currentItems = items.map((item) => ({
+      product: currentProducts.find((product) => product.id === item.product.id)!,
+      quantity: item.quantity,
+    }));
+    const number = getNextOrderNumber(get().orders);
+    if (!useStockStore.getState().consumeForOrder(
+      currentItems.map((item) => ({ recipeId: item.product.recipeId, quantity: item.quantity })), number,
+    )) return null;
     const order: Order = {
       id: `o-${Date.now()}`,
-      number: `#A-${String(highestOrder + 1).padStart(3, '0')}`,
+      number,
       createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       createdOn: getLocalDateKey(),
       customer: customer || 'Pelanggan umum',
-      items,
+      items: currentItems,
       preparedItemIds: [],
       status: 'waiting',
       paymentMethod,
-      total: getCartTotals(items).subtotal,
+      orderType,
+      total: getCartTotals(currentItems).subtotal,
     };
     set((state) => ({
       orders: [order, ...state.orders],
@@ -81,22 +137,25 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     };
   }) })),
   closeShift: (countedCash) => {
-    if (!Number.isFinite(countedCash) || countedCash < 0) return;
+    if (!Number.isFinite(countedCash) || countedCash < 0 || !get().isCashRegisterOpen()) return;
     set((state) => {
       const openingCash = state.openingCash ?? 0;
-      const expectedCash = openingCash + state.cashSalesInShift;
+      const cashOutflows = state.cashOutflowsInShift;
+      const expectedCash = openingCash + state.cashSalesInShift - cashOutflows;
       return {
-        orders: state.orders.map((order) => order.status === 'ready' ? { ...order, status: 'completed' } : order),
         lastShiftReport: {
           openingCash,
           cashSales: state.cashSalesInShift,
+          cashOutflows,
           expectedCash,
           countedCash,
           difference: countedCash - expectedCash,
           closedOn: getLocalDateKey(),
         },
         openingCash: null,
+        cashRegisterClosedOn: getLocalDateKey(),
         cashSalesInShift: 0,
+        cashOutflowsInShift: 0,
       };
     });
   },

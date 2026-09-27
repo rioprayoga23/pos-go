@@ -1,14 +1,14 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { router } from "expo-router";
 import { ButtonText, HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useWindowDimensions } from "react-native";
 import { AppShell } from "../../components/app-shell";
 import {
   AppButton as Button,
   AppIcon,
+  AppPressable,
   EmptyState,
   Panel,
 } from "../../components/ui";
-import { RootStackParamList } from "../../navigation/types";
 import { colors, spacing } from "../../theme";
 import { formatCurrency } from "../../utils/format";
 import { PaymentMethodButton, QrPaymentPanel } from "./components/PaymentPanels";
@@ -16,15 +16,17 @@ import { CashPanel } from "./components/CashPanel";
 import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { ReceiptPreview } from "./components/ReceiptPreview";
 import { createPaymentReceiptData } from "./utils/receiptData";
+import { createHistoryReceiptData } from "../history/utils/receiptData";
+import { getNextOrderNumber } from "../../utils/orderNumber";
+import { useTransactionStore } from "../../store/transactionStore";
 import { styles } from "./styles";
 import { usePayment } from "./hooks/usePayment";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Payment">;
-
-export function PaymentScreen({ navigation }: Props) {
+export function PaymentScreen() {
   const { width } = useWindowDimensions();
   const {
     items,
+    orderType,
     subtotal,
     paymentMethod,
     setPaymentMethod,
@@ -32,19 +34,28 @@ export function PaymentScreen({ navigation }: Props) {
     setCash,
     cashReady,
     applyCash,
-    openingCash,
+    cashRegisterOpen,
+    cashRegisterClosedToday,
     showSuccess,
     setShowSuccess,
     lastOrderNumber,
+    lastOrder,
     qrisVerified,
     setQrisVerified,
     received,
     change,
+    paymentError,
     submitPayment,
   } = usePayment();
   const isWide = width >= 1024;
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
+  const orders = useTransactionStore((state) => state.orders);
+  const nextOrderNumber = getNextOrderNumber(orders);
+  const displayedOrderNumber = showSuccess && lastOrder ? lastOrder.number : nextOrderNumber;
+  const receiptData = showSuccess && lastOrder
+    ? createHistoryReceiptData(lastOrder)
+    : createPaymentReceiptData(items, nextOrderNumber, orderType, paymentMethod);
 
   if (!items.length && !showSuccess)
     return (
@@ -52,10 +63,9 @@ export function PaymentScreen({ navigation }: Props) {
         <EmptyState
           icon="cart-off"
           title="Belum ada pesanan"
-          description="Tambahkan menu terlebih dahulu sebelum melanjutkan ke pembayaran."
           action={
             <Button
-              onPress={() => navigation.navigate("Order")}
+              onPress={() => router.navigate("/order")}
               style={styles.primaryButton}
             >
               <ButtonText style={styles.primaryButtonText}>
@@ -78,7 +88,7 @@ export function PaymentScreen({ navigation }: Props) {
               <VStack style={styles.billSummary}>
                 <HStack style={styles.billHeader}>
                   <Text style={[styles.microLabel, (isMobile || isTablet) && styles.microLabelAdaptive]}>SUBTOTAL</Text>
-                  <Text style={styles.billOrderTag}>Order #B-042</Text>
+                  <Text style={styles.billOrderTag}>Pesanan {displayedOrderNumber}</Text>
                 </HStack>
                 <HStack style={styles.billAmountRow}>
                   <Text style={[styles.billTotal, isMobile && styles.billTotalMobile, isTablet && styles.billTotalTablet]}>
@@ -96,52 +106,85 @@ export function PaymentScreen({ navigation }: Props) {
                 </HStack>
               </VStack>
             </Panel>
-            <HStack style={styles.methodSelector}>
-              <PaymentMethodButton
-                active={paymentMethod === "Tunai"}
-                icon="payments"
-                title="Tunai / Cash"
-                onPress={() => setPaymentMethod("Tunai")}
-              />
-              <PaymentMethodButton
-                active={paymentMethod === "QRIS"}
-                icon="qrcode-scan"
-                title="QRIS"
-                onPress={() => setPaymentMethod("QRIS")}
-              />
-            </HStack>
-            {paymentMethod === "QRIS" ? (
-              <QrPaymentPanel
-                verified={qrisVerified}
-                setVerified={setQrisVerified}
-                subtotal={subtotal}
-              />
+            {cashRegisterOpen ? (
+              <>
+                <HStack style={styles.methodSelector}>
+                  <PaymentMethodButton
+                    active={paymentMethod === "Tunai"}
+                    icon="payments"
+                    title="Tunai / Cash"
+                    onPress={() => setPaymentMethod("Tunai")}
+                  />
+                  <PaymentMethodButton
+                    active={paymentMethod === "QRIS"}
+                    icon="qrcode-scan"
+                    title="QRIS"
+                    onPress={() => setPaymentMethod("QRIS")}
+                  />
+                </HStack>
+                {paymentMethod === "QRIS" ? (
+                  <QrPaymentPanel
+                    verified={qrisVerified}
+                    setVerified={setQrisVerified}
+                    subtotal={subtotal}
+                  />
+                ) : (
+                  <CashPanel
+                    cash={cash}
+                    setCash={setCash}
+                    received={received}
+                    change={change}
+                    subtotal={subtotal}
+                    cashReady={cashReady}
+                    onApply={applyCash}
+                  />
+                )}
+              </>
             ) : (
-              <CashPanel
-                cash={cash}
-                setCash={setCash}
-                received={received}
-                change={change}
-                subtotal={subtotal}
-                cashReady={cashReady}
-                openingCash={openingCash}
-                onApply={applyCash}
-              />
+              <Panel style={{ gap: spacing.md }} padding={spacing.lg}>
+                <HStack style={{ alignItems: "center", gap: spacing.sm }}>
+                  <AppIcon name="cash-register" size={20} color={colors.primary} />
+                  <Text style={{ color: colors.ink, fontSize: 15, fontWeight: "900" }}>
+                    {cashRegisterClosedToday ? "Kasir sudah ditutup hari ini" : "Buka kasir sebelum menerima pembayaran"}
+                  </Text>
+                </HStack>
+                <Text style={{ color: colors.inkMuted, fontSize: 12, lineHeight: 18 }}>
+                  {cashRegisterClosedToday
+                    ? "Transaksi dilanjutkan pada hari operasional berikutnya. Keranjang ini tetap tersimpan."
+                    : "Buka kasir dari tombol di header dan pastikan uang awal sesuai dengan uang fisik di laci."}
+                </Text>
+                {!cashRegisterClosedToday ? (
+                  <AppPressable
+                    onPress={() => router.navigate("/cash")}
+                    style={styles.primaryButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Lihat Kelola Kas"
+                  >
+                    <AppIcon name="view-dashboard-outline" size={17} color={colors.white} />
+                    <Text style={styles.primaryButtonText}>Lihat Kelola Kas</Text>
+                  </AppPressable>
+                ) : null}
+              </Panel>
             )}
           </VStack>
           <VStack style={styles.receiptColumn}>
             <ReceiptPreview
-              data={createPaymentReceiptData(items)}
+              data={receiptData}
               bounded={isWide}
             />
+            {paymentError ? (
+              <Text style={{ color: colors.danger, fontSize: 12, fontWeight: "700" }}>
+                {paymentError}
+              </Text>
+            ) : null}
             <Button
               onPress={submitPayment}
               isDisabled={
-                paymentMethod === "QRIS" ? !qrisVerified : !cashReady
+                !cashRegisterOpen || (paymentMethod === "QRIS" ? !qrisVerified : !cashReady)
               }
               style={[
                 styles.finalButton,
-                ((paymentMethod === "QRIS" && !qrisVerified) ||
+                (!cashRegisterOpen || (paymentMethod === "QRIS" && !qrisVerified) ||
                   (paymentMethod === "Tunai" && !cashReady)) && {
                   opacity: 0.5,
                 },
@@ -150,17 +193,25 @@ export function PaymentScreen({ navigation }: Props) {
               <HStack style={styles.finalButtonLeft}>
                 <HStack style={styles.finalIcon}>
                   <AppIcon
-                    name="printer-outline"
+                    name={cashRegisterOpen ? "check-circle-outline" : "lock-outline"}
                     size={23}
                     color={colors.white}
                   />
                 </HStack>
                 <VStack style={{ gap: 2 }}>
                   <ButtonText style={styles.finalButtonText}>
-                    Selesaikan &amp; Cetak Antrean
+                    {cashRegisterOpen
+                      ? "Selesaikan Pesanan"
+                      : cashRegisterClosedToday
+                        ? "Kasir Ditutup Hari Ini"
+                        : "Buka Kasir untuk Melanjutkan"}
                   </ButtonText>
                   <Text style={styles.finalButtonHint}>
-                    Antrean #A-042 • Langsung Siap
+                    {cashRegisterOpen
+                      ? `Antrean ${displayedOrderNumber} • Menunggu diproses`
+                      : cashRegisterClosedToday
+                        ? "Transaksi tersedia besok"
+                        : "Gunakan tombol Buka Kasir di header"}
                   </Text>
                 </VStack>
               </HStack>
@@ -174,7 +225,7 @@ export function PaymentScreen({ navigation }: Props) {
         onClose={() => setShowSuccess(false)}
         onViewQueue={() => {
           setShowSuccess(false);
-          navigation.navigate("Queue");
+          router.navigate("/queue");
         }}
       />
     </AppShell>

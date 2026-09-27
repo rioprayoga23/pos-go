@@ -17,7 +17,8 @@ type Props = {
   isOpen: boolean;
   isMobile: boolean;
   showClockInProfile: boolean;
-  onRequestCloseShift: () => void;
+  clockLabel: string;
+  dateLabel: string;
   onOpen: () => void;
   onClose: () => void;
 };
@@ -26,15 +27,11 @@ export function ProfileMenu({
   isOpen,
   isMobile,
   showClockInProfile,
-  onRequestCloseShift,
+  clockLabel,
+  dateLabel,
   onOpen,
   onClose,
 }: Props) {
-  const closeShift = () => {
-    onClose();
-    onRequestCloseShift();
-  };
-
   return (
     <Popover
       placement="bottom right"
@@ -47,7 +44,7 @@ export function ProfileMenu({
           {...triggerProps}
           style={styles.avatar}
           accessibilityRole="button"
-          accessibilityLabel="Profil kasir Sarah"
+          accessibilityLabel="Profil kasir"
           accessibilityState={{ expanded: isOpen }}
         >
           <AppIcon name="account" size={19} color={colors.white} />
@@ -61,47 +58,27 @@ export function ProfileMenu({
             <AppIcon name="account" size={16} color={colors.white} />
           </HStack>
           <VStack style={styles.profileDropdownIdentity}>
-            <Text style={styles.profileDropdownName}>Sarah</Text>
+            <Text style={styles.profileDropdownName}>Kasir</Text>
             <Text style={styles.profileDropdownRole}>Kasir</Text>
           </VStack>
           {showClockInProfile ? (
             <VStack style={styles.profileDropdownClock}>
-              <Text style={styles.clock}>14:28:05</Text>
-              <Text style={styles.date}>Kamis, 24 Okt</Text>
+              <Text style={styles.clock}>{clockLabel}</Text>
+              <Text style={styles.date}>{dateLabel}</Text>
             </VStack>
           ) : null}
         </PopoverHeader>
         <PopoverBody style={styles.profileDropdownBody}>
           <VStack style={styles.profileDropdownActions}>
-            {isMobile ? (
-              <>
-                <PrinterStatusPill />
-                <Pressable
-                  onPress={closeShift}
-                  style={styles.profileCloseShift}
-                  accessibilityRole="button"
-                  accessibilityLabel="Tutup kasir hari ini"
-                >
-                  <AppIcon
-                    name="cash-register"
-                    size={14}
-                    color={colors.danger}
-                  />
-                  <Text style={styles.profileCloseShiftText} numberOfLines={1}>
-                    Tutup kasir hari ini
-                  </Text>
-                  <AppIcon name="chevron-right" size={14} color={colors.danger} />
-                </Pressable>
-              </>
-            ) : null}
+            {isMobile ? <PrinterStatusPill /> : null}
             <Pressable
               onPress={onClose}
               style={styles.logoutButton}
               accessibilityRole="button"
-              accessibilityLabel="Logout Sarah"
+              accessibilityLabel="Tutup menu profil"
             >
-              <AppIcon name="logout" size={16} color={colors.danger} />
-              <Text style={styles.logoutText}>Logout</Text>
+              <AppIcon name="close" size={16} color={colors.inkMuted} />
+              <Text style={styles.logoutText}>Tutup menu</Text>
             </Pressable>
           </VStack>
         </PopoverBody>

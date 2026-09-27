@@ -9,16 +9,13 @@ export function useQueueBoard() {
   return useMemo(() => {
     const waiting = orders.filter((order) => order.status === 'waiting');
     const preparing = orders.filter((order) => order.status === 'preparing');
-    const readyOrders = orders.filter((order) => order.status === 'ready');
-    const lastCompleted = orders.find(
-      (order) => order.number === '#A-040' && order.status === 'completed',
-    );
+    const ready = orders.filter((order) => order.status === 'ready');
 
     return {
       waiting,
       preparing,
-      ready: lastCompleted ? [...readyOrders, lastCompleted] : readyOrders,
-      readyCount: readyOrders.length,
+      ready,
+      readyCount: ready.length,
       advanceStatus,
       togglePreparedItem,
     };

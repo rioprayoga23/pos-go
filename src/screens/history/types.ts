@@ -5,8 +5,7 @@ export type { DateRange } from "../../types/dateRange";
 export type PaymentFilter = "Semua Bayar" | PaymentMethod;
 
 export type HistoryTransactionDisplay = {
-  billNumber: string;
-  queueNumber: string;
+  orderNumber: string;
   time: string;
   paymentMethod: PaymentMethod;
   amount: number;

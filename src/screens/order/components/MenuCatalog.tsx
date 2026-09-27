@@ -39,13 +39,14 @@ export const MenuCatalog = memo(function MenuCatalog({
   selectedCategory,
   wide,
 }: Props) {
+  const hasAnyProducts = categories.find((category) => category.id === "all")?.count ?? 0;
   const menuContent =
     filteredProducts.length === 0 ? (
       <Panel>
         <EmptyState
-          icon="magnify-close"
-          title="Menu tidak ditemukan"
-          description="Coba gunakan kata kunci lain atau pilih kategori berbeda."
+          icon={hasAnyProducts ? "magnify-close" : "coffee-outline"}
+          title={hasAnyProducts ? "Menu tidak ditemukan" : "Belum ada menu"}
+          compact
         />
       </Panel>
     ) : (

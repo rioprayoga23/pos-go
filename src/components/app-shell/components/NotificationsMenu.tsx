@@ -11,7 +11,7 @@ import {
 import { View } from "react-native";
 import type { PosNotification } from "../../../store/notificationStore";
 import { colors } from "../../../theme";
-import { AppIcon, AppPressable as Pressable } from "../../ui";
+import { AppIcon, AppPressable as Pressable, EmptyState } from "../../ui";
 import { styles } from "../styles";
 
 type Props = {
@@ -144,7 +144,11 @@ export function NotificationsMenu({
               ))}
             </VStack>
           ) : (
-            <Text style={styles.notificationEmpty}>Belum ada notifikasi.</Text>
+            <EmptyState
+              icon="bell-outline"
+              title="Belum ada notifikasi"
+              compact
+            />
           )}
         </PopoverBody>
       </PopoverContent>

@@ -1,11 +1,12 @@
 import { ScrollView } from "react-native";
-import { Category, HppComponent, Product } from "../../../types/pos";
+import { Category, Product } from "../../../types/pos";
+import type { Recipe, StockItem } from "../../../types/stock";
+import type { RecipeCostLine } from "../../../utils/standardRecipe";
 
 export type ProductForm = {
   name: string;
   price: string;
-  stock: string;
-  hppComponents: HppComponent[];
+  recipeId: string;
   description: string;
   categoryId: string;
   isAvailable: boolean;
@@ -16,6 +17,9 @@ export type ProductForm = {
 
 export type ProductEditorModel = {
   categories: Category[];
+  recipes: Recipe[];
+  inventoryItems: StockItem[];
+  availableStock: number;
   editing: Product | null;
   form: ProductForm;
   setForm: React.Dispatch<React.SetStateAction<ProductForm>>;
@@ -29,22 +33,9 @@ export type ProductEditorModel = {
     visible: boolean;
     name: string;
     setName: (value: string) => void;
-    icon: string;
-    setIcon: (value: string) => void;
     error: string;
   };
-  hppModal: {
-    open: () => void;
-    close: () => void;
-    save: (price: string, components: HppComponent[]) => void;
-    visible: boolean;
-  };
-  financials: {
-    hppTotal: number;
-    salePrice: number;
-    estimatedProfit: number;
-    estimatedMargin: number;
-  };
+  recipeCostLines: RecipeCostLine[] | null;
   pickProductImage: () => Promise<void>;
   clearPhoto: () => void;
   save: () => void;

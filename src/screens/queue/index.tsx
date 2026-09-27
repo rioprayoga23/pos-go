@@ -1,18 +1,14 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "expo-router/react-navigation";
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useWindowDimensions } from "react-native";
 import { LivePulseDot } from "../../components/indicators/LivePulseDot";
 import { AppShell } from "../../components/app-shell";
-import type { RootStackParamList } from "../../navigation/types";
 import { QueueColumn } from "./components/QueueColumn";
 import { QueueSummary } from "./components/QueueSummary";
 import { styles } from "./styles";
 import { useQueueBoard } from "./hooks/useQueueBoard";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Queue">;
-
-export function QueueScreen(_props: Props) {
+export function QueueScreen() {
   const { width } = useWindowDimensions();
   const isFocused = useIsFocused();
   const {
@@ -30,7 +26,18 @@ export function QueueScreen(_props: Props) {
   return (
     <AppShell active="Queue" scrollable={!isWide}>
       <VStack style={[styles.page, isWide && styles.pageFill]}>
-        <QueueSummary isWide={isWide} isMobile={isMobile} isTablet={isTablet} />
+        <QueueSummary
+          waitingCount={waiting.length}
+          preparingCount={preparing.length}
+          readyCount={readyCount}
+          activeCupCount={[...waiting, ...preparing, ...ready].reduce(
+            (total, order) => total + order.items.reduce((cups, item) => cups + item.quantity, 0),
+            0,
+          )}
+          isWide={isWide}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
         <HStack style={styles.kdsTitle}>
           <Text
             style={[

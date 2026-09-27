@@ -20,70 +20,50 @@ export function PhotoField({ form, error, isPickingImage, isMobile, isTablet, on
   return (
     <VStack>
       <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet]}>
-        Foto Produk / Thumbnail Kasir
+        Foto Menu
       </Text>
-      <HStack style={styles.photoCard}>
-        {form.image ? (
-          <Image source={form.image} style={styles.photoImage} />
-        ) : (
-          <VStack style={styles.photoPlaceholder}>
-            <AppIcon name="image-outline" size={23} color={colors.inkSubtle} />
-            <Text style={[styles.photoPlaceholderText, (isMobile || isTablet) && styles.photoPlaceholderTextAdaptive]}>Belum dipilih</Text>
-          </VStack>
-        )}
-        <VStack style={{ flex: 1, gap: 7 }}>
-          <HStack style={{ alignItems: "center", gap: 7 }}>
-            <Text style={styles.photoTitle}>Foto Produk &amp; Thumbnail POS</Text>
-            {form.image ? <Text style={styles.savedBadge}>Tersimpan</Text> : null}
-          </HStack>
-          <Text style={[productFormStyles.description, isMobile && productFormStyles.descriptionMobile, isTablet && productFormStyles.descriptionTablet]}>
-            Format PNG, JPG, atau WEBP rasio 1:1
-          </Text>
-          <HStack style={{ gap: 7 }}>
-            <Pressable
-              onPress={onPick}
-              disabled={isPickingImage}
-              style={[
-                styles.uploadButton,
-                isPickingImage && styles.photoActionDisabled,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Pilih gambar dari perangkat"
-              accessibilityState={{ disabled: isPickingImage }}
-            >
-              <AppIcon name="cloud-upload-outline" size={17} color={colors.white} />
-              <Text style={styles.uploadText}>
-                {isPickingImage ? "Memilih gambar..." : "Pilih File Gambar"}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onClear}
-              disabled={!form.image}
-              style={[
-                styles.deletePhoto,
-                form.image ? styles.deletePhotoActive : styles.photoActionDisabled,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Hapus foto produk"
-              accessibilityState={{ disabled: !form.image }}
-            >
-              <AppIcon
-                name="delete-outline"
-                size={16}
-                color={form.image ? colors.danger : colors.inkMuted}
-              />
-              <Text
-                style={[
-                  styles.deletePhotoText,
-                  form.image ? styles.deletePhotoTextActive : undefined,
-                ]}
-              >
-                Hapus
-              </Text>
-            </Pressable>
-          </HStack>
-        </VStack>
-      </HStack>
+      {form.image ? (
+        <HStack style={styles.photoRow}>
+          <Image
+            source={form.image}
+            style={styles.photoImage}
+            resizeMode="cover"
+            accessibilityLabel={`Foto ${form.name || "menu"}`}
+          />
+          <Pressable
+            onPress={onPick}
+            disabled={isPickingImage}
+            style={styles.photoAction}
+            accessibilityRole="button"
+            accessibilityLabel="Ganti foto menu"
+            accessibilityState={{ disabled: isPickingImage }}
+          >
+            <AppIcon name="image-edit-outline" size={17} color={colors.primary} />
+            <Text style={styles.photoActionText}>{isPickingImage ? "Memilih..." : "Ganti foto"}</Text>
+          </Pressable>
+          <Pressable
+            onPress={onClear}
+            style={styles.photoRemoveAction}
+            accessibilityRole="button"
+            accessibilityLabel="Hapus foto menu"
+          >
+            <AppIcon name="delete-outline" size={17} color={colors.danger} />
+            <Text style={styles.photoRemoveText}>Hapus</Text>
+          </Pressable>
+        </HStack>
+      ) : (
+        <Pressable
+          onPress={onPick}
+          disabled={isPickingImage}
+          style={[styles.photoPickEmpty, isPickingImage && styles.photoActionDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Pilih foto menu dari perangkat"
+          accessibilityState={{ disabled: isPickingImage }}
+        >
+          <AppIcon name="image-plus" size={18} color={colors.primary} />
+          <Text style={styles.photoActionText}>{isPickingImage ? "Memilih..." : "Pilih foto"}</Text>
+        </Pressable>
+      )}
       {error ? <Text style={styles.photoError}>{error}</Text> : null}
     </VStack>
   );

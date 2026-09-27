@@ -6,8 +6,8 @@ import { styles } from "../styles";
 export function PrinterStatusPill() {
   return (
     <HStack style={styles.printerPill}>
-      <AppIcon name="printer-outline" size={15} color={colors.success} />
-      <Text style={styles.printerText}>Printer Termal: Terhubung</Text>
+      <AppIcon name="printer-outline" size={15} color={colors.inkMuted} />
+      <Text style={[styles.printerText, { color: colors.inkMuted }]}>Printer belum tersedia</Text>
     </HStack>
   );
 }

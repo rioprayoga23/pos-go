@@ -1,7 +1,7 @@
 import { HStack, Text, VStack } from '@gluestack-ui/themed';
 import { memo } from 'react';
 import { ScrollView } from 'react-native';
-import { AppIcon, Panel } from '../../../components/ui';
+import { AppIcon, EmptyState, Panel } from '../../../components/ui';
 import type { Order } from '../../../types/pos';
 import { colors } from '../../../theme';
 import type { QueueTone } from '../types';
@@ -32,7 +32,7 @@ export const QueueColumn = memo(function QueueColumn({
       : { color: colors.success, background: colors.successSoft, icon: 'check-circle-outline' as const };
   const ticketContent = orders.length
     ? orders.map((order) => <QueueTicket key={order.id} order={order} isMobile={isMobile} isTablet={isTablet} onAdvance={onAdvance} onTogglePreparedItem={onTogglePreparedItem} />)
-    : <Text style={styles.emptyText}>{emptyText}</Text>;
+    : <EmptyState icon={meta.icon} title={emptyText} compact />;
 
   return (
     <Panel style={[styles.column, fillHeight && styles.columnFill, compactHeight && styles.columnCompact]} padding={12}>

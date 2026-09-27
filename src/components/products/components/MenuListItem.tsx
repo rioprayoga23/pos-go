@@ -8,12 +8,14 @@ import { formatCurrency } from "../../../utils/format";
 
 export const MenuListItem = memo(function MenuListItem({
   product,
+  hpp,
   selected,
   isMobile,
   isTablet,
   onEdit,
 }: {
   product: Product;
+  hpp: number | null;
   selected: boolean;
   isMobile: boolean;
   isTablet: boolean;
@@ -74,7 +76,7 @@ export const MenuListItem = memo(function MenuListItem({
               {formatCurrency(product.price)}
             </Text>
             <Text style={styles.costTextMobile}>
-              Modal {formatCurrency(product.hpp ?? 11500)}
+              {hpp === null ? "HPP —" : `HPP ${formatCurrency(hpp)}`}
             </Text>
           </VStack>
         </HStack>
@@ -122,7 +124,7 @@ export const MenuListItem = memo(function MenuListItem({
       <VStack style={styles.menuPrice}>
         <Text style={[styles.priceText, isTablet && styles.priceTextTablet]}>{formatCurrency(product.price)}</Text>
         <Text style={[styles.costText, isTablet && styles.costTextTablet]}>
-          Modal: {formatCurrency(product.hpp ?? 11500)}
+          {hpp === null ? "HPP —" : `HPP: ${formatCurrency(hpp)}`}
         </Text>
       </VStack>
       <Pressable
@@ -165,7 +167,7 @@ const styles = StyleSheet.create({
   },
   menuInfoMobile: { flex: 1, minWidth: 0, gap: 3 },
   menuNameMobile: { color: colors.ink, fontSize: 12, lineHeight: 15, fontWeight: "800" },
-  menuMetaMobile: { color: colors.inkMuted, fontSize: 11, lineHeight: 14 },
+  menuMetaMobile: { color: colors.inkMuted, fontSize: 12, lineHeight: 14 },
   menuMetaPriceMobile: {
     alignItems: "center",
     justifyContent: "space-between",
@@ -176,14 +178,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     color: "#166534",
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 14,
     fontWeight: "700",
   },
   availabilityMobileMuted: { color: colors.inkMuted },
   menuPriceMobile: { alignItems: "flex-end", gap: 1 },
   priceTextMobile: { color: colors.success, fontSize: 12, lineHeight: 15, fontWeight: "800" },
-  costTextMobile: { color: colors.inkMuted, fontSize: 11, lineHeight: 14 },
+  costTextMobile: { color: colors.inkMuted, fontSize: 12, lineHeight: 14 },
   menuThumb: {
     width: 43,
     height: 43,
@@ -195,10 +197,10 @@ const styles = StyleSheet.create({
   },
   menuImage: { width: "100%", height: "100%" },
   menuInfo: { flex: 1, minWidth: 0, gap: 5 },
-  menuName: { color: colors.ink, fontSize: 11, fontWeight: "900" },
+  menuName: { color: colors.ink, fontSize: 12, fontWeight: "900" },
   menuNameTablet: { fontSize: 13 },
   menuMetaRow: { alignItems: "center", gap: 6 },
-  menuMeta: { color: colors.inkMuted, fontSize: 9 },
+  menuMeta: { color: colors.inkMuted, fontSize: 11 },
   menuMetaTablet: { fontSize: 12 },
   availablePill: {
     color: "#166534",
@@ -206,7 +208,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: 5,
     paddingVertical: 3,
-    fontSize: 8,
+    fontSize: 11,
     fontWeight: "900",
   },
   inactivePill: {
@@ -214,10 +216,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLow,
   },
   menuPrice: { alignItems: "flex-end", gap: 3 },
-  availablePillTablet: { fontSize: 11 },
-  priceText: { color: colors.success, fontSize: 11, fontWeight: "900" },
+  availablePillTablet: { fontSize: 12 },
+  priceText: { color: colors.success, fontSize: 12, fontWeight: "900" },
   priceTextTablet: { fontSize: 13 },
-  costText: { color: colors.inkMuted, fontSize: 8 },
+  costText: { color: colors.inkMuted, fontSize: 11 },
   costTextTablet: { fontSize: 12 },
   editButton: {
     width: 31,

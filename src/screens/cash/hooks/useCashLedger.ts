@@ -2,12 +2,10 @@ import { useMemo, useState } from "react";
 import { useCashLedgerStore } from "../../../store/cashLedgerStore";
 import type { CashTransaction } from "../../../types/cash";
 import type { DatePeriod, DateRange } from "../../../types/dateRange";
-import { getPresetDateRange } from "../../../utils/date";
+import { getLocalDateKey, getPresetDateRange } from "../../../utils/date";
 
 export type CashPeriod = DatePeriod;
 export type CashTransactionFilter = "all" | "stock_purchase" | "operational";
-
-const demoToday = "2024-10-24";
 
 function compareTransactions(a: CashTransaction, b: CashTransaction) {
   return `${b.dateKey} ${b.time}`.localeCompare(`${a.dateKey} ${a.time}`);
@@ -19,7 +17,7 @@ export function useCashLedger() {
   const [filter, setFilter] = useState<CashTransactionFilter>("all");
   const [period, setPeriod] = useState<CashPeriod>("month");
   const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetDateRange(demoToday, "month"),
+    getPresetDateRange(getLocalDateKey(), "month"),
   );
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -98,7 +96,7 @@ export function useCashLedger() {
 
   const selectPeriod = (nextPeriod: "today" | "month") => {
     setPeriod(nextPeriod);
-    setDateRange(getPresetDateRange(demoToday, nextPeriod));
+    setDateRange(getPresetDateRange(getLocalDateKey(), nextPeriod));
     setPage(1);
   };
 

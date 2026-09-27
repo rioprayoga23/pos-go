@@ -48,10 +48,10 @@ export const type = {
   title: 22,
   section: 18,
   body: 15,
-  bodySmall: 13,
-  label: 12,
-  caption: 11,
-  micro: 10,
+  bodySmall: 14,
+  label: 13,
+  caption: 12,
+  micro: 11,
   numeric: 24,
 } as const;
 

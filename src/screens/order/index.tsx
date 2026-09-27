@@ -1,19 +1,16 @@
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useIsFocused } from '@react-navigation/native';
+import { router } from 'expo-router';
+import { useIsFocused } from 'expo-router/react-navigation';
 import { HStack, VStack } from '@gluestack-ui/themed';
 import { useCallback } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { AppShell } from '../../components/app-shell';
-import { RootStackParamList } from '../../navigation/types';
 import { useCartStore } from '../../store/cartStore';
 import { CartPanel } from './components/CartPanel';
 import { MenuCatalog } from './components/MenuCatalog';
 import { styles } from './styles';
 import { useOrderCatalog } from './hooks/useOrderCatalog';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Order'>;
-
-export function OrderScreen({ navigation }: Props) {
+export function OrderScreen() {
   const { width } = useWindowDimensions();
   const isFocused = useIsFocused();
   const {
@@ -34,8 +31,8 @@ export function OrderScreen({ navigation }: Props) {
   const clearCart = useCartStore((state) => state.clearCart);
   const isWide = width >= 1024;
   const handleCheckout = useCallback(
-    () => navigation.navigate('Payment'),
-    [navigation],
+    () => router.navigate('/payment'),
+    [],
   );
 
   return (

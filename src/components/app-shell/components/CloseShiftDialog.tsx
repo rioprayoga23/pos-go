@@ -31,8 +31,9 @@ type Props = {
 export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
   const openingCash = useTransactionStore((state) => state.openingCash);
   const cashSalesInShift = useTransactionStore((state) => state.cashSalesInShift);
+  const cashOutflowsInShift = useTransactionStore((state) => state.cashOutflowsInShift);
   const [countedCash, setCountedCash] = useState("");
-  const expectedCash = (openingCash ?? 0) + cashSalesInShift;
+  const expectedCash = (openingCash ?? 0) + cashSalesInShift - cashOutflowsInShift;
   const hasCount = countedCash !== "";
   const actualCash = Number(countedCash) || 0;
   const difference = actualCash - expectedCash;
@@ -52,7 +53,7 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
           <VStack style={styles.closeShiftModalHeading}>
             <Text style={styles.closeShiftModalTitle}>Tutup kasir hari ini?</Text>
             <Text style={styles.closeShiftModalSubtitle}>
-              Tinjau ringkasan penjualan setelah ditutup.
+              Cocokkan uang fisik dengan perkiraan kas.
             </Text>
           </VStack>
           <AppModalCloseButton
@@ -62,8 +63,9 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
         </ModalHeader>
         <ModalBody>
           <Text style={styles.closeShiftModalCopy}>
-            Pesanan yang siap diambil akan ditandai selesai. Pastikan transaksi
-            hari ini sudah sesuai sebelum melanjutkan.
+            Pastikan tidak ada pembayaran yang sedang diproses. Hitung seluruh
+            uang tunai fisik di laci, termasuk uang awal. Jangan masukkan
+            pembayaran QRIS atau saldo rekening.
           </Text>
           <VStack style={styles.closeShiftCashSummary}>
             <HStack style={styles.closeShiftCashRow}>
@@ -75,11 +77,15 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
               <Text style={styles.closeShiftCashValue}>{formatCurrency(cashSalesInShift)}</Text>
             </HStack>
             <HStack style={styles.closeShiftCashRow}>
+              <Text style={styles.closeShiftCashLabel}>Pengeluaran kas</Text>
+              <Text style={styles.closeShiftCashValue}>− {formatCurrency(cashOutflowsInShift)}</Text>
+            </HStack>
+            <HStack style={styles.closeShiftCashRow}>
               <Text style={styles.closeShiftCashTotalLabel}>Perkiraan uang di laci</Text>
               <Text style={styles.closeShiftCashTotal}>{formatCurrency(expectedCash)}</Text>
             </HStack>
           </VStack>
-          <Text style={styles.closeShiftCountLabel}>UANG FISIK DI LACI</Text>
+          <Text style={styles.closeShiftCountLabel}>UANG FISIK HASIL HITUNG</Text>
           <Input style={styles.closeShiftCountInput}>
             <Text style={styles.closeShiftCountPrefix}>Rp</Text>
             <InputField
@@ -92,7 +98,10 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
             />
           </Input>
           {hasCount ? (
-            <Text style={styles.closeShiftDifference}>
+            <Text style={[
+              styles.closeShiftDifference,
+              difference === 0 ? styles.closeShiftDifferenceMatch : styles.closeShiftDifferenceMismatch,
+            ]}>
               {difference === 0 ? "Kas sesuai" : difference > 0 ? `Selisih lebih ${formatCurrency(difference)}` : `Selisih kurang ${formatCurrency(Math.abs(difference))}`}
             </Text>
           ) : null}

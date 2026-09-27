@@ -57,13 +57,13 @@ export function createReceiptHtml(data: ReceiptData) {
           </header>
           <hr />
           <div class="meta">
-            <div>No: <strong>${escapeHtml(data.billNumber)}</strong><br />Kasir: ${escapeHtml(data.cashier)}</div>
+            <div>No: <strong>${escapeHtml(data.orderNumber)}</strong><br />Kasir: ${escapeHtml(data.cashier)}<br />Pelanggan: ${escapeHtml(data.customer)}</div>
             <div class="meta-right">${escapeHtml(data.date)}<br />${escapeHtml(data.time)} WIB</div>
           </div>
           <hr />
           <div class="queue">
             <small>NOMOR ANTREAN</small>
-            <strong>${escapeHtml(data.queueNumber)}</strong>
+            <strong>${escapeHtml(data.orderNumber)}</strong>
             <div>${data.itemCount} Minuman • ${escapeHtml(data.orderType)}</div>
           </div>
           <hr />
@@ -71,6 +71,7 @@ export function createReceiptHtml(data: ReceiptData) {
           <hr />
           <section class="totals">
             <div class="row"><span>Subtotal</span><strong>${escapeHtml(formatCurrency(data.subtotal))}</strong></div>
+            <div class="row"><span>Pembayaran</span><strong>${escapeHtml(data.paymentMethod)}</strong></div>
           </section>
           <hr />
           <footer>
