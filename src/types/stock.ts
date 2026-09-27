@@ -11,10 +11,8 @@ export type StockItem = {
   purchaseUnit?: string;
   /** How many stock units are in one purchase unit. Defaults to 1. */
   stockUnitsPerPurchaseUnit?: number;
-  estDays: string;
   /** Weighted-average cost per stock unit. Fractional rupiah is retained for HPP. */
   avgPrice: number;
-  initials: string;
 };
 
 export type RecipeKind = "base" | "menu";
@@ -30,6 +28,12 @@ export type Recipe = {
   ingredients: RecipeIngredient[];
 };
 
+export type StockPurchaseDetail = {
+  quantity: number;
+  unit: string;
+  totalCostRupiah: number;
+};
+
 export type StockMovement = {
   id: string;
   dateKey: string;
@@ -40,4 +44,5 @@ export type StockMovement = {
   quantity: number;
   unit: string;
   note: string;
+  purchase?: StockPurchaseDetail;
 };

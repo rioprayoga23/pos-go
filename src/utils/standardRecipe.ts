@@ -55,9 +55,7 @@ export const initialRecipeItems: StockItem[] = initialStockCatalog.map((item) =>
   unit: item.unit,
   ...("purchaseUnit" in item ? { purchaseUnit: item.purchaseUnit } : {}),
   ...("stockUnitsPerPurchaseUnit" in item ? { stockUnitsPerPurchaseUnit: item.stockUnitsPerPurchaseUnit } : {}),
-  estDays: "—",
   avgPrice: item.avgPrice,
-  initials: item.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase(),
 }));
 
 /** Expand menu/base formulas into the raw stock items that are actually consumed. */

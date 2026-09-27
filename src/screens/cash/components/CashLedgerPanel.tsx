@@ -6,11 +6,11 @@ import {
 import {
   AppIcon,
   AppInput,
-  AppPressable,
   EmptyState,
 } from "../../../components/ui";
 import {
   DataTable,
+  DataTableActionButton,
   DataTableFilterBar,
   DataTableFilterGrid,
   DataTableSection,
@@ -133,14 +133,11 @@ function createCashColumns(
       width: 60,
       align: "center",
       render: (transaction) => (
-        <AppPressable
+        <DataTableActionButton
+          action="detail"
+          label={`Detail transaksi ${transaction.description}`}
           onPress={() => onOpenTransaction(transaction)}
-          style={styles.detailButton}
-          accessibilityRole="button"
-          accessibilityLabel={`Detail transaksi ${transaction.description}`}
-        >
-          <Text style={styles.detailButtonText}>Detail</Text>
-        </AppPressable>
+        />
       ),
     },
   ];

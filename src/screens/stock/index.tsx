@@ -6,8 +6,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
+import { LoadingScreen } from "../../components/loading-screen";
 import {
   DataTable,
+  DataTableActionButton,
+  DataTableActions,
   DataTableFilterBar,
   DataTableFilterGrid,
   DataTableSection,
@@ -26,11 +29,13 @@ import type { DatePeriod, DateRange } from "../../types/dateRange";
 import { getLocalDateKey, getPresetDateRange } from "../../utils/date";
 import { colors, spacing } from "../../theme";
 import { formatCurrency, formatThousands } from "../../utils/format";
-import { useCashLedgerStore } from "../../store/cashLedgerStore";
-import { useTransactionStore } from "../../store/transactionStore";
-import { useStockStore } from "../../store/stockStore";
-import { StockAdjustmentModal } from "./components/StockAdjustmentModal";
-import type { HistoryFilter, ModalMode, StockDraft, StockItem, StockMovement } from "./types";
+import { StockPurchaseModal } from "./components/StockPurchaseModal";
+import { StockItemModal, type StockItemFormDraft } from "./components/StockItemModal";
+import { DeleteStockItemModal } from "./components/DeleteStockItemModal";
+import { StockMovementDetailModal } from "./components/StockMovementDetailModal";
+import { useStockItem, useStockItemChoices, useStockItems, useStockMovements, useStockMutations } from "./hooks/useStockApi";
+import type { StockAdjustmentDraft, StockPurchaseDraft } from "./api";
+import type { HistoryFilter, ModalMode, PurchaseDraft, StockItem, StockMovement } from "./types";
 import { getPurchaseUnit, getPurchaseUnitPrice, getStockUnitsPerPurchaseUnit, isLowStock } from "./utils/stock";
 import { styles } from "./styles";
 
@@ -43,6 +48,7 @@ const historyFilters: { key: HistoryFilter; label: string }[] = [
 ];
 
 const stockTablePageSize = 10;
+const emptyStockItems: StockItem[] = [];
 
 function getStockMovementTime(dateKey: string, time: string) {
   const dateLabel = dateKey === getLocalDateKey()
@@ -53,16 +59,33 @@ function getStockMovementTime(dateKey: string, time: string) {
   return dateLabel + ", " + time + " WIB";
 }
 
+function QueryErrorNotice({ onRetry }: { onRetry: () => void }) {
+  return (
+    <HStack style={{ alignItems: "center", justifyContent: "space-between", gap: spacing.md, padding: spacing.md, backgroundColor: colors.dangerSoft }}>
+      <Text style={{ color: colors.danger, flex: 1 }}>Data gagal diperbarui.</Text>
+      <AppPressable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Coba muat ulang">
+        <Text style={{ color: colors.danger, fontWeight: "600" }}>Coba lagi</Text>
+      </AppPressable>
+    </HStack>
+  );
+}
+
+function RetryButton({ onRetry }: { onRetry: () => void }) {
+  return (
+    <AppPressable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Coba muat ulang">
+      <Text style={{ color: colors.primary, fontWeight: "600" }}>Coba lagi</Text>
+    </AppPressable>
+  );
+}
+
 export function StockScreen() {
   const { height, width } = useWindowDimensions();
-  const items = useStockStore((state) => state.items);
-  const setItems = useStockStore((state) => state.setItems);
-  const movements = useStockStore((state) => state.movements);
-  const setMovements = useStockStore((state) => state.setMovements);
   const [inventoryPage, setInventoryPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [historyQuery, setHistoryQuery] = useState("");
+  const [debouncedHistoryQuery, setDebouncedHistoryQuery] = useState("");
   const [historyPeriod, setHistoryPeriod] = useState<DatePeriod>("today");
   const [historyDateRange, setHistoryDateRange] = useState<DateRange>(() =>
     getPresetDateRange(getLocalDateKey(), "today"),
@@ -70,9 +93,11 @@ export function StockScreen() {
   const [historyDatePickerOpen, setHistoryDatePickerOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [modal, setModal] = useState<{
-    mode: ModalMode;
+    mode: ModalMode | "edit-item";
     itemId?: string;
   } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
+  const [selectedMovement, setSelectedMovement] = useState<StockMovement | null>(null);
   const [toast, setToast] = useState<{
     title: string;
     message: string;
@@ -80,9 +105,52 @@ export function StockScreen() {
   } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isToolbarCompact = width < 920;
-  const isSmallViewport = width < 620;
   const inventoryWidth = Math.max(900, width - (isToolbarCompact ? 32 : 176));
-  const historyWidth = Math.max(980, width - (isToolbarCompact ? 32 : 176));
+  const historyWidth = Math.max(960, width - (isToolbarCompact ? 32 : 176));
+
+  const itemsQuery = useStockItems({
+    search: debouncedQuery,
+    page: inventoryPage,
+    limit: stockTablePageSize,
+  });
+  const movementsQuery = useStockMovements({
+    search: debouncedHistoryQuery,
+    type: historyFilter,
+    from: historyDateRange.startDate,
+    to: historyDateRange.endDate,
+    page: historyPage,
+    limit: stockTablePageSize,
+  });
+  const pickerOpen = modal?.mode === "purchase";
+  const itemChoicesQuery = useStockItemChoices(Boolean(pickerOpen));
+  const editingItemQuery = useStockItem(
+    modal?.mode === "edit-item" ? modal.itemId ?? "" : "",
+    modal?.mode === "edit-item",
+  );
+  const mutations = useStockMutations();
+  const items = itemsQuery.data?.data ?? emptyStockItems;
+  const movements = movementsQuery.data?.data ?? [];
+  const editingItem = modal?.mode === "edit-item"
+    ? editingItemQuery.data ?? items.find((item) => item.id === modal.itemId)
+    : undefined;
+  const pickerItems = useMemo(() => {
+    const combined = [...(itemChoicesQuery.data?.data ?? []), ...items];
+    const seen = new Set<string>();
+    return combined.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [itemChoicesQuery.data?.data, items]);
+  const isMutating = Object.values(mutations).some((mutation) => mutation.isPending);
+  const isLoading =
+    itemsQuery.isFetching ||
+    movementsQuery.isFetching ||
+    itemChoicesQuery.isFetching ||
+    editingItemQuery.isFetching ||
+    isMutating;
+  const itemLoadFailed = itemsQuery.isError && !itemsQuery.data;
+  const historyLoadFailed = movementsQuery.isError && !movementsQuery.data;
 
   useEffect(
     () => () => {
@@ -101,36 +169,15 @@ export function StockScreen() {
     toastTimer.current = setTimeout(() => setToast(null), 4200);
   };
 
-  const visibleItems = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return items.filter((item) =>
-      !normalizedQuery ||
-      `${item.name} ${item.description} ${item.unit}`.toLowerCase().includes(normalizedQuery),
-    );
-  }, [items, query]);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  const visibleMovements = useMemo(() => {
-    const normalizedQuery = historyQuery.trim().toLowerCase();
-    return movements.filter((movement) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        `${movement.item} ${movement.note} ${movement.type}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-      const matchesFilter =
-        historyFilter === "all" || movement.type === historyFilter;
-      const matchesDateRange =
-        movement.dateKey >= historyDateRange.startDate &&
-        movement.dateKey <= historyDateRange.endDate;
-      return matchesQuery && matchesFilter && matchesDateRange;
-    });
-  }, [
-    historyDateRange.endDate,
-    historyDateRange.startDate,
-    historyFilter,
-    historyQuery,
-    movements,
-  ]);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedHistoryQuery(historyQuery.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [historyQuery]);
 
   const changeInventoryQuery = (nextQuery: string) => {
     setQuery(nextQuery);
@@ -240,21 +287,22 @@ export function StockScreen() {
     {
       key: "action",
       title: "AKSI",
-      flex: 1.2,
-      minWidth: 110,
+      flex: 1,
+      minWidth: 108,
       align: "center",
       render: (item) => (
-        <HStack style={styles.stockActions}>
-          <AppPressable
-            onPress={() => setModal({ mode: "correction", itemId: item.id })}
-            style={styles.actionButton}
-            accessibilityRole="button"
-            accessibilityLabel={`Sesuaikan stok ${item.name}`}
-          >
-            <AppIcon name="tune-variant" size={14} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Koreksi</Text>
-          </AppPressable>
-        </HStack>
+        <DataTableActions>
+          <DataTableActionButton
+            action="edit"
+            label={`Ubah bahan ${item.name}`}
+            onPress={() => setModal({ mode: "edit-item", itemId: item.id })}
+          />
+          <DataTableActionButton
+            action="delete"
+            label={`Hapus bahan ${item.name}`}
+            onPress={() => setDeleteTarget(item)}
+          />
+        </DataTableActions>
       ),
     },
   ];
@@ -266,7 +314,7 @@ export function StockScreen() {
       flex: 2,
       minWidth: 145,
       render: (movement) => (
-        <Text style={styles.cellMuted}>{movement.time}</Text>
+        <Text style={styles.cellMuted}>{getStockMovementTime(movement.dateKey, movement.time)}</Text>
       ),
     },
     {
@@ -339,191 +387,111 @@ export function StockScreen() {
       ),
     },
     {
-      key: "note",
-      title: "KETERANGAN / OLEH",
-      flex: 1.2,
-      minWidth: 160,
+      key: "purchaseTotal",
+      title: "TOTAL BELI",
+      width: 125,
+      align: "right",
       render: (movement) => (
-        <Text style={styles.cellMuted}>{movement.note}</Text>
+        <Text style={styles.cellValue}>
+          {movement.purchase
+            ? formatCurrency(movement.purchase.totalCostRupiah)
+            : "—"}
+        </Text>
+      ),
+    },
+    {
+      key: "action",
+      title: "AKSI",
+      width: 88,
+      align: "center",
+      render: (movement) => (
+        <DataTableActionButton
+          action="detail"
+          label={`Lihat detail mutasi ${movement.item}`}
+          onPress={() => setSelectedMovement(movement)}
+        />
       ),
     },
   ];
 
-  const handleSaveStock = (draft: StockDraft) => {
-    if (draft.mode === "purchase") {
-      const now = new Date();
-      const dateKey = getLocalDateKey(now);
-      const time = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-      const selected = draft.newItem
-        ? undefined
-        : items.find((item) => item.id === draft.itemId);
-      const customName = draft.newItem?.name.trim();
-      if (
-        draft.quantity <= 0 ||
-        draft.totalCost <= 0 ||
-        (!draft.newItem && !selected) ||
-        (draft.newItem &&
-          (!customName ||
-            !draft.newItem.unit ||
-            items.some(
-              (item) => item.name.trim().toLowerCase() === customName.toLowerCase(),
-            )))
-      ) {
-        return;
-      }
-
-      const stockUnitsPerPurchaseUnit = selected
-        ? getStockUnitsPerPurchaseUnit(selected)
-        : 1;
-      const quantityInStockUnits = draft.quantity * stockUnitsPerPurchaseUnit;
-      if (!Number.isSafeInteger(quantityInStockUnits) || quantityInStockUnits <= 0) return;
-      const purchaseUnit = selected ? getPurchaseUnit(selected) : draft.newItem!.unit;
-      const stockUnit = selected?.unit ?? draft.newItem!.unit;
-      const itemName = customName ?? selected?.name ?? "bahan";
-      const totalCost = draft.totalCost;
-      const transactionStore = useTransactionStore.getState();
-      if (draft.fundingSource === "cash" && !transactionStore.isCashRegisterOpen()) {
-        showToast("Kasir belum dibuka", "Buka kasir di Kelola Kas sebelum membayar pembelian stok dari laci.", "error");
-        return;
-      }
-      if (draft.fundingSource === "cash" && totalCost > transactionStore.getExpectedCash()) {
-        showToast("Uang di laci tidak cukup", "Periksa nominal pembelian atau pilih transfer usaha.", "error");
-        return;
-      }
-      useCashLedgerStore.getState().addStockPurchase({
-        dateKey,
-        timeLabel: dateKey + ", " + time + " WIB",
-        description: `Beli ${draft.quantity} ${purchaseUnit} ${itemName}`,
-        detail: `Masuk ${formatThousands(quantityInStockUnits)} ${stockUnit}`,
-        source: draft.fundingSource,
-        amount: totalCost,
-      });
-      if (draft.fundingSource === "cash") {
-        transactionStore.recordCashOutflow(totalCost);
-      }
-      const purchaseItem: StockItem = draft.newItem
+  const handleSaveStock = async (draft: PurchaseDraft) => {
+    const requestDraft: StockPurchaseDraft = {
+      ...(draft.newItem
         ? {
-            id: `stock-${Date.now()}`,
-            name: customName!,
-            description: "",
-            stock: 0,
-            unit: draft.newItem.unit,
-            estDays: "—",
-            avgPrice: 0,
-            initials: customName!
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((part) => part[0]?.toUpperCase() ?? "")
-              .join(""),
+            newItem: {
+              name: draft.newItem.name,
+              description: "",
+              unit: draft.newItem.unit,
+              purchaseUnit: draft.newItem.unit,
+              stockUnitsPerPurchaseUnit: 1,
+            },
           }
-        : selected!;
-      const costPerStockUnit = totalCost / quantityInStockUnits;
-      const nextAverage = purchaseItem.stock > 0
-        ? (purchaseItem.stock * purchaseItem.avgPrice + totalCost) /
-          (purchaseItem.stock + quantityInStockUnits)
-        : costPerStockUnit;
-      const updatedItem = {
-        ...purchaseItem,
-        stock: purchaseItem.stock + quantityInStockUnits,
-        avgPrice: nextAverage,
-      };
-
-      if (draft.newItem) {
-        setItems((current) => [updatedItem, ...current]);
-      } else {
-        setItems((current) =>
-          current.map((item) =>
-            item.id === purchaseItem.id ? updatedItem : item,
-          ),
-        );
-      }
-      setInventoryPage(1);
-      setMovements((current) => [
-        {
-          id: `movement-${Date.now()}`,
-          dateKey,
-          time: getStockMovementTime(dateKey, time),
-          itemId: updatedItem.id,
-          item: updatedItem.name,
-          type: "purchase",
-          quantity: quantityInStockUnits,
-          unit: updatedItem.unit,
-          note: `Beli ${draft.quantity} ${purchaseUnit} · ${formatCurrency(totalCost)} · ${draft.fundingSource === "cash" ? "Kas laci" : "Transfer"}`,
-        },
-        ...current,
-      ]);
-      setHistoryPage(1);
-      setModal(null);
-      showToast(
-        draft.newItem ? "Bahan baru ditambahkan" : "Stok berhasil ditambahkan",
-        draft.newItem
-          ? `${updatedItem.name} dibuat dengan stok ${formatThousands(quantityInStockUnits)} ${updatedItem.unit}.`
-          : `${updatedItem.name} bertambah ${draft.quantity} ${purchaseUnit} (${formatThousands(quantityInStockUnits)} ${updatedItem.unit}).`,
-      );
-      return;
-    }
-
-    const now = new Date();
-    const dateKey = getLocalDateKey(now);
-    const time = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-    const selected = items.find((item) => item.id === draft.itemId);
-    if (!selected) return;
-
-    const signedQuantity = draft.actualStock - selected.stock;
-    const priceChanged = draft.purchaseUnitPrice !== Math.round(getPurchaseUnitPrice(selected));
-    if (!signedQuantity && !priceChanged) return;
-    const nextAverageCost = priceChanged
-      ? draft.purchaseUnitPrice / getStockUnitsPerPurchaseUnit(selected)
-      : selected.avgPrice;
-    setItems((current) =>
-      current.map((item) =>
-        item.id === selected.id
-          ? { ...item, stock: draft.actualStock, avgPrice: nextAverageCost }
-          : item,
-      ),
-    );
-    if (signedQuantity) {
-      const notes = [
-        draft.reason,
-        draft.note,
-        priceChanged ? `Harga modal ${formatCurrency(draft.purchaseUnitPrice)} / ${getPurchaseUnit(selected)}` : "",
-      ].filter(Boolean);
-      setMovements((current) => [
-        {
-          id: `movement-${Date.now()}`,
-          dateKey,
-          time: getStockMovementTime(dateKey, time),
-          itemId: selected.id,
-          item: selected.name,
-          type: "correction",
-          quantity: signedQuantity,
-          unit: selected.unit,
-          note: notes.join(" · "),
-        },
-        ...current,
-      ]);
-      setHistoryPage(1);
-    }
+        : { stockItemId: draft.itemId }),
+      quantity: draft.quantity,
+      totalCostRupiah: draft.totalCost,
+    };
+    const savedItem = await mutations.purchase.mutateAsync(requestDraft);
+    setInventoryPage(1);
+    setHistoryPage(1);
     setModal(null);
-    if (signedQuantity && priceChanged) {
-      showToast(
-        "Stok dan harga diperbarui",
-        `${selected.name}: ${formatThousands(selected.stock)} → ${formatThousands(draft.actualStock)} ${selected.unit}; harga modal ${formatCurrency(draft.purchaseUnitPrice)} / ${getPurchaseUnit(selected)}.`,
-      );
-    } else if (signedQuantity) {
-      showToast(
-        "Koreksi stok tersimpan",
-        `${selected.name}: ${formatThousands(selected.stock)} → ${formatThousands(draft.actualStock)} ${selected.unit}.`,
-      );
-    } else {
-      showToast(
-        "Harga modal diperbarui",
-        `HPP ${selected.name} sekarang ${formatCurrency(draft.purchaseUnitPrice)} per ${getPurchaseUnit(selected)}.`,
-      );
+    showToast(
+      draft.newItem ? "Bahan baru ditambahkan" : "Stok berhasil ditambahkan",
+      `${savedItem.name} · ${formatCurrency(draft.totalCost)}.`,
+    );
+  };
+
+  const handleUpdateItem = async (draft: StockItemFormDraft) => {
+    if (modal?.mode !== "edit-item" || !modal.itemId || !editingItem) {
+      throw new Error("Bahan yang akan diubah tidak ditemukan.");
     }
+    const metadataChanged =
+      draft.name !== editingItem.name ||
+      draft.description !== editingItem.description ||
+      draft.unit !== editingItem.unit ||
+      draft.purchaseUnit !== (editingItem.purchaseUnit ?? editingItem.unit);
+    const stockChanged = draft.actualStock !== editingItem.stock;
+    const priceChanged =
+      draft.purchaseUnitPriceRupiah !== Math.round(getPurchaseUnitPrice(editingItem));
+
+    if (metadataChanged) {
+      await mutations.updateItem.mutateAsync({
+        id: modal.itemId,
+        draft: {
+          name: draft.name,
+          description: draft.description,
+          unit: draft.unit,
+          purchaseUnit: draft.purchaseUnit,
+          stockUnitsPerPurchaseUnit: getStockUnitsPerPurchaseUnit(editingItem),
+        },
+      });
+    }
+
+    if (stockChanged || priceChanged) {
+      const adjustment: StockAdjustmentDraft = {};
+      if (stockChanged) {
+        adjustment.actualStock = draft.actualStock;
+        adjustment.note = draft.note;
+      }
+      if (priceChanged) {
+        adjustment.purchaseUnitPriceRupiah = draft.purchaseUnitPriceRupiah;
+      }
+      await mutations.adjust.mutateAsync({ id: modal.itemId, draft: adjustment });
+      setHistoryPage(1);
+    }
+
+    setModal(null);
+    showToast("Bahan diperbarui", `${draft.name} berhasil diperbarui.`);
+  };
+
+  const handleDeleteItem = async (item: StockItem) => {
+    await mutations.deleteItem.mutateAsync(item.id);
+    if (items.length === 1 && inventoryPage > 1) setInventoryPage((page) => page - 1);
+    setDeleteTarget(null);
+    showToast("Bahan dihapus", `${item.name} berhasil dihapus permanen.`);
   };
 
   return (
+    <>
     <AppShell active="Stock" scrollable>
       <VStack style={styles.page}>
         <DataTableSection
@@ -531,13 +499,8 @@ export function StockScreen() {
           description="Stok dan harga modal bahan yang tersedia di outlet."
           action={
             <AppPressable
-              onPress={() =>
-                setModal({ mode: "purchase", itemId: items[0]?.id })
-              }
-              style={[
-                styles.primaryAction,
-                isSmallViewport && styles.primaryActionFullWidth,
-              ]}
+              onPress={() => setModal({ mode: "purchase", itemId: items[0]?.id })}
+              style={styles.primaryAction}
               accessibilityRole="button"
               accessibilityLabel="Tambah stok"
             >
@@ -567,8 +530,11 @@ export function StockScreen() {
               </DataTableFilterGrid>
             </DataTableFilterBar>
 
+            {itemsQuery.isError && itemsQuery.data ? (
+              <QueryErrorNotice onRetry={() => { void itemsQuery.refetch(); }} />
+            ) : null}
             <DataTable
-              rows={visibleItems}
+              rows={items}
               columns={inventoryColumns}
               keyExtractor={(item) => item.id}
               width={inventoryWidth}
@@ -579,13 +545,16 @@ export function StockScreen() {
               pagination={{
                 page: inventoryPage,
                 pageSize: stockTablePageSize,
+                totalItems: itemsQuery.data?.total ?? 0,
                 onPageChange: setInventoryPage,
                 itemLabel: "bahan",
               }}
               emptyState={
                 <EmptyState
-                  icon={items.length === 0 ? "package-variant-closed" : "magnify-close"}
-                  title={items.length === 0 ? "Belum ada stok" : "Stok tidak ditemukan"}
+                  icon={itemLoadFailed ? "alert-circle-outline" : items.length === 0 && !query ? "package-variant-closed" : "magnify-close"}
+                  title={itemLoadFailed ? "Bahan gagal dimuat" : items.length === 0 && !query ? "Belum ada stok" : "Stok tidak ditemukan"}
+                  description={itemLoadFailed ? "Periksa koneksi lalu coba lagi." : undefined}
+                  action={itemLoadFailed ? <RetryButton onRetry={() => { void itemsQuery.refetch(); }} /> : undefined}
                   compact
                 />
               }
@@ -595,7 +564,7 @@ export function StockScreen() {
 
         <DataTableSection
           title="Riwayat Mutasi Stok Terbaru"
-          description="Pembelian, penjualan, dan koreksi stok bahan."
+          description="Pembelian dan koreksi stok bahan."
         >
           <VStack>
             <DataTableFilterBar>
@@ -630,12 +599,15 @@ export function StockScreen() {
                 />
               </DataTableFilterGrid>
             </DataTableFilterBar>
+            {movementsQuery.isError && movementsQuery.data ? (
+              <QueryErrorNotice onRetry={() => { void movementsQuery.refetch(); }} />
+            ) : null}
             <DataTable
-              rows={visibleMovements}
+              rows={movements}
               columns={historyColumns}
               keyExtractor={(movement) => movement.id}
               width={historyWidth}
-              minWidth={980}
+              minWidth={960}
               rowHeight={48}
               horizontalPadding={spacing.md}
               verticalPadding={spacing.xs}
@@ -643,13 +615,16 @@ export function StockScreen() {
               pagination={{
                 page: historyPage,
                 pageSize: stockTablePageSize,
+                totalItems: movementsQuery.data?.total ?? 0,
                 onPageChange: setHistoryPage,
                 itemLabel: "mutasi",
               }}
               emptyState={
                 <EmptyState
                   icon="clipboard-text-outline"
-                  title="Belum ada mutasi"
+                  title={historyLoadFailed ? "Riwayat gagal dimuat" : "Belum ada mutasi"}
+                  description={historyLoadFailed ? "Periksa koneksi lalu coba lagi." : undefined}
+                  action={historyLoadFailed ? <RetryButton onRetry={() => { void movementsQuery.refetch(); }} /> : undefined}
                   compact
                 />
               }
@@ -658,15 +633,41 @@ export function StockScreen() {
         </DataTableSection>
       </VStack>
 
-      {modal ? (
-        <StockAdjustmentModal
+      {modal?.mode === "purchase" ? (
+        <StockPurchaseModal
           key={`${modal.mode}-${modal.itemId ?? "default"}`}
-          mode={modal.mode}
-          items={items}
+          items={pickerItems}
           initialItemId={modal.itemId}
           height={height}
+          itemsError={itemChoicesQuery.isError}
+          onRetryItems={() => { void itemChoicesQuery.refetch(); }}
           onClose={() => setModal(null)}
           onSubmit={handleSaveStock}
+        />
+      ) : null}
+      {modal?.mode === "edit-item" && editingItem ? (
+        <StockItemModal
+          key={`edit-item-${modal.itemId}`}
+          item={editingItem}
+          height={height}
+          onClose={() => setModal(null)}
+          onSubmit={handleUpdateItem}
+        />
+      ) : null}
+      {deleteTarget ? (
+        <DeleteStockItemModal
+          item={deleteTarget}
+          height={height}
+          onClose={() => setDeleteTarget(null)}
+          onDelete={() => handleDeleteItem(deleteTarget)}
+        />
+      ) : null}
+      {selectedMovement ? (
+        <StockMovementDetailModal
+          movement={selectedMovement}
+          timeLabel={getStockMovementTime(selectedMovement.dateKey, selectedMovement.time)}
+          height={height}
+          onClose={() => setSelectedMovement(null)}
         />
       ) : null}
       {historyDatePickerOpen ? (
@@ -709,5 +710,7 @@ export function StockScreen() {
         </View>
       ) : null}
     </AppShell>
+    <LoadingScreen visible={isLoading} />
+    </>
   );
 }

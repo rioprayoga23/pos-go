@@ -1,6 +1,6 @@
 # YoSher Go
 
-Tablet-first POS prototype for a cafe, built with Expo, React Native, TypeScript, Gluestack UI, React Navigation, and Zustand. All workflows currently use consistent local dummy data.
+Tablet-first POS prototype for a cafe, built with Expo, React Native, TypeScript, Gluestack UI, TanStack Query, and Zustand. Stock management connects directly to the Go API; the other POS workflows still use local demo data.
 
 ## Run locally
 
@@ -10,6 +10,8 @@ npx expo start
 ```
 
 Then open the project in Expo Go, an Android emulator, or an iOS simulator.
+
+Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_URL` to the Go API address. Use `http://localhost:8080` for web or an iOS simulator, `http://10.0.2.2:8080` for the Android emulator, or the computer's LAN IP for a physical phone. The Go API must allow the Expo web origin in `CORS_ALLOWED_ORIGINS`.
 
 Useful checks:
 
@@ -42,7 +44,9 @@ src/
   utils/                     IDR and date formatting
 ```
 
-`PRODUCT.md`, `DESIGN_SYSTEM.md`, and `DESIGN.md` document the product context, Stitch-derived UI rules, and visual direction. API integration can replace the local seed data and store actions without changing the screen-level flow.
+`src/services/apiClient.ts` is the shared API root and query-string helper for module services. `src/services/apiTypes.ts` contains common response envelope and pagination types. Module `api.ts` files use these shared pieces; TanStack Query hooks own each module's cache and mutations. Keep Zustand for shared client-side state such as the cart and transactions.
+
+`PRODUCT.md`, `DESIGN_SYSTEM.md`, and `DESIGN.md` document the product context, Stitch-derived UI rules, and visual direction.
 
 ## Stitch references
 

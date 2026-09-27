@@ -74,8 +74,6 @@ export const styles = StyleSheet.create({
   sourceText: { color: "#92400E", fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
   sourceTextTransfer: { color: colors.inkMuted },
   amountText: { color: colors.ink, fontSize: type.label, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  detailButton: { minHeight: 36, paddingHorizontal: spacing.xs, alignItems: "center", justifyContent: "center" },
-  detailButtonText: { color: colors.primary, ...typography.compactButton },
 
 
   modal: { width: "94%", maxWidth: 560, borderRadius: radius.lg, backgroundColor: colors.white, overflow: "hidden", ...elevation.panel },

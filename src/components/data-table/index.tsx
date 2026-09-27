@@ -6,6 +6,8 @@ import type { StyleProp, ViewStyle } from "react-native";
 import { AppIcon, AppPressable, Panel } from "../ui";
 import { colors, radius, spacing, type, typography } from "../../theme";
 
+export { DataTableActionButton, DataTableActions } from "./actions";
+
 export type DataTableColumn<Row> = {
   key: string;
   title: string;
@@ -21,6 +23,7 @@ export type DataTablePagination = {
   pageSize: number;
   onPageChange: (page: number) => void;
   itemLabel?: string;
+  totalItems?: number;
 };
 
 export function DataTableSection({
@@ -149,14 +152,16 @@ export function DataTable<Row>({
   const isCompact = screenWidth < 620;
   const tableWidth = Math.max(minWidth, width ?? containerWidth);
   const pageSize = Math.max(1, pagination?.pageSize ?? 1);
-  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const itemCount = pagination?.totalItems ?? rows.length;
+  const serverPaginated = pagination?.totalItems !== undefined;
+  const pageCount = Math.max(1, Math.ceil(itemCount / pageSize));
   const activePage = Math.min(Math.max(1, pagination?.page ?? 1), pageCount);
   const startIndex = (activePage - 1) * pageSize;
-  const visibleRows = pagination
+  const visibleRows = pagination && !serverPaginated
     ? rows.slice(startIndex, startIndex + pageSize)
     : rows;
-  const startItem = rows.length ? startIndex + 1 : 0;
-  const endItem = Math.min(startIndex + pageSize, rows.length);
+  const startItem = itemCount ? startIndex + 1 : 0;
+  const endItem = Math.min(startIndex + pageSize, itemCount);
   const pageNumbers = Array.from({ length: pageCount }, (_, index) => index + 1)
     .filter(
       (number) =>
@@ -254,7 +259,7 @@ export function DataTable<Row>({
           <HStack style={styles.paginationSummaryGroup}>
             <Text style={styles.pageSizeText}>{pageSize} per halaman</Text>
             <Text style={styles.paginationSummary}>
-              Menampilkan {startItem}–{endItem} dari {rows.length}{" "}
+              Menampilkan {startItem}–{endItem} dari {itemCount}{" "}
               {pagination.itemLabel ?? "baris"}
             </Text>
           </HStack>

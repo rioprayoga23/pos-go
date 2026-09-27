@@ -54,7 +54,7 @@ export function DropdownSelect<Value extends string>({
   const [triggerWidth, setTriggerWidth] = useState(0);
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const selected = options.find((option) => option.value === value);
-  const label = selected?.label ?? placeholder;
+  const label = selected?.label ?? (value || placeholder);
   const showSearch = true;
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const filteredOptions = useMemo(() => {
@@ -185,9 +185,11 @@ export function DropdownSelect<Value extends string>({
                       {option.detail}
                     </Text>
                   ) : null}
-                  {isSelected ? (
-                    <AppIcon name="check" size={16} color={colors.primary} />
-                  ) : null}
+                  <AppIcon
+                    name={isSelected ? "check-circle" : "circle-outline"}
+                    size={18}
+                    color={isSelected ? colors.primary : colors.inkSubtle}
+                  />
                 </AppPressable>
               );
             }) : (
