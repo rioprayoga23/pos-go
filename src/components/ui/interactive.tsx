@@ -13,7 +13,7 @@ import {
   useWindowDimensions,
   ViewStyle,
 } from "react-native";
-import { colors, radius } from "../../theme";
+import { colors, radius, typography } from "../../theme";
 
 const mobileBreakpoint = 768;
 const mobileButtonHeight = 44;
@@ -23,7 +23,7 @@ export type IconName = React.ComponentProps<
 >["name"];
 
 const touchRipple: NonNullable<PressableProps["android_ripple"]> = {
-  color: "rgba(21, 101, 233, 0.18)",
+  color: "rgba(86, 69, 212, 0.16)",
   foreground: true,
 };
 
@@ -253,18 +253,18 @@ export function ActionPill({
 const styles = StyleSheet.create({
   touchPressed: { opacity: 0.78 },
   actionPill: {
-    minHeight: 32,
+    minHeight: 44,
     paddingHorizontal: 10,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     backgroundColor: colors.surfaceTint,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 4,
   },
-  actionPillText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
-  actionPillTextMobile: { fontSize: 12 },
-  actionPillTextTablet: { fontSize: 12 },
+  actionPillText: { color: colors.primaryDark, ...typography.compactButton },
+  actionPillTextMobile: { fontSize: typography.compactButton.fontSize, lineHeight: 17 },
+  actionPillTextTablet: { fontSize: typography.compactButton.fontSize, lineHeight: 17 },
   appModalCloseButton: {
     width: 44,
     height: 44,

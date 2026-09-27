@@ -2,15 +2,12 @@ import {
   HStack,
   Input,
   InputField,
-  Popover,
-  PopoverBackdrop,
-  PopoverBody,
-  PopoverContent,
   Text,
   VStack,
 } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { FlatList, View, type ListRenderItem } from "react-native";
+import { DropdownSelect, type DropdownOption } from "../../../components/dropdown-select";
 import { AppIcon, AppPressable as Pressable, EmptyState, Panel } from "../../../components/ui";
 import { colors } from "../../../theme";
 import { Order } from "../../../types/pos";
@@ -22,7 +19,6 @@ import { TransactionCard } from "./TransactionCard";
 
 type Props = {
   isWide: boolean;
-  isCompact: boolean;
   isMobile: boolean;
   isTablet: boolean;
   orders: Order[];
@@ -44,11 +40,14 @@ const renderEmpty = () => (
     compact
   />
 );
-const paymentOptions: PaymentFilter[] = ["Semua Bayar", "QRIS", "Tunai"];
+const paymentOptions: DropdownOption<PaymentFilter>[] = [
+  { value: "Semua metode", label: "Semua metode" },
+  { value: "QRIS", label: "QRIS" },
+  { value: "Tunai", label: "Tunai" },
+];
 
 export function TransactionsPanel({
   isWide,
-  isCompact,
   isMobile,
   isTablet,
   orders,
@@ -60,7 +59,8 @@ export function TransactionsPanel({
   onPaymentFilterChange,
 }: Props) {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [isPaymentMenuOpen, setIsPaymentMenuOpen] = useState(false);
+  const [filterWidth, setFilterWidth] = useState(0);
+  const useFilterGrid = filterWidth >= 600;
   const dateButton = (
     <Pressable
       onPress={() => setIsDatePickerOpen(true)}
@@ -79,7 +79,7 @@ export function TransactionsPanel({
 
   return (
     <Panel style={[styles.historyPanel, isWide && styles.panelFill]} padding={14}>
-      <HStack style={[styles.historyHeader, isCompact && styles.historyHeaderCompact]}>
+      <HStack style={styles.historyHeader}>
         <HStack style={styles.titleIcon}>
           <AppIcon
             name="receipt-text-outline"
@@ -87,78 +87,63 @@ export function TransactionsPanel({
             color={colors.primary}
           />
         </HStack>
-        <Text style={[styles.pageTitle, isTablet && styles.pageTitleTablet]}>Riwayat Transaksi</Text>
-        {!isCompact ? dateButton : null}
+        <Text style={styles.sectionTitle}>Riwayat Transaksi</Text>
       </HStack>
-      {isCompact ? <HStack style={styles.compactDateRow}>{dateButton}</HStack> : null}
 
-      <HStack style={styles.filterRow}>
-        <Input style={styles.searchInput}>
-          <AppIcon name="magnify" size={17} color={colors.inkMuted} />
-          <InputField
-            value={query}
-            onChangeText={onQueryChange}
-            placeholder="Cari nomor antrean (#001), pelanggan, atau menu..."
-            placeholderTextColor={colors.inkSubtle}
-            style={[styles.searchText, (isMobile || isTablet) && styles.readableTextAdaptive]}
-          />
-        </Input>
-        <Popover
-          placement="bottom right"
-          offset={6}
-          isOpen={isPaymentMenuOpen}
-          onOpen={() => setIsPaymentMenuOpen(true)}
-          onClose={() => setIsPaymentMenuOpen(false)}
-          trigger={(triggerProps) => (
-            <Pressable
-              {...triggerProps}
-              style={styles.filterButton}
-              accessibilityRole="button"
-              accessibilityLabel={`Filter metode pembayaran, ${paymentFilter}`}
-              accessibilityState={{ expanded: isPaymentMenuOpen }}
-            >
-              <AppIcon name="tune-variant" size={16} color={colors.primary} />
-              <Text style={[styles.filterText, (isMobile || isTablet) && styles.readableTextAdaptive]}>{paymentFilter}</Text>
-            </Pressable>
-          )}
+      <HStack
+        style={[
+          styles.filterRow,
+          useFilterGrid ? styles.filterRowThreeColumns : styles.filterRowStacked,
+        ]}
+        onLayout={({ nativeEvent }) => {
+          const nextWidth = nativeEvent.layout.width;
+          setFilterWidth((currentWidth) =>
+            currentWidth === nextWidth ? currentWidth : nextWidth,
+          );
+        }}
+      >
+        <View
+          style={[
+            styles.filterCell,
+            useFilterGrid && styles.filterCellGrid,
+          ]}
         >
-          <PopoverBackdrop />
-          <PopoverContent style={styles.filterPopover}>
-            <PopoverBody style={styles.filterPopoverBody}>
-              {paymentOptions.map((option) => {
-                const isActive = option === paymentFilter;
-                return (
-                  <Pressable
-                    key={option}
-                    onPress={() => {
-                      onPaymentFilterChange(option);
-                      setIsPaymentMenuOpen(false);
-                    }}
-                    style={[
-                      styles.filterOption,
-                      isActive && styles.filterOptionActive,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isActive }}
-                  >
-                      <Text
-                        style={[
-                          styles.filterOptionText,
-                          (isMobile || isTablet) && styles.readableTextAdaptive,
-                          isActive && styles.filterOptionTextActive,
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                    {isActive ? (
-                      <AppIcon name="check" size={15} color={colors.primary} />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </PopoverBody>
-          </PopoverContent>
-        </Popover>
+          <Input style={styles.searchInput}>
+            <AppIcon name="magnify" size={17} color={colors.inkMuted} />
+            <InputField
+              value={query}
+              onChangeText={onQueryChange}
+              placeholder="Cari transaksi"
+              placeholderTextColor={colors.inkSubtle}
+              style={[styles.searchText, (isMobile || isTablet) && styles.readableTextAdaptive]}
+            />
+          </Input>
+        </View>
+        <View
+          style={[
+            styles.filterCell,
+            useFilterGrid && styles.filterCellGrid,
+          ]}
+        >
+          {dateButton}
+        </View>
+        <View
+          style={[
+            styles.filterCell,
+            useFilterGrid && styles.filterCellGrid,
+          ]}
+        >
+          <DropdownSelect
+            options={paymentOptions}
+            value={paymentFilter}
+            onChange={onPaymentFilterChange}
+            placeholder="Semua metode"
+            accessibilityLabel="Filter metode pembayaran"
+            fullWidth
+            minWidth={156}
+            leadingIcon="tune-variant"
+          />
+        </View>
       </HStack>
 
       {isWide ? (

@@ -2,7 +2,7 @@ import type { PaymentMethod } from "../../types/pos";
 
 export type { DateRange } from "../../types/dateRange";
 
-export type PaymentFilter = "Semua Bayar" | PaymentMethod;
+export type PaymentFilter = "Semua metode" | PaymentMethod;
 
 export type HistoryTransactionDisplay = {
   orderNumber: string;

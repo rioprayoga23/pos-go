@@ -41,15 +41,15 @@ function SummaryItem({ label, value, helper, icon, tone, isMobile, isTablet }: {
   isMobile: boolean;
   isTablet: boolean;
 }) {
-  const color = tone === 'blue' ? colors.primary : tone === 'amber' ? colors.warning : colors.success;
-  const background = tone === 'blue' ? colors.surfaceTint : tone === 'amber' ? colors.warningSoft : colors.successSoft;
+  const color = tone === 'blue' ? colors.primaryDark : tone === 'amber' ? colors.warning : colors.success;
+  const background = tone === 'blue' ? colors.tintLavender : tone === 'amber' ? colors.tintYellow : colors.tintMint;
   return (
     <HStack style={[styles.summaryItem, { backgroundColor: background }]}>
       <HStack style={styles.summaryIcon}><AppIcon name={icon} size={21} color={color} /></HStack>
       <VStack style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.summaryLabel, (isMobile || isTablet) && styles.summaryLabelAdaptive]}>{label}</Text>
         <HStack style={{ alignItems: 'baseline', gap: 6 }}>
-          <Text style={[styles.summaryValue, isMobile && styles.summaryValueMobile, isTablet && styles.summaryValueTablet, { color }]}>{value}</Text>
+          <Text style={[styles.summaryValue, isMobile && styles.summaryValueMobile, isTablet && styles.summaryValueTablet]}>{value}</Text>
           <Text style={[styles.summaryHelper, (isMobile || isTablet) && styles.summaryHelperAdaptive]}>{helper}</Text>
         </HStack>
       </VStack>

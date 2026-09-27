@@ -1,12 +1,18 @@
 import { Input, InputField, Text } from "@gluestack-ui/themed";
-import { type ComponentProps, type ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import {
   StyleProp,
   StyleSheet,
   TextStyle,
   ViewStyle,
 } from "react-native";
-import { colors, radius, spacing, type } from "../../theme";
+import {
+  colors,
+  fieldHeight,
+  radius,
+  spacing,
+  typography,
+} from "../../theme";
 
 type AppInputProps = {
   value: string;
@@ -16,6 +22,7 @@ type AppInputProps = {
   keyboardType?: ComponentProps<typeof InputField>["keyboardType"];
   editable?: ComponentProps<typeof InputField>["editable"];
   autoCapitalize?: ComponentProps<typeof InputField>["autoCapitalize"];
+  secureTextEntry?: ComponentProps<typeof InputField>["secureTextEntry"];
   accessibilityLabel?: string;
   variant?: "field" | "search";
   leading?: ReactNode;
@@ -32,6 +39,7 @@ export function AppInput({
   keyboardType,
   editable,
   autoCapitalize,
+  secureTextEntry,
   accessibilityLabel,
   variant = "field",
   leading,
@@ -39,12 +47,15 @@ export function AppInput({
   style,
   inputStyle,
 }: AppInputProps) {
+  const [focused, setFocused] = useState(false);
   return (
     <Input
       style={[
         styles.appInput,
         variant === "search" && styles.appSearchInput,
         style,
+        editable === false && styles.appInputDisabled,
+        focused && editable !== false && styles.appInputFocused,
       ]}
     >
       {leading}
@@ -56,8 +67,15 @@ export function AppInput({
         keyboardType={keyboardType}
         editable={editable}
         autoCapitalize={autoCapitalize}
+        secureTextEntry={secureTextEntry}
         accessibilityLabel={accessibilityLabel}
-        style={[styles.appInputField, inputStyle]}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[
+          styles.appInputField,
+          inputStyle,
+          editable === false && styles.appInputFieldDisabled,
+        ]}
       />
       {trailing}
     </Input>
@@ -70,33 +88,42 @@ export function FieldLabel({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   appInput: {
-    minHeight: 48,
+    height: fieldHeight,
+    minHeight: fieldHeight,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.lineStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.canvas,
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
   },
   appSearchInput: {
-    minHeight: 44,
-    borderWidth: 0,
-    borderRadius: radius.pill,
+    height: fieldHeight,
+    minHeight: fieldHeight,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.canvas,
+  },
+  appInputDisabled: {
+    borderColor: colors.line,
     backgroundColor: colors.surfaceContainerLow,
   },
+  appInputFocused: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
   appInputField: {
+    ...typography.input,
     flex: 1,
     minWidth: 0,
     paddingVertical: 0,
     color: colors.ink,
-    fontSize: type.bodySmall,
   },
+  appInputFieldDisabled: { color: colors.inkSubtle },
   fieldLabel: {
     color: colors.ink,
-    fontSize: 12,
-    fontWeight: "800",
+    ...typography.label,
     marginBottom: spacing.sm,
   },
 });

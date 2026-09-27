@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { AppShell } from "../../components/app-shell";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
-import { DatePeriodFilter } from "../../components/date-period-filter";
+import { DateRangeButton } from "../../components/date-period-filter";
 import { AppIcon, AppModalCloseButton, AppPressable, Panel } from "../../components/ui";
 import { useCashLedgerStore } from "../../store/cashLedgerStore";
 import { useTransactionStore } from "../../store/transactionStore";
@@ -141,11 +141,10 @@ export function CashScreen() {
               isPhone && styles.pageActionsPhone,
             ]}
           >
-            <DatePeriodFilter
-              period={ledger.period}
+            <DateRangeButton
               dateRange={ledger.dateRange}
-              onSelectPreset={ledger.selectPeriod}
-              onOpenDatePicker={() => setDatePickerOpen(true)}
+              onPress={() => setDatePickerOpen(true)}
+              selected={ledger.period === "custom"}
             />
             {cashRegisterOpen ? (
               <AppPressable
@@ -172,14 +171,16 @@ export function CashScreen() {
           </HStack>
         ) : null}
 
-        <CashRegisterSummary
-          isOpen={cashRegisterOpen}
-          isClosedToday={cashRegisterClosedToday}
-          openingCash={openingCash}
-          cashSales={cashSales}
-          cashOutflows={cashOutflows}
-          lastShiftReport={lastShiftReport}
-        />
+        {cashRegisterOpen || cashRegisterClosedToday ? (
+          <CashRegisterSummary
+            isOpen={cashRegisterOpen}
+            isClosedToday={cashRegisterClosedToday}
+            openingCash={openingCash}
+            cashSales={cashSales}
+            cashOutflows={cashOutflows}
+            lastShiftReport={lastShiftReport}
+          />
+        ) : null}
 
         <CashSummary
           sideBySide={showSummarySideBySide}

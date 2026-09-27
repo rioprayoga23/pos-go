@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { CashTransaction, NewOperationalExpense } from "../types/cash";
+import { demoCashTransactions } from "../data/demoData";
 
 type NewStockPurchase = {
   dateKey: string;
@@ -24,7 +25,7 @@ function getTimeValue(label: string) {
 }
 
 export const useCashLedgerStore = create<CashLedgerState>((set) => ({
-  transactions: [],
+  transactions: demoCashTransactions,
   addStockPurchase: (purchase) => {
     if (!purchase.description.trim() || purchase.amount <= 0) return;
     const transaction: CashTransaction = {

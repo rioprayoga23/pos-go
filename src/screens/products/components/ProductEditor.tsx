@@ -62,7 +62,7 @@ export function ProductEditor({
         <AppInput
           value={form.name}
           onChangeText={(name) => setForm({ ...form, name })}
-          placeholder="Contoh: Brown Sugar Pearl Milk Tea"
+          placeholder="Contoh: Matcha Latte"
           accessibilityLabel="Nama menu minuman"
           inputStyle={[styles.inputText, isMobile && styles.inputTextMobile, isTablet && styles.inputTextTablet]}
           trailing={
@@ -110,6 +110,10 @@ export function ProductEditor({
         onPick={model.pickProductImage}
         onClear={model.clearPhoto}
       />
+    </VStack>
+  );
+  const formFooter = (
+    <VStack style={styles.formFooter}>
       {model.formError ? (
         <Text style={productFormStyles.errorText}>{model.formError}</Text>
       ) : null}
@@ -119,11 +123,22 @@ export function ProductEditor({
           isDisabled={!isFormComplete}
           style={[
             styles.formPublishButton,
-            !isFormComplete && { opacity: 0.45 },
+            !isFormComplete && styles.formPublishButtonDisabled,
           ]}
         >
-          <AppIcon name="check-circle" size={19} color={colors.white} />
-          <ButtonText style={[productFormStyles.publishText, isMobile && productFormStyles.publishTextMobile, isTablet && productFormStyles.publishTextTablet]}>
+          <AppIcon
+            name="check-circle"
+            size={19}
+            color={isFormComplete ? colors.white : colors.inkSubtle}
+          />
+          <ButtonText
+            style={[
+              productFormStyles.publishText,
+              isMobile && productFormStyles.publishTextMobile,
+              isTablet && productFormStyles.publishTextTablet,
+              !isFormComplete && styles.formPublishButtonTextDisabled,
+            ]}
+          >
             {editing ? "Simpan Perubahan" : "Simpan & Publikasikan Menu"}
           </ButtonText>
         </Button>
@@ -138,11 +153,14 @@ export function ProductEditor({
         padding={spacing.lg}
       >
         <HStack style={styles.formHeader}>
-          <VStack style={{ flex: 1, gap: 3 }}>
+          <HStack style={styles.formTitleGroup}>
+            <HStack style={styles.formTitleIcon}>
+              <AppIcon name="coffee-outline" size={18} color={colors.primary} />
+            </HStack>
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               {editing ? "Edit Menu Minuman" : "Input Menu Minuman Baru"}
             </Text>
-          </VStack>
+          </HStack>
           {hasFormContent ? (
             <Pressable
               onPress={model.reset}
@@ -169,6 +187,7 @@ export function ProductEditor({
             {formFields}
           </ScrollView>
         )}
+        {formFooter}
       </Panel>
       <CategoryModal
         visible={model.categoryModal.visible}

@@ -22,11 +22,16 @@ import {
 import { productFormStyles } from "../../../components/products/styles/form";
 import { useProductStore } from "../../../store/productStore";
 import { useStockStore } from "../../../store/stockStore";
-import { colors, radius, spacing } from "../../../theme";
+import {
+  colors,
+  fieldHeight,
+  radius,
+  spacing,
+  type,
+  typography,
+} from "../../../theme";
 import type { Recipe, RecipeIngredient, RecipeKind } from "../../../types/stock";
 import {
-  defaultBaseRecipeId,
-  defaultRecipeId,
   getAvailablePortions,
 } from "../../../utils/standardRecipe";
 
@@ -169,8 +174,7 @@ export function RecipeManagerModal({
     const productUsage = products.filter((product) => product.recipeId === recipe.id).length;
     const menuUsage = recipes.filter((entry) => entry.kind === "menu" && entry.ingredients.some((part) => part.type === "base" && part.recipeId === recipe.id)).length;
     const usage = recipe.kind === "base" ? menuUsage : productUsage;
-    const protectedRecipe = recipe.id === defaultRecipeId || recipe.id === defaultBaseRecipeId;
-    const canDelete = !protectedRecipe && usage === 0;
+    const canDelete = usage === 0;
     const portions = getAvailablePortions(inventoryItems, recipe, recipes);
     return (
       <VStack key={recipe.id} style={styles.recipeRow}>
@@ -189,13 +193,13 @@ export function RecipeManagerModal({
             </HStack>
           ) : null}
           {!isCompact ? <EditAction name={recipe.name} onPress={() => startEdit(recipe)} /> : null}
-          {!isCompact && !protectedRecipe ? <DeleteAction name={recipe.name} disabled={!canDelete} onPress={() => setConfirmDeleteId(recipe.id)} /> : null}
+          {!isCompact ? <DeleteAction name={recipe.name} disabled={!canDelete} onPress={() => setConfirmDeleteId(recipe.id)} /> : null}
         </HStack>
         {isCompact ? (
           <HStack style={styles.recipeActions}>
             <Text style={[styles.portionText, portions ? styles.portionTextReady : styles.portionTextEmpty]}>{portions ? `${portions} porsi` : "Stok habis"}</Text>
             <EditAction name={recipe.name} onPress={() => startEdit(recipe)} />
-            {!protectedRecipe ? <DeleteAction name={recipe.name} disabled={!canDelete} onPress={() => setConfirmDeleteId(recipe.id)} /> : null}
+            <DeleteAction name={recipe.name} disabled={!canDelete} onPress={() => setConfirmDeleteId(recipe.id)} />
           </HStack>
         ) : null}
         {confirmDeleteId === recipe.id ? (
@@ -246,18 +250,18 @@ export function RecipeManagerModal({
                   <Text style={styles.kindText}>{kind === "base" ? "Bahan dasar" : "Menu jual"}</Text>
                 </HStack>
                 <VStack style={styles.field}>
-                  <Text style={productFormStyles.fieldLabel}>{kind === "base" ? "Nama bahan dasar" : "Nama menu"}</Text>
+                  <Text style={[productFormStyles.fieldLabel, styles.fieldLabelFlush]}>{kind === "base" ? "Nama bahan dasar" : "Nama menu"}</Text>
                   <AppInput
                     value={name}
                     onChangeText={(value) => { setName(value); setError(""); }}
-                    placeholder={kind === "base" ? "Contoh: Bahan Utama Minuman" : "Contoh: Matcha Latte"}
+                    placeholder={kind === "base" ? "Contoh: Sirup Gula" : "Contoh: Matcha Latte"}
                     accessibilityLabel={kind === "base" ? "Nama bahan dasar" : "Nama menu"}
                   />
                 </VStack>
 
                 <VStack style={styles.field}>
                   <HStack style={styles.sectionHeading}>
-                    <Text style={productFormStyles.fieldLabel}>Takaran per porsi</Text>
+                    <Text style={[productFormStyles.fieldLabel, styles.fieldLabelFlush]}>Takaran per porsi</Text>
                     {choiceType ? (
                       <AppPressable onPress={() => setChoiceType(null)} style={styles.addButton} accessibilityRole="button" accessibilityLabel="Tutup pilihan bahan">
                         <AppIcon name="close" size={16} color={colors.primary} />
@@ -374,7 +378,7 @@ export function RecipeManagerModal({
             ) : (
               <VStack style={styles.list}>
                 <VStack style={styles.createBlock}>
-                  <Text style={productFormStyles.fieldLabel}>Tambah formula</Text>
+                  <Text style={[productFormStyles.fieldLabel, styles.fieldLabelFlush]}>Tambah formula</Text>
                   <HStack style={styles.createActions}>
                     <AppPressable onPress={() => startCreate("base")} style={styles.createButton} accessibilityRole="button" accessibilityLabel="Buat bahan dasar">
                       <AppIcon name="layers-outline" size={17} color={colors.primary} />
@@ -425,8 +429,9 @@ function EditAction({ name, onPress }: { name: string; onPress: () => void }) {
 
 function DeleteAction({ name, disabled, onPress }: { name: string; disabled: boolean; onPress: () => void }) {
   return (
-    <AppPressable onPress={onPress} disabled={disabled} style={[styles.iconButton, disabled && styles.disabled]} accessibilityRole="button" accessibilityLabel={disabled ? `${name} masih dipakai` : `Hapus ${name}`} accessibilityState={{ disabled }}>
-      <AppIcon name="trash-can-outline" size={18} color={colors.danger} />
+    <AppPressable onPress={onPress} disabled={disabled} style={[styles.deleteButton, disabled && styles.disabled]} accessibilityRole="button" accessibilityLabel={disabled ? `Tidak dapat menghapus ${name}, masih dipakai` : `Hapus ${name}`} accessibilityState={{ disabled }}>
+      <AppIcon name="trash-can-outline" size={16} color={colors.danger} />
+      <Text style={styles.deleteActionText}>Hapus</Text>
     </AppPressable>
   );
 }
@@ -436,81 +441,84 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md, alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: colors.line },
   headerCopy: { flex: 1, alignItems: "center", gap: spacing.sm },
   titleIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
-  title: { color: colors.ink, fontSize: 18, fontWeight: "900" },
+  title: { color: colors.ink, ...typography.sectionTitle },
   body: { minHeight: 0 },
   scroll: { flexGrow: 0 },
   content: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
   form: { gap: spacing.md },
+  fieldLabelFlush: { marginBottom: 0 },
   field: { gap: spacing.sm },
-  kindBadge: { alignSelf: "flex-start", minHeight: 32, paddingHorizontal: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surfaceTint, alignItems: "center", gap: spacing.xs },
-  kindText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
+  kindBadge: { alignSelf: "flex-start", minHeight: 32, paddingHorizontal: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.surfaceTint, alignItems: "center", gap: spacing.xs },
+  kindText: { color: colors.primary, fontSize: type.micro, fontWeight: "600" },
   sectionHeading: { alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   ingredientList: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: spacing.md, backgroundColor: colors.surface },
   ingredientRow: { alignItems: "center", gap: spacing.sm, minHeight: 64 },
   ingredientRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line },
   ingredientCopy: { flex: 1, minWidth: 0, gap: 3 },
-  ingredientName: { color: colors.ink, fontSize: 13, fontWeight: "700" },
-  ingredientStock: { color: colors.inkSubtle, fontSize: 11, fontWeight: "600" },
-  quantityInput: { width: 108, minHeight: 42, paddingHorizontal: spacing.sm },
+  ingredientName: { color: colors.ink, ...typography.input, fontWeight: "600" },
+  ingredientStock: { color: colors.inkSubtle, fontSize: type.micro, fontWeight: "600" },
+  quantityInput: { width: 108, minHeight: fieldHeight, paddingHorizontal: spacing.sm },
   quantityInputCompact: { width: 88, paddingHorizontal: spacing.xs },
-  quantityValue: { fontSize: 13, fontWeight: "800" },
-  unitText: { color: colors.inkMuted, fontSize: 11 },
+  quantityValue: { ...typography.input, fontWeight: "500" },
+  unitText: { color: colors.inkMuted, fontSize: type.micro },
   iconButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: radius.md },
-  addButton: { minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.surfaceTint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
-  addIngredientText: { color: colors.primary, fontSize: 13, fontWeight: "800" },
+  addButton: { minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceTint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
+  addIngredientText: { color: colors.primary, ...typography.compactButton },
   emptyIngredients: { minHeight: 132, padding: spacing.md, borderWidth: 1, borderStyle: "dashed", borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surfaceContainerLow, alignItems: "center", justifyContent: "center", gap: spacing.sm },
   emptyIcon: { width: 36, height: 36, borderRadius: radius.pill, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { color: colors.inkMuted, fontSize: 12, fontWeight: "700", textAlign: "center" },
-  emptyAction: { minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.surfaceTint, flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  emptyTitle: { color: colors.inkMuted, fontSize: type.micro, lineHeight: 17, fontWeight: "600", textAlign: "center" },
+  emptyAction: { minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceTint, flexDirection: "row", alignItems: "center", gap: spacing.xs },
   choices: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, overflow: "hidden", backgroundColor: colors.surface },
   choiceTabs: { padding: 4, backgroundColor: colors.surfaceContainerLow, borderBottomWidth: 1, borderBottomColor: colors.line, gap: 4 },
-  choiceTab: { flex: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderRadius: radius.sm },
+  choiceTab: { flex: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderRadius: radius.md },
   choiceTabSelected: { backgroundColor: colors.surface },
-  choiceTabText: { color: colors.inkMuted, fontSize: 12, fontWeight: "700" },
+  choiceTabText: { color: colors.inkMuted, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
   choiceTabTextSelected: { color: colors.primary },
   choice: { minHeight: 56, paddingHorizontal: spacing.md, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
   choiceCopy: { flex: 1, minWidth: 0, gap: 3 },
   choiceAddIcon: { width: 32, height: 32, borderRadius: radius.pill, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
-  noChoices: { padding: spacing.md, color: colors.inkMuted, fontSize: 12 },
+  noChoices: { padding: spacing.md, color: colors.inkMuted, fontSize: type.micro },
   stockPreview: { minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.md, alignItems: "center", justifyContent: "space-between" },
   stockPreviewReady: { backgroundColor: colors.successSoft },
   stockPreviewEmpty: { backgroundColor: colors.warningSoft },
   stockPreviewCopy: { alignItems: "center", gap: spacing.sm },
-  stockPreviewLabel: { color: colors.ink, fontSize: 12, fontWeight: "700" },
-  stockPreviewValue: { fontSize: 13, fontWeight: "900" },
+  stockPreviewLabel: { color: colors.ink, ...typography.label },
+  stockPreviewValue: { fontSize: type.caption, fontWeight: "700" },
   stockPreviewValueReady: { color: colors.success },
   stockPreviewValueEmpty: { color: colors.warning },
   list: { gap: spacing.md },
   recipeSection: { gap: spacing.sm },
-  recipeSectionTitle: { color: colors.ink, fontSize: 13, fontWeight: "800" },
+  recipeSectionTitle: { color: colors.ink, ...typography.label },
   createBlock: { gap: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
   createActions: { gap: spacing.sm },
   createButton: { flex: 1, minHeight: 48, paddingHorizontal: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surfaceTint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
-  createText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
+  createText: { color: colors.primary, fontSize: type.micro, fontWeight: "600" },
   recipeRow: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, gap: spacing.sm },
   recipeMain: { alignItems: "center", gap: spacing.sm },
   recipeActions: { alignItems: "center", justifyContent: "flex-end", gap: spacing.xs },
   recipeIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
   recipeName: { flex: 1, minWidth: 0, gap: 3 },
-  rowName: { color: colors.ink, fontSize: 13, fontWeight: "800" },
-  rowMeta: { color: colors.inkMuted, fontSize: 12 },
-  portionBadge: { minHeight: 28, paddingHorizontal: spacing.sm, borderRadius: radius.pill, flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  rowName: { color: colors.ink, fontSize: type.caption, fontWeight: "600" },
+  rowMeta: { color: colors.inkMuted, fontSize: type.micro },
+  portionBadge: { minHeight: 28, paddingHorizontal: spacing.sm, borderRadius: radius.sm, flexDirection: "row", alignItems: "center", gap: spacing.xs },
   portionBadgeReady: { backgroundColor: colors.successSoft },
   portionBadgeEmpty: { backgroundColor: colors.warningSoft },
-  portionText: { fontSize: 11, fontWeight: "800" },
+  portionText: { fontSize: type.micro, fontWeight: "600" },
   portionTextReady: { color: colors.success },
   portionTextEmpty: { color: colors.warning },
-  editButton: { minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: radius.pill, flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  editText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
+  editButton: { minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: radius.md, flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  editText: { color: colors.primary, fontSize: type.micro, fontWeight: "600" },
+  deleteButton: { minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: radius.md, flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  deleteActionText: { color: colors.danger, fontSize: type.micro, fontWeight: "600" },
   disabled: { opacity: 0.35 },
   confirmRow: { alignItems: "center", justifyContent: "flex-end", gap: spacing.sm },
-  confirmText: { flex: 1, color: colors.ink, fontSize: 12 },
+  confirmText: { flex: 1, color: colors.ink, fontSize: type.micro },
   confirmButton: { minHeight: 44, paddingHorizontal: spacing.sm, justifyContent: "center" },
   cancel: { minHeight: 44, paddingHorizontal: spacing.md, justifyContent: "center" },
-  cancelText: { color: colors.inkMuted, fontSize: 13, fontWeight: "800" },
-  deleteText: { color: colors.danger, fontSize: 12, fontWeight: "800" },
+  cancelText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "600" },
+  deleteText: { color: colors.danger, fontSize: type.micro, fontWeight: "600" },
   disabledText: { opacity: 0.5 },
   footer: { width: "100%", alignItems: "center", justifyContent: "flex-end", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.line },
-  save: { minHeight: 44, borderRadius: radius.pill, paddingHorizontal: spacing.lg, backgroundColor: colors.primary },
-  saveText: { color: colors.white, fontSize: 13, fontWeight: "800" },
+  save: { minHeight: 44, borderRadius: radius.md, paddingHorizontal: spacing.lg, backgroundColor: colors.primary },
+  saveText: { color: colors.white, ...typography.button },
 });

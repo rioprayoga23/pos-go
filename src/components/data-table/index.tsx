@@ -1,10 +1,10 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { useState } from "react";
+import { Children, useState } from "react";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
-import { AppIcon, AppPressable } from "../ui";
-import { colors, radius, spacing, type } from "../../theme";
+import { AppIcon, AppPressable, Panel } from "../ui";
+import { colors, radius, spacing, type, typography } from "../../theme";
 
 export type DataTableColumn<Row> = {
   key: string;
@@ -22,6 +22,94 @@ export type DataTablePagination = {
   onPageChange: (page: number) => void;
   itemLabel?: string;
 };
+
+export function DataTableSection({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 620;
+
+  return (
+    <VStack style={styles.section}>
+      <HStack
+        style={[
+          styles.sectionHeading,
+          isCompact && styles.sectionHeadingCompact,
+        ]}
+      >
+        <VStack style={styles.sectionHeadingCopy}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.sectionDescription}>{description}</Text>
+        </VStack>
+        {action ? (
+          <View
+            style={[
+              styles.sectionHeadingAction,
+              isCompact && styles.sectionHeadingActionCompact,
+            ]}
+          >
+            {action}
+          </View>
+        ) : null}
+      </HStack>
+      <Panel style={styles.sectionPanel} padding={0}>
+        {children}
+      </Panel>
+    </VStack>
+  );
+}
+
+export function DataTableFilterBar({ children }: { children: ReactNode }) {
+  return <VStack style={styles.filterBar}>{children}</VStack>;
+}
+
+export function DataTableFilterGrid({ children }: { children: ReactNode }) {
+  const { width: screenWidth } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(0);
+  const availableWidth = containerWidth || screenWidth;
+  const columnCount = availableWidth < 360 ? 1 : availableWidth < 780 ? 2 : 4;
+  const fields = Children.toArray(children);
+  const rows: ReactNode[][] = [];
+
+  for (let index = 0; index < fields.length; index += columnCount) {
+    const row: ReactNode[] = fields.slice(index, index + columnCount);
+    while (row.length < columnCount) row.push(null);
+    rows.push(row);
+  }
+
+  return (
+    <VStack
+      style={styles.filterGrid}
+      onLayout={({ nativeEvent }) => {
+        const nextWidth = nativeEvent.layout.width;
+        setContainerWidth((currentWidth) =>
+          currentWidth === nextWidth ? currentWidth : nextWidth,
+        );
+      }}
+    >
+      {rows.map((row, rowIndex) => (
+        <HStack key={`row-${rowIndex}`} style={styles.filterGridRow}>
+          {row.map((field, columnIndex) => (
+            <View
+              key={`cell-${rowIndex}-${columnIndex}`}
+              style={styles.filterGridCell}
+            >
+              {field}
+            </View>
+          ))}
+        </HStack>
+      ))}
+    </VStack>
+  );
+}
 
 export function DataTable<Row>({
   rows,
@@ -242,6 +330,29 @@ function getColumnLayout<Row>(column: DataTableColumn<Row>): ViewStyle {
 }
 
 const styles = StyleSheet.create({
+  section: { width: "100%", gap: spacing.md },
+  sectionHeading: {
+    width: "100%",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  sectionHeadingCompact: { alignItems: "stretch", flexDirection: "column" },
+  sectionHeadingCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+  sectionTitle: { color: colors.ink, ...typography.sectionTitle },
+  sectionDescription: { color: colors.inkMuted, ...typography.description },
+  sectionHeadingAction: { flexShrink: 0 },
+  sectionHeadingActionCompact: { width: "100%" },
+  sectionPanel: { width: "100%", overflow: "hidden" },
+  filterBar: {
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  filterGrid: { width: "100%", gap: spacing.sm },
+  filterGridRow: { width: "100%", flexDirection: "row", gap: spacing.sm },
+  filterGridCell: { flex: 1, minWidth: 0 },
   container: { width: "100%" },
   viewport: { width: "100%" as const },
   table: { flexGrow: 1 },
@@ -254,7 +365,7 @@ const styles = StyleSheet.create({
   headerText: {
     color: colors.inkSubtle,
     fontSize: type.micro,
-    fontWeight: "800" as const,
+    fontWeight: "600" as const,
     letterSpacing: 0.4,
   },
   headerTextRight: { textAlign: "right" as const },
@@ -298,7 +409,7 @@ const styles = StyleSheet.create({
   paginationButton: {
     width: 34,
     height: 34,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.white,
@@ -307,7 +418,7 @@ const styles = StyleSheet.create({
   },
   paginationButtonDisabled: { opacity: 0.42 },
   paginationButtonSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
-  paginationText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "800" },
+  paginationText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "600" },
   paginationTextSelected: { color: colors.white },
-  pageSizeText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "700" },
+  pageSizeText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "600" },
 });

@@ -21,6 +21,7 @@ type Props = {
   dateLabel: string;
   onOpen: () => void;
   onClose: () => void;
+  onLogout: () => void;
 };
 
 export function ProfileMenu({
@@ -31,6 +32,7 @@ export function ProfileMenu({
   dateLabel,
   onOpen,
   onClose,
+  onLogout,
 }: Props) {
   return (
     <Popover
@@ -72,13 +74,13 @@ export function ProfileMenu({
           <VStack style={styles.profileDropdownActions}>
             {isMobile ? <PrinterStatusPill /> : null}
             <Pressable
-              onPress={onClose}
+              onPress={onLogout}
               style={styles.logoutButton}
               accessibilityRole="button"
-              accessibilityLabel="Tutup menu profil"
+              accessibilityLabel="Logout dari akun kasir"
             >
-              <AppIcon name="close" size={16} color={colors.inkMuted} />
-              <Text style={styles.logoutText}>Tutup menu</Text>
+              <AppIcon name="logout" size={16} color={colors.danger} />
+              <Text style={styles.logoutText}>Logout</Text>
             </Pressable>
           </VStack>
         </PopoverBody>

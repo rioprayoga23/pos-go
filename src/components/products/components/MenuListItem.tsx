@@ -2,9 +2,13 @@ import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { memo } from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { AppIcon, AppPressable as Pressable } from "../../ui";
-import { colors, radius } from "../../../theme";
+import { colors, radius, type } from "../../../theme";
 import { Product } from "../../../types/pos";
 import { formatCurrency } from "../../../utils/format";
+
+const profitPercentFormatter = new Intl.NumberFormat("id-ID", {
+  maximumFractionDigits: 1,
+});
 
 export const MenuListItem = memo(function MenuListItem({
   product,
@@ -21,15 +25,27 @@ export const MenuListItem = memo(function MenuListItem({
   isTablet: boolean;
   onEdit: (product: Product) => void;
 }) {
-  const availabilityLabel = !product.isAvailable
+  const profitPerPortion =
+    hpp !== null && product.price > 0 ? product.price - hpp : null;
+  const profitPercent =
+    profitPerPortion !== null && product.price > 0
+      ? (profitPerPortion / product.price) * 100
+      : null;
+  const profitLabel =
+    profitPerPortion === null
+      ? "Laba —"
+      : `Laba ${formatCurrency(profitPerPortion)} (${profitPercentFormatter.format(profitPercent ?? 0)}%)`;
+  const compactAvailabilityLabel = !product.isAvailable
     ? "Nonaktif"
     : product.stock > 0
-      ? `Tersedia · ${product.stock} porsi`
-      : "Stok habis";
+      ? `${product.stock} porsi`
+      : "Habis";
 
   if (isMobile) {
     return (
-      <VStack style={[styles.menuItemMobile, selected && styles.menuItemActive]}>
+      <VStack
+        style={[styles.menuItemMobile, selected && styles.menuItemActive]}
+      >
         <HStack style={styles.menuMainMobile}>
           <View style={styles.menuThumbMobile}>
             {product.image ? (
@@ -43,12 +59,16 @@ export const MenuListItem = memo(function MenuListItem({
             )}
           </View>
           <VStack style={styles.menuInfoMobile}>
-            <Text style={styles.menuNameMobile} numberOfLines={2}>
+            <Text style={styles.menuNameMobile} numberOfLines={1}>
               {product.name}
             </Text>
             <Text style={styles.menuMetaMobile} numberOfLines={1}>
-              {product.categoryName} · SKU-
-              {product.id.replace("p-", "").toUpperCase()}
+              {product.categoryName}
+            </Text>
+          </VStack>
+          <VStack style={styles.menuPriceMobile}>
+            <Text style={styles.priceTextMobile} numberOfLines={1}>
+              {formatCurrency(product.price)}
             </Text>
           </VStack>
           <Pressable
@@ -69,16 +89,27 @@ export const MenuListItem = memo(function MenuListItem({
             ]}
             numberOfLines={1}
           >
-            {availabilityLabel}
+            {compactAvailabilityLabel}
           </Text>
-          <VStack style={styles.menuPriceMobile}>
-            <Text style={styles.priceTextMobile}>
-              {formatCurrency(product.price)}
-            </Text>
-            <Text style={styles.costTextMobile}>
+          <HStack style={styles.menuMetricsMobile}>
+            <Text style={styles.costTextMobile} numberOfLines={1}>
               {hpp === null ? "HPP —" : `HPP ${formatCurrency(hpp)}`}
             </Text>
-          </VStack>
+            <View style={styles.mobileMetricDivider} />
+            <Text
+              style={[
+                styles.profitTextMobile,
+                profitPerPortion === null
+                  ? styles.profitNeutral
+                  : profitPerPortion >= 0
+                    ? styles.profitPositive
+                    : styles.profitNegative,
+              ]}
+              numberOfLines={1}
+            >
+              {profitLabel}
+            </Text>
+          </HStack>
         </HStack>
       </VStack>
     );
@@ -98,13 +129,18 @@ export const MenuListItem = memo(function MenuListItem({
         )}
       </View>
       <VStack style={styles.menuInfo}>
-        <Text style={[styles.menuName, isTablet && styles.menuNameTablet]} numberOfLines={1}>
+        <Text
+          style={[styles.menuName, isTablet && styles.menuNameTablet]}
+          numberOfLines={1}
+        >
           {product.name}
         </Text>
         <HStack style={styles.menuMetaRow}>
-          <Text style={[styles.menuMeta, isTablet && styles.menuMetaTablet]}>
-            {product.categoryName} • SKU-
-            {product.id.replace("p-", "").toUpperCase()}
+          <Text
+            style={[styles.menuMeta, isTablet && styles.menuMetaTablet]}
+            numberOfLines={1}
+          >
+            {product.categoryName}
           </Text>
           <Text
             style={[
@@ -112,20 +148,39 @@ export const MenuListItem = memo(function MenuListItem({
               isTablet && styles.availablePillTablet,
               !product.isAvailable && styles.inactivePill,
             ]}
+            numberOfLines={1}
           >
             {!product.isAvailable
               ? "Nonaktif"
               : product.stock > 0
-                ? `Tersedia: ${product.stock} Porsi`
+                ? `${product.stock} porsi`
                 : "Habis"}
           </Text>
         </HStack>
       </VStack>
-      <VStack style={styles.menuPrice}>
-        <Text style={[styles.priceText, isTablet && styles.priceTextTablet]}>{formatCurrency(product.price)}</Text>
-        <Text style={[styles.costText, isTablet && styles.costTextTablet]}>
-          {hpp === null ? "HPP —" : `HPP: ${formatCurrency(hpp)}`}
+      <VStack style={styles.menuFinancials}>
+        <Text style={styles.priceText} numberOfLines={1}>
+          {formatCurrency(product.price)}
         </Text>
+        <HStack style={styles.menuFinancialDetails}>
+          <Text style={styles.costText} numberOfLines={1}>
+            HPP {hpp === null ? "—" : formatCurrency(hpp)}
+          </Text>
+          <View style={styles.financialDivider} />
+          <Text
+            style={[
+              styles.menuMetricValue,
+              profitPerPortion === null
+                ? styles.profitNeutral
+                : profitPerPortion >= 0
+                  ? styles.profitPositive
+                  : styles.profitNegative,
+            ]}
+            numberOfLines={1}
+          >
+            {profitLabel}
+          </Text>
+        </HStack>
       </VStack>
       <Pressable
         onPress={() => onEdit(product)}
@@ -141,8 +196,9 @@ export const MenuListItem = memo(function MenuListItem({
 
 const styles = StyleSheet.create({
   menuItem: {
-    minHeight: 70,
-    padding: 9,
+    minHeight: 58,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceContainerLow,
     alignItems: "center",
@@ -153,43 +209,80 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceContainerLow,
-    gap: 7,
+    gap: 5,
   },
   menuMainMobile: { alignItems: "center", gap: 8 },
   menuThumbMobile: {
     width: 40,
     height: 40,
-    borderRadius: 9,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
-  menuInfoMobile: { flex: 1, minWidth: 0, gap: 3 },
-  menuNameMobile: { color: colors.ink, fontSize: 12, lineHeight: 15, fontWeight: "800" },
-  menuMetaMobile: { color: colors.inkMuted, fontSize: 12, lineHeight: 14 },
+  menuInfoMobile: { flex: 1, minWidth: 0, gap: 1 },
+  menuNameMobile: {
+    color: colors.ink,
+    fontSize: type.bodySmall,
+    lineHeight: 21,
+    fontWeight: "600",
+  },
+  menuMetaMobile: {
+    color: colors.inkMuted,
+    fontSize: type.micro,
+    lineHeight: 17,
+  },
   menuMetaPriceMobile: {
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 6,
+    gap: 8,
     paddingLeft: 48,
   },
   availabilityMobile: {
-    flex: 1,
-    minWidth: 0,
-    color: "#166534",
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: "700",
+    flexShrink: 0,
+    color: colors.success,
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.sm,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    fontSize: type.micro,
+    lineHeight: 15,
+    fontWeight: "600",
   },
-  availabilityMobileMuted: { color: colors.inkMuted },
-  menuPriceMobile: { alignItems: "flex-end", gap: 1 },
-  priceTextMobile: { color: colors.success, fontSize: 12, lineHeight: 15, fontWeight: "800" },
-  costTextMobile: { color: colors.inkMuted, fontSize: 12, lineHeight: 14 },
+  availabilityMobileMuted: {
+    color: colors.inkMuted,
+    backgroundColor: colors.line,
+  },
+  menuPriceMobile: { alignItems: "flex-end", flexShrink: 0 },
+  priceTextMobile: {
+    color: colors.ink,
+    fontSize: type.bodySmall,
+    lineHeight: 21,
+    fontWeight: "600",
+  },
+  costTextMobile: {
+    flexShrink: 1,
+    color: colors.inkMuted,
+    fontSize: type.micro,
+    lineHeight: 15,
+  },
+  profitTextMobile: {
+    flexShrink: 1,
+    fontSize: type.micro,
+    lineHeight: 15,
+    fontWeight: "600",
+  },
+  menuMetricsMobile: { minWidth: 0, alignItems: "center", gap: 6 },
+  mobileMetricDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: colors.line,
+  },
   menuThumb: {
     width: 43,
     height: 43,
-    borderRadius: 10,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
     overflow: "hidden",
     alignItems: "center",
@@ -197,42 +290,73 @@ const styles = StyleSheet.create({
   },
   menuImage: { width: "100%", height: "100%" },
   menuInfo: { flex: 1, minWidth: 0, gap: 5 },
-  menuName: { color: colors.ink, fontSize: 12, fontWeight: "900" },
-  menuNameTablet: { fontSize: 13 },
+  menuName: {
+    color: colors.ink,
+    fontSize: type.bodySmall,
+    lineHeight: 21,
+    fontWeight: "600",
+  },
+  menuNameTablet: { fontSize: type.bodySmall, lineHeight: 21 },
   menuMetaRow: { alignItems: "center", gap: 6 },
-  menuMeta: { color: colors.inkMuted, fontSize: 11 },
-  menuMetaTablet: { fontSize: 12 },
+  menuMeta: { flexShrink: 1, minWidth: 0, color: colors.inkMuted, fontSize: type.micro },
+  menuMetaTablet: { fontSize: type.micro },
   availablePill: {
-    color: "#166534",
+    color: colors.success,
     backgroundColor: colors.successSoft,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
     paddingHorizontal: 5,
     paddingVertical: 3,
-    fontSize: 11,
-    fontWeight: "900",
+    fontSize: type.micro,
+    fontWeight: "600",
   },
   inactivePill: {
     color: colors.inkMuted,
     backgroundColor: colors.surfaceContainerLow,
   },
-  menuPrice: { alignItems: "flex-end", gap: 3 },
-  availablePillTablet: { fontSize: 12 },
-  priceText: { color: colors.success, fontSize: 12, fontWeight: "900" },
-  priceTextTablet: { fontSize: 13 },
-  costText: { color: colors.inkMuted, fontSize: 11 },
-  costTextTablet: { fontSize: 12 },
+  menuFinancials: {
+    width: 250,
+    flexShrink: 0,
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  menuFinancialDetails: {
+    alignItems: "center",
+    gap: 5,
+  },
+  menuMetricValue: {
+    color: colors.inkMuted,
+    fontSize: type.overline,
+    lineHeight: 14,
+    fontWeight: "600",
+  },
+  financialDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: colors.line,
+  },
+  availablePillTablet: { fontSize: type.micro },
+  priceText: {
+    color: colors.ink,
+    fontSize: type.bodySmall,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  costText: { color: colors.inkMuted, fontSize: type.overline, lineHeight: 14 },
+  profitNeutral: { color: colors.inkMuted },
+  profitPositive: { color: colors.success },
+  profitNegative: { color: colors.danger },
   editButton: {
-    width: 31,
-    height: 31,
-    borderRadius: 31,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
   editButtonMobile: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",

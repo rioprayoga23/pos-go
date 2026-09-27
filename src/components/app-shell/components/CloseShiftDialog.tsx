@@ -92,7 +92,8 @@ export function CloseShiftDialog({ isOpen, onClose, onConfirm }: Props) {
               value={countedCash.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
               onChangeText={(value) => setCountedCash(value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 12))}
               keyboardType="number-pad"
-              placeholder="Hitung uang fisik"
+              placeholder="0"
+              placeholderTextColor={colors.inkSubtle}
               accessibilityLabel="Uang fisik di laci saat tutup kasir"
               style={styles.closeShiftCountField}
             />

@@ -86,7 +86,7 @@ export function CategoryModal({
               <AppInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Contoh: Signature Mocktail"
+                placeholder="Contoh: Mocktail"
                 accessibilityLabel="Nama kategori"
               />
               {error ? (

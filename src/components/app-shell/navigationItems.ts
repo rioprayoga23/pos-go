@@ -44,7 +44,7 @@ export const primaryNavigationItems: PrimaryNavigationItem[] = [
   {
     route: "History",
     label: "Riwayat & Ringkasan",
-    mobileLabel: "Riwayat & Ringkasan",
+    mobileLabel: "Riwayat",
     icon: "receipt-text-outline",
   },
 ];

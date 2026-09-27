@@ -1,4 +1,5 @@
 import { ProductForm } from "../types";
+import { colors } from "../../../theme";
 
 export const emptyForm: ProductForm = {
   name: "",
@@ -7,6 +8,6 @@ export const emptyForm: ProductForm = {
   description: "",
   categoryId: "",
   isAvailable: true,
-  accent: "#77A96D",
+  accent: colors.cyan,
   icon: "cup-outline",
 };

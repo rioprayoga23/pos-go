@@ -1,5 +1,13 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius, spacing, type } from "../../theme";
+import {
+  colors,
+  elevation,
+  fieldHeight,
+  radius,
+  spacing,
+  type,
+  typography,
+} from "../../theme";
 
 export const dateRangePickerStyles = StyleSheet.create({
   modal: {
@@ -17,8 +25,8 @@ export const dateRangePickerStyles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   heading: { flex: 1, minWidth: 0, gap: 3 },
-  title: { color: colors.ink, fontSize: type.section, lineHeight: 24, fontWeight: "900" },
-  subtitle: { color: colors.inkMuted, fontSize: 12 },
+  title: { color: colors.ink, ...typography.sectionTitle },
+  subtitle: { color: colors.inkMuted, ...typography.description },
   body: { minHeight: 0, paddingHorizontal: 0, paddingTop: spacing.sm },
   scroll: { flexGrow: 0, minHeight: 0 },
   scrollContent: { gap: spacing.md, paddingVertical: spacing.xs },
@@ -29,12 +37,12 @@ export const dateRangePickerStyles = StyleSheet.create({
     backgroundColor: colors.surfaceTint,
     gap: 3,
   },
-  selectedLabel: { color: colors.inkSubtle, fontSize: 12, fontWeight: "800" },
-  selectedText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
+  selectedLabel: { color: colors.inkSubtle, fontSize: type.micro, fontWeight: "600" },
+  selectedText: { color: colors.primary, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
   monthHeader: { alignItems: "center", justifyContent: "space-between" },
-  monthTitle: { color: colors.ink, fontSize: 13, fontWeight: "900" },
+  monthTitle: { color: colors.ink, fontSize: type.caption, lineHeight: 18, fontWeight: "600" },
   monthTitleButton: {
-    minHeight: 40,
+    minHeight: fieldHeight,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -43,11 +51,11 @@ export const dateRangePickerStyles = StyleSheet.create({
     borderRadius: radius.md,
   },
   monthButton: {
-    width: 40,
-    height: 40,
+    width: fieldHeight,
+    height: fieldHeight,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
   },
   yearGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
   yearCell: { width: "25%", height: 44, padding: 2 },
@@ -62,15 +70,15 @@ export const dateRangePickerStyles = StyleSheet.create({
     justifyContent: "center",
   },
   selectorOptionSelected: { backgroundColor: colors.primary },
-  selectorOptionText: { color: colors.ink, fontSize: 12, fontWeight: "700" },
-  selectorOptionTextSelected: { color: colors.white, fontWeight: "900" },
+  selectorOptionText: { color: colors.ink, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
+  selectorOptionTextSelected: { color: colors.white, fontWeight: "600" },
   weekdayRow: { flexDirection: "row", width: "100%" },
   weekday: {
     width: `${100 / 7}%`,
     color: colors.inkSubtle,
     textAlign: "center",
-    fontSize: 12,
-    fontWeight: "800",
+    fontSize: type.micro,
+    fontWeight: "600",
   },
   dayGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
   dayCell: {
@@ -88,8 +96,8 @@ export const dateRangePickerStyles = StyleSheet.create({
   },
   dayButtonInRange: { backgroundColor: colors.surfaceTint },
   dayButtonSelected: { backgroundColor: colors.primary },
-  dayText: { color: colors.ink, fontSize: 12, fontWeight: "700" },
-  dayTextSelected: { color: colors.white, fontWeight: "900" },
+  dayText: { color: colors.ink, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
+  dayTextSelected: { color: colors.white, fontWeight: "600" },
   footer: {
     width: "100%",
     alignItems: "stretch",
@@ -100,13 +108,13 @@ export const dateRangePickerStyles = StyleSheet.create({
   },
   applyButton: {
     width: "100%",
-    minHeight: 44,
+    minHeight: fieldHeight,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   applyButtonDisabled: { opacity: 0.5 },
-  applyText: { color: colors.white, fontSize: 12, fontWeight: "900" },
+  applyText: { color: colors.white, ...typography.button },
 });

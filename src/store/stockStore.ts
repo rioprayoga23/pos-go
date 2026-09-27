@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import type { Recipe, RecipeIngredient, RecipeKind, StockItem, StockMovement } from "../types/stock";
-import { canFulfillRecipes, defaultBaseRecipe, defaultBaseRecipeId, defaultRecipe, defaultRecipeId, getRequiredStock, initialRecipeItems } from "../utils/standardRecipe";
+import { canFulfillRecipes, defaultBaseRecipe, defaultRecipe, getRequiredStock, initialRecipeItems } from "../utils/standardRecipe";
 import { getLocalDateKey } from "../utils/date";
+import { demoStockMovements } from "../data/demoData";
 
 type CollectionUpdate<T> = T[] | ((current: T[]) => T[]);
 
@@ -46,7 +47,7 @@ function isValidRecipeDraft(
 
 export const useStockStore = create<StockState>((set, get) => ({
   items: initialRecipeItems,
-  movements: [],
+  movements: demoStockMovements,
   recipes: [defaultBaseRecipe, defaultRecipe],
   setItems: (update) =>
     set((state) => ({
@@ -84,8 +85,6 @@ export const useStockStore = create<StockState>((set, get) => ({
   deleteRecipe: (id) => {
     const recipes = get().recipes;
     if (
-      id === defaultRecipeId ||
-      id === defaultBaseRecipeId ||
       !recipes.some((recipe) => recipe.id === id) ||
       recipes.some((recipe) => recipe.ingredients.some((part) => part.type === "base" && part.recipeId === id))
     ) return false;

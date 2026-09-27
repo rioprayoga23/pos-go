@@ -21,26 +21,44 @@ export function AppShell({
   scrollable = true,
 }: {
   active: RouteName;
-  children: ReactNode;
+  children: ReactNode | ((requestCashAction: () => void) => ReactNode);
   scrollRef?: RefObject<ScrollView | null>;
   scrollable?: boolean;
 }) {
   const orders = useTransactionStore((state) => state.orders);
-  const queueCount = orders.filter((order) => order.status !== "completed").length;
-  const cashRegisterOpen = useTransactionStore((state) => state.isCashRegisterOpen());
-  const cashRegisterClosedToday = useTransactionStore((state) => state.isCashRegisterClosedToday());
-  const openCashRegister = useTransactionStore((state) => state.openCashRegister);
+  const queueCount = orders.filter(
+    (order) => order.status !== "completed",
+  ).length;
+  const cashRegisterOpen = useTransactionStore((state) =>
+    state.isCashRegisterOpen(),
+  );
+  const cashRegisterClosedToday = useTransactionStore((state) =>
+    state.isCashRegisterClosedToday(),
+  );
+  const openCashRegister = useTransactionStore(
+    (state) => state.openCashRegister,
+  );
   const closeShift = useTransactionStore((state) => state.closeShift);
   const [showOpenCashDialog, setShowOpenCashDialog] = useState(false);
   const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false);
+  const handleCashAction = () => {
+    if (cashRegisterOpen) setShowCloseShiftDialog(true);
+    else if (!cashRegisterClosedToday) setShowOpenCashDialog(true);
+  };
+  const content =
+    typeof children === "function" ? children(handleCashAction) : children;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const sidebarWidth = width < 1280 ? 96 : 128;
   const activeNav = active === "Payment" ? "Order" : active;
   const isMedium = width >= 768;
   const isLarge = width >= 1024;
   const blueStatus =
-    active === "Order" || active === "Products" || active === "Stock" || active === "Cash";
+    active === "Order" ||
+    active === "Products" ||
+    active === "Stock" ||
+    active === "Cash";
 
   const contentStyle = [
     styles.content,
@@ -86,15 +104,13 @@ export function AppShell({
           isMobile={isMobile}
           cashRegisterOpen={cashRegisterOpen}
           cashRegisterClosedToday={cashRegisterClosedToday}
-          onRequestCashAction={() => {
-            if (cashRegisterOpen) setShowCloseShiftDialog(true);
-            else if (!cashRegisterClosedToday) setShowOpenCashDialog(true);
-          }}
+          onLogout={() => router.replace("/login")}
+          onRequestCashAction={handleCashAction}
         />
       </HStack>
       <HStack style={styles.body}>
         {!isMobile ? (
-          <VStack style={[styles.sidebar, { width: 128 }]}>
+          <VStack style={[styles.sidebar, { width: sidebarWidth }]}>
             <VStack style={styles.sideNav}>
               {primaryNavigationItems.map((item) => {
                 const isActive = item.route === activeNav;
@@ -110,11 +126,13 @@ export function AppShell({
                       <AppIcon
                         name={item.icon}
                         size={21}
-                        color={isActive ? colors.white : colors.inkMuted}
+                        color={isActive ? colors.primaryDark : colors.inkMuted}
                       />
                       {item.route === "Queue" && queueCount > 0 ? (
                         <View style={styles.queueBadge}>
-                          <Text style={styles.queueBadgeText}>{queueCount > 99 ? "99+" : queueCount}</Text>
+                          <Text style={styles.queueBadgeText}>
+                            {queueCount > 99 ? "99+" : queueCount}
+                          </Text>
                         </View>
                       ) : null}
                     </View>
@@ -133,11 +151,10 @@ export function AppShell({
             <HStack
               style={[styles.onlinePill, blueStatus && styles.onlinePillBlue]}
             >
-              <View style={[styles.greenDot, blueStatus && styles.blueDot]} />
               <Text
                 style={[styles.onlineText, blueStatus && styles.onlineTextBlue]}
               >
-                Mode lokal
+                V 1.0.0
               </Text>
             </HStack>
           </VStack>
@@ -149,10 +166,10 @@ export function AppShell({
             contentContainerStyle={contentStyle}
             showsVerticalScrollIndicator={false}
           >
-            {children}
+            {content}
           </ScrollView>
         ) : (
-          <View style={contentStyle}>{children}</View>
+          <View style={contentStyle}>{content}</View>
         )}
       </HStack>
       {isMobile ? (

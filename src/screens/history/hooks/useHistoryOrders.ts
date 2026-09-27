@@ -7,7 +7,7 @@ import type { DateRange, PaymentFilter } from "../types";
 export function useHistoryOrders() {
   const orders = useTransactionStore((state) => state.orders);
   const [query, setQuery] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("Semua Bayar");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("Semua metode");
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
   const latestOrderDate = useMemo(() => {
     let latestDate = "";
@@ -40,7 +40,7 @@ export function useHistoryOrders() {
 
         const transaction = getHistoryTransactionDisplay(order);
         if (
-          paymentFilter !== "Semua Bayar" &&
+          paymentFilter !== "Semua metode" &&
           transaction.paymentMethod !== paymentFilter
         ) {
           continue;

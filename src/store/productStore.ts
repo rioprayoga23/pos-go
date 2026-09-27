@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { Category, Product } from '../types/pos';
+import type { Category, Product } from '../types/pos';
 import type { Recipe, StockItem } from '../types/stock';
-import { defaultBaseRecipe, defaultRecipe, defaultRecipeId, getAvailablePortions, initialRecipeItems } from '../utils/standardRecipe';
+import { demoCategories, demoProduct } from '../data/demoData';
+import { getAvailablePortions } from '../utils/standardRecipe';
 import { useCartStore } from './cartStore';
 import { useStockStore } from './stockStore';
 
@@ -21,28 +22,9 @@ const availableFor = (product: Pick<Product, 'recipeId'>, items: StockItem[], re
   getAvailablePortions(items, recipes.find((recipe) => recipe.id === product.recipeId), recipes);
 let nextProductId = 0;
 
-const sampleProduct: Product = {
-  id: 'p-1001',
-  name: 'Matcha Latte',
-  recipeId: defaultRecipeId,
-  categoryId: 'minuman',
-  categoryName: 'Minuman',
-  price: 22000,
-  stock: getAvailablePortions(initialRecipeItems, defaultRecipe, [defaultBaseRecipe, defaultRecipe]),
-  description: 'Matcha Latte botol',
-  isAvailable: true,
-  accent: '#238B62',
-  icon: 'cup-outline',
-};
-
-const initialCategories: Category[] = [
-  { id: 'all', name: 'Semua', count: 1, tint: '#2563EB' },
-  { id: 'minuman', name: 'Minuman', count: 1, tint: '#238B62' },
-];
-
 export const useProductStore = create<ProductState>((set, get) => ({
-  products: [sampleProduct],
-  categories: initialCategories,
+  products: [demoProduct],
+  categories: demoCategories,
   addProduct: (product) => set((state) => {
     const inventory = useStockStore.getState();
     const products = [...state.products, {
@@ -72,7 +54,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
   addCategory: (category) => set((state) => ({ categories: [...state.categories, { ...category, id: `category-${Date.now()}`, count: 0 }] })),
   deleteRecipe: (id) => {
-    if (id === defaultRecipeId || get().products.some((product) => product.recipeId === id)) return false;
+    if (get().products.some((product) => product.recipeId === id)) return false;
     return useStockStore.getState().deleteRecipe(id);
   },
   syncInventory: (items, recipes) => {

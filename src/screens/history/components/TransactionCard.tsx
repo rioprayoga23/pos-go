@@ -27,8 +27,17 @@ export const TransactionCard = memo(function TransactionCard({
   return (
     <VStack style={styles.transactionCard}>
       <HStack style={styles.transactionTop}>
-        <Text style={[styles.transactionNumber, compact && styles.transactionNumberMobile, tablet && styles.transactionNumberTablet]}>{orderNumber}</Text>
-        <Text style={[styles.transactionTime, compact && styles.readableTextAdaptive]}>{time} WIB</Text>
+        <HStack style={styles.transactionMeta}>
+          <Text style={styles.transactionNumber}>{orderNumber}</Text>
+          <Text
+            style={[
+              styles.transactionTime,
+              compact && styles.readableTextAdaptive,
+            ]}
+          >
+            {time} WIB
+          </Text>
+        </HStack>
         <HStack style={styles.transactionTopActions}>
           <StatusBadge status={order.status} />
           <Pressable
@@ -49,16 +58,29 @@ export const TransactionCard = memo(function TransactionCard({
       </HStack>
       <HStack style={styles.transactionMiddle}>
         <HStack style={styles.cupIcon}>
-          <AppIcon name="cup-outline" size={18} color={colors.primary} />
+          <AppIcon name="cup-outline" size={17} color={colors.primary} />
         </HStack>
         <VStack style={styles.transactionDetails}>
-          <Text style={[styles.cupTitle, compact && styles.cupTitleAdaptive]}>{`Pesanan (${cups} Cup)`}</Text>
-          <Text style={[styles.transactionCustomer, compact && styles.readableTextAdaptive]} numberOfLines={1}>
+          <Text style={[styles.cupTitle, compact && styles.cupTitleAdaptive]} numberOfLines={1}>
+            {`Pesanan (${cups} Cup)`}
+          </Text>
+          <Text
+            style={[
+              styles.transactionCustomer,
+              compact && styles.readableTextAdaptive,
+            ]}
+            numberOfLines={1}
+          >
             {details}
           </Text>
         </VStack>
         <VStack style={styles.transactionRight}>
-          <Text style={[styles.transactionAmount, tablet && styles.transactionAmountTablet]}>{formatCurrency(amount)}</Text>
+          <Text
+            style={[styles.transactionAmount, tablet && styles.transactionAmountTablet]}
+            numberOfLines={1}
+          >
+            {formatCurrency(amount)}
+          </Text>
           <HStack
             style={[
               styles.methodPill,

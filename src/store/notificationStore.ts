@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { demoNotifications } from '../data/demoData';
 
 export type PosNotification = {
   id: string;
@@ -16,7 +17,7 @@ type NotificationState = {
 };
 
 export const useNotificationStore = create<NotificationState>((set) => ({
-  notifications: [],
+  notifications: demoNotifications,
   markAsRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((notification) =>

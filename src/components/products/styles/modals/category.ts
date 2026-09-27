@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius, spacing } from "../../../../theme";
+import { colors, elevation, radius, spacing, type, typography } from "../../../../theme";
 
 export const categoryModalStyles = StyleSheet.create({
   categoryModal: {
@@ -26,8 +26,8 @@ export const categoryModalStyles = StyleSheet.create({
     justifyContent: "center",
   },
   modalCategoryIconCompact: { width: 32, height: 32 },
-  modalTitle: { color: colors.ink, fontSize: 18, fontWeight: "900" },
-  modalTitleCompact: { fontSize: 16, lineHeight: 20 },
+  modalTitle: { color: colors.ink, ...typography.sectionTitle },
+  modalTitleCompact: { fontSize: type.section, lineHeight: 25 },
   categoryModalActions: {
     width: "100%",
     alignItems: "stretch",
@@ -39,7 +39,7 @@ export const categoryModalStyles = StyleSheet.create({
   categorySaveButton: {
     width: "100%",
     minHeight: 52,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",

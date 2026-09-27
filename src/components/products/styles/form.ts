@@ -1,22 +1,21 @@
 import { StyleSheet } from "react-native";
-import { colors, spacing } from "../../../theme";
+import { colors, spacing, type, typography } from "../../../theme";
 
 export const productFormStyles = StyleSheet.create({
-  formGap: { gap: spacing.lg },
+  formGap: { gap: spacing.md },
   fieldLabel: {
     color: colors.ink,
-    fontSize: 12,
-    fontWeight: "900",
-    marginBottom: 7,
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
-  fieldLabelMobile: { fontSize: 12 },
-  fieldLabelTablet: { fontSize: 13 },
+  fieldLabelMobile: { fontSize: type.label },
+  fieldLabelTablet: { fontSize: type.label },
   required: { color: colors.danger },
-  description: { color: colors.inkMuted, fontSize: 12, lineHeight: 15 },
-  descriptionMobile: { fontSize: 12, lineHeight: 16 },
-  descriptionTablet: { fontSize: 12, lineHeight: 17 },
-  publishTextMobile: { fontSize: 12 },
-  publishTextTablet: { fontSize: 13 },
-  errorText: { color: colors.danger, fontSize: 12, fontWeight: "800" },
-  publishText: { color: colors.white, fontSize: 12, fontWeight: "900" },
+  description: { color: colors.inkMuted, ...typography.description },
+  descriptionMobile: { lineHeight: 21 },
+  descriptionTablet: { lineHeight: 21 },
+  publishTextMobile: { fontSize: type.button },
+  publishTextTablet: { fontSize: type.button },
+  errorText: { color: colors.danger, ...typography.helper, fontWeight: "600" },
+  publishText: { color: colors.white, ...typography.button },
 });

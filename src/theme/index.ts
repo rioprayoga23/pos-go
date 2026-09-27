@@ -20,7 +20,7 @@ export const posGluestackConfig = {
     fonts: {
       ...gluestackBaseConfig.tokens.fonts,
       body: 'Inter_400Regular',
-      heading: 'PlusJakartaSans_700Bold',
+      heading: 'Inter_600SemiBold',
     },
   },
 };

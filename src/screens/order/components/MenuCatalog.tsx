@@ -130,7 +130,7 @@ export const MenuCatalog = memo(function MenuCatalog({
             <InputField
               value={query}
               onChangeText={onQueryChange}
-              placeholder="Cari nama minuman"
+              placeholder="Cari menu"
               placeholderTextColor={colors.inkSubtle}
               style={styles.inputText}
               accessibilityLabel="Cari menu"
@@ -146,14 +146,14 @@ export const MenuCatalog = memo(function MenuCatalog({
                   color={colors.inkSubtle}
                 />
               </Pressable>
-            ) : (
+            ) : !mobile ? (
               <AppIcon name="barcode-scan" size={19} color={colors.inkMuted} />
-            )}
+            ) : null}
           </Input>
-          <Pressable style={styles.bestSeller}>
-            <AppIcon name="star" size={17} color={colors.primary} />
+          <HStack style={styles.bestSeller}>
+            <AppIcon name="star" size={17} color={colors.warning} />
             <Text style={styles.bestSellerText}>Best Seller</Text>
-          </Pressable>
+          </HStack>
         </HStack>
       </VStack>
       {wide ? (

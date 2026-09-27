@@ -11,7 +11,14 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors, elevation, radius, spacing, type } from "../../theme";
+import {
+  colors,
+  elevation,
+  radius,
+  spacing,
+  type,
+  typography,
+} from "../../theme";
 import { OrderStatus } from "../../types/pos";
 import { AppIcon, IconName } from "./interactive";
 
@@ -73,8 +80,8 @@ const statusMeta: Record<
   },
   completed: {
     label: "Selesai",
-    background: "#EEF1F5",
-    text: colors.inkMuted,
+    background: colors.successSoft,
+    text: colors.success,
     icon: "check-all",
   },
 };
@@ -163,40 +170,39 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: type.section,
-    lineHeight: 24,
     color: colors.ink,
-    fontWeight: "800",
+    ...typography.sectionTitle,
   },
   sectionDescription: {
-    fontSize: type.bodySmall,
-    lineHeight: 18,
     color: colors.inkMuted,
+    ...typography.description,
   },
   badge: {
+    minHeight: 34,
     alignItems: "center",
+    justifyContent: "center",
     alignSelf: "flex-start",
     gap: 5,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
   },
-  badgeText: { fontSize: 12, fontWeight: "800" },
+  badgeText: { ...typography.compactButton },
   metricCard: { flex: 1, minWidth: 170, gap: spacing.sm },
   metricTop: { alignItems: "center", justifyContent: "space-between" },
   iconBubble: {
     width: 38,
     height: 38,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  metricHelper: { fontSize: 12, fontWeight: "700", color: colors.success },
+  metricHelper: { ...typography.compactButton, color: colors.success },
   metricValue: {
     color: colors.ink,
     fontSize: type.numeric,
     lineHeight: 30,
-    fontWeight: "800",
+    fontWeight: "600",
     marginTop: spacing.sm,
   },
   metricLabel: {
@@ -229,16 +235,14 @@ const styles = StyleSheet.create({
   emptyIconCompact: { width: 44, height: 44 },
   emptyTitle: {
     color: colors.ink,
-    fontSize: 17,
-    fontWeight: "800",
+    ...typography.sectionTitle,
     textAlign: "center",
   },
-  emptyTitleCompact: { fontSize: 14, lineHeight: 18 },
+  emptyTitleCompact: { fontSize: type.bodySmall, lineHeight: 21 },
   emptyDescription: {
     maxWidth: 360,
     color: colors.inkMuted,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.description,
     textAlign: "center",
   },
   divider: { height: 1, backgroundColor: colors.line },

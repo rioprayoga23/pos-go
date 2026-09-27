@@ -38,6 +38,8 @@ export function CashPanel({
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
   const compactWideGrid = width >= 1024;
+  const isStacked = width < 1024;
+  const stackTenderFields = width < 420;
   const hasCash = cash.length > 0;
   const isPaid = hasCash && received >= subtotal;
 
@@ -48,13 +50,35 @@ export function CashPanel({
   };
 
   return (
-    <Panel style={styles.cashPanel} padding={spacing.md}>
-      <VStack style={styles.cashContent}>
+    <Panel style={[styles.cashPanel, isStacked && styles.cashPanelStacked]} padding={spacing.md}>
+      <VStack style={[styles.cashContent, isStacked && styles.cashContentStacked]}>
         <VStack style={styles.tenderSection}>
           <HStack style={styles.tenderHeading}>
             <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>PEMBAYARAN TUNAI</Text>
           </HStack>
           <View style={[styles.quickGrid, compactWideGrid && styles.quickGridCompact]}>
+            <Pressable
+              onPress={() => setCash(String(subtotal))}
+              hitSlop={3}
+              style={[
+                styles.quickButton,
+                compactWideGrid && styles.quickButtonCompact,
+                hasCash && received === subtotal && styles.quickButtonActive,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Uang pas ${formatCurrency(subtotal)}`}
+              accessibilityState={{ selected: hasCash && received === subtotal }}
+            >
+              <Text
+                style={[
+                  styles.quickButtonText,
+                  isTablet && styles.quickButtonTextTablet,
+                  hasCash && received === subtotal && styles.quickButtonTextActive,
+                ]}
+              >
+                PAS
+              </Text>
+            </Pressable>
             {quickTenderAmounts.map((amount) => (
               <Pressable
                 key={amount}
@@ -75,7 +99,7 @@ export function CashPanel({
               </Pressable>
             ))}
           </View>
-          <HStack style={styles.tenderAmounts}>
+          <HStack style={[styles.tenderAmounts, stackTenderFields && styles.tenderAmountsStacked]}>
             <VStack style={styles.amountBox}>
               <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>UANG DITERIMA</Text>
               <AppInput
@@ -83,7 +107,7 @@ export function CashPanel({
                 onChangeText={setCash}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor={colors.success}
+                placeholderTextColor={colors.inkSubtle}
                 accessibilityLabel="Uang diterima dari pelanggan"
                 leading={<Text style={styles.moneyPrefix}>Rp</Text>}
                 style={styles.tenderInput}
@@ -100,11 +124,11 @@ export function CashPanel({
             </VStack>
           </HStack>
         </VStack>
-        <VStack style={[styles.keypadGrid, isMobile && styles.keypadGridMobile]}>
+        <VStack style={[styles.keypadGrid, isStacked && styles.keypadGridStacked]}>
           {keypadRows.map((row, rowIndex) => (
             <View
               key={`keypad-row-${rowIndex}`}
-              style={[styles.keypadRow, isMobile && styles.keypadRowMobile]}
+              style={[styles.keypadRow, isStacked && styles.keypadRowStacked, isMobile && styles.keypadRowMobile]}
             >
               {row.map((key, cellIndex) => key === null ? (
                 <View key={`empty-${cellIndex}`} style={styles.keypadCell} />

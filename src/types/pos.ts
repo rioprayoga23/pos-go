@@ -31,13 +31,18 @@ export type CartItem = {
   quantity: number;
 };
 
+export type OrderItem = CartItem & {
+  /** HPP per porsi captured at checkout so historical margins stay accurate. */
+  hppPerPortion?: number | null;
+};
+
 export type Order = {
   id: string;
   number: string;
   createdAt: string;
   createdOn?: string;
   customer: string;
-  items: CartItem[];
+  items: OrderItem[];
   preparedItemIds?: string[];
   status: OrderStatus;
   paymentMethod: PaymentMethod;

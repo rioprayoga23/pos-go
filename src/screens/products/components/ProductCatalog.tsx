@@ -45,11 +45,13 @@ export function ProductCatalog({
       >
         <HStack style={styles.listHeader}>
           <HStack style={{ alignItems: "center", gap: 8 }}>
-            <AppIcon
-              name="format-list-bulleted"
-              size={21}
-              color={colors.primary}
-            />
+            <HStack style={styles.listTitleIcon}>
+              <AppIcon
+                name="format-list-bulleted"
+                size={21}
+                color={colors.primary}
+              />
+            </HStack>
             <Text style={styles.sectionTitle}>Daftar Menu</Text>
           </HStack>
           <Text style={[styles.menuCount, (isMobile || isTablet) && styles.menuCountAdaptive, isTablet && styles.menuCountTablet]}>
@@ -60,8 +62,8 @@ export function ProductCatalog({
           variant="search"
           value={model.query}
           onChangeText={model.setQuery}
-          placeholder="Cari nama minuman ..."
-          accessibilityLabel="Cari nama minuman "
+          placeholder="Cari menu"
+          accessibilityLabel="Cari menu"
           leading={<AppIcon name="magnify" size={18} color={colors.inkMuted} />}
           style={styles.listSearch}
           inputStyle={[styles.inputText, isMobile && styles.inputTextMobile, isTablet && styles.inputTextTablet]}

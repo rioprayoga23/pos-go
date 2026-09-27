@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import { CartItem, Order, OrderStatus, OrderType, PaymentMethod } from '../types/pos';
+import { CartItem, Order, OrderItem, OrderStatus, OrderType, PaymentMethod } from '../types/pos';
 import { getCartTotals } from './cartStore';
 import { useNotificationStore } from './notificationStore';
 import { useProductStore } from './productStore';
 import { useStockStore } from './stockStore';
 import { getLocalDateKey } from '../utils/date';
 import { getNextOrderNumber } from '../utils/orderNumber';
+import { getRecipeHpp } from '../utils/standardRecipe';
+import { demoOrder } from '../data/demoData';
 
 type TransactionState = {
   orders: Order[];
@@ -39,7 +41,7 @@ type TransactionState = {
 const nextStatus: Record<OrderStatus, OrderStatus> = { waiting: 'preparing', preparing: 'ready', ready: 'completed', completed: 'completed' };
 
 export const useTransactionStore = create<TransactionState>((set, get) => ({
-  orders: [],
+  orders: [demoOrder],
   openingCash: null,
   openingCashDefault: 100_000,
   cashRegisterOpenedOn: null,
@@ -93,7 +95,16 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       quantity: item.quantity,
     }));
     const number = getNextOrderNumber(get().orders);
-    if (!useStockStore.getState().consumeForOrder(
+    const stockState = useStockStore.getState();
+    const orderItems: OrderItem[] = currentItems.map((item) => ({
+      ...item,
+      hppPerPortion: getRecipeHpp(
+        stockState.items,
+        stockState.recipes.find((recipe) => recipe.id === item.product.recipeId),
+        stockState.recipes,
+      ),
+    }));
+    if (!stockState.consumeForOrder(
       currentItems.map((item) => ({ recipeId: item.product.recipeId, quantity: item.quantity })), number,
     )) return null;
     const order: Order = {
@@ -102,7 +113,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       createdOn: getLocalDateKey(),
       customer: customer || 'Pelanggan umum',
-      items: currentItems,
+      items: orderItems,
       preparedItemIds: [],
       status: 'waiting',
       paymentMethod,

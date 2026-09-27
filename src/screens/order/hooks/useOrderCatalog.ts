@@ -24,7 +24,9 @@ export function useOrderCatalog() {
     [products, query, selectedCategory],
   );
   const mobile = width < 768;
-  const columns = mobile ? 2 : 3;
+  const columns = catalogWidth > 0
+    ? catalogWidth >= 600 ? 3 : 2
+    : width >= 1280 ? 3 : 2;
   const cardWidth = catalogWidth > 0
     ? Math.max(0, (catalogWidth - spacing.md * (columns - 1)) / columns)
     : undefined;

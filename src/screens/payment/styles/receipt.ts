@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius } from "../../../theme";
+import { colors, elevation, radius, type, typography } from "../../../theme";
 
 export const receiptStyles = StyleSheet.create({
   receiptStage: {
@@ -21,16 +21,16 @@ export const receiptStyles = StyleSheet.create({
   receiptScroll: { flex: 1, minHeight: 0, width: "100%" },
   receiptScrollContent: { flexGrow: 1, alignItems: "center", paddingBottom: 1 },
   receiptStageTitle: {
-    color: "#475569",
-    fontSize: 12,
-    fontWeight: "900",
+    color: colors.inkMuted,
+    fontSize: type.micro,
+    fontWeight: "700",
     letterSpacing: 0.7,
   },
-  readyPrint: { color: colors.inkMuted, fontSize: 12, fontWeight: "800" },
+  readyPrint: { color: colors.inkMuted, fontSize: type.micro, fontWeight: "600" },
   finalButton: {
     minHeight: 64,
     paddingHorizontal: 14,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "space-between",
@@ -46,6 +46,6 @@ export const receiptStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  finalButtonText: { color: colors.white, fontSize: 13, fontWeight: "900" },
-  finalButtonHint: { color: "#DBEAFE", fontSize: 12 },
+  finalButtonText: { color: colors.white, ...typography.button },
+  finalButtonHint: { color: colors.primarySoft, ...typography.helper },
 });

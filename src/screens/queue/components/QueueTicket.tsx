@@ -24,7 +24,7 @@ export const QueueTicket = memo(function QueueTicket({ order, isMobile, isTablet
   const totalCups = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <Panel style={[styles.ticket, order.status === 'preparing' && styles.preparingTicket, order.status === 'ready' && styles.readyTicket, completed && styles.completedTicket]} padding={14}>
+    <Panel style={[styles.ticket, order.status === 'waiting' && styles.waitingTicket, order.status === 'preparing' && styles.preparingTicket, order.status === 'ready' && styles.readyTicket, completed && styles.completedTicket]} padding={14}>
       <HStack style={styles.ticketTop}>
         <VStack style={{ gap: 3 }}>
           <Text style={[styles.ticketNumber, isMobile && styles.ticketNumberMobile, isTablet && styles.ticketNumberTablet, order.status === 'preparing' && { color: colors.primary }, order.status === 'ready' && { color: colors.success }, completed && styles.completedText]}>{order.number}</Text>
@@ -59,8 +59,8 @@ export const QueueTicket = memo(function QueueTicket({ order, isMobile, isTablet
       })}</VStack>
       {order.status === 'preparing' ? <VStack style={styles.progressTrack}><VStack style={[styles.progressFill, { width: `${totalMenus ? (preparedCount / totalMenus) * 100 : 0}%` }]} /></VStack> : null}
       <Button onPress={() => onAdvance(order.id)} isDisabled={actionDisabled} style={[styles.ticketButton, { backgroundColor: action.color }, actionDisabled && styles.disabledButton]}>
-        <ButtonText style={[styles.ticketButtonText, (isMobile || isTablet) && styles.ticketButtonTextAdaptive]}>{action.label}</ButtonText>
-        <AppIcon name={action.icon} size={15} color={colors.white} />
+        <ButtonText style={[styles.ticketButtonText, (isMobile || isTablet) && styles.ticketButtonTextAdaptive, actionDisabled && styles.disabledButtonText]}>{action.label}</ButtonText>
+        <AppIcon name={action.icon} size={15} color={actionDisabled ? colors.ink : colors.white} />
       </Button>
     </Panel>
   );

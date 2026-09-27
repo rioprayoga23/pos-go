@@ -1,6 +1,8 @@
 import { GluestackUIProvider } from '@gluestack-ui/themed';
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
-import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
+import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { posGluestackConfig, colors } from '../theme';
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, PlusJakartaSans_700Bold });
+  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
 
   if (!fontsLoaded) return null;
 
@@ -24,6 +26,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
           <Stack.Screen name="order" />
           <Stack.Screen name="payment" />
           <Stack.Screen name="queue" />

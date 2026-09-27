@@ -1,12 +1,7 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import {
-  ActionPill,
-  AppIcon,
-  AppPressable as Pressable,
-  type IconName,
-} from "../../../components/ui";
+import { DropdownSelect } from "../../../components/dropdown-select";
+import { ActionPill } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
-import { colors } from "../../../theme";
 import { Category } from "../../../types/pos";
 import { styles } from "../styles";
 
@@ -20,6 +15,14 @@ type Props = {
 };
 
 export function CategoryField({ categories, selectedId, isMobile, isTablet, onSelect, onAdd }: Props) {
+  const options = categories
+    .filter((category) => category.id !== "all")
+    .map((category) => ({
+      value: category.id,
+      label: category.name,
+      accessibilityLabel: `Pilih kategori ${category.name}`,
+    }));
+
   return (
     <VStack style={styles.categoryGroup}>
       <HStack style={styles.labelRow}>
@@ -33,43 +36,13 @@ export function CategoryField({ categories, selectedId, isMobile, isTablet, onSe
           accessibilityLabel="Tambah kategori baru"
         />
       </HStack>
-      <HStack style={styles.categoryRow}>
-        {categories
-          .filter((category) => category.id !== "all")
-          .map((category) => (
-            <Pressable
-              key={category.id}
-              onPress={() => onSelect(category.id)}
-              style={[
-                styles.formCategory,
-                selectedId === category.id && styles.formCategoryActive,
-              ]}
-            >
-              <AppIcon
-                name={getCategoryIcon(category.id)}
-                size={17}
-                color={selectedId === category.id ? colors.white : colors.inkMuted}
-              />
-              <Text
-                style={[
-                  styles.formCategoryText,
-                  isMobile && styles.formCategoryTextMobile,
-                  isTablet && styles.formCategoryTextTablet,
-                  selectedId === category.id && styles.formCategoryTextActive,
-                ]}
-              >
-                {category.name}
-              </Text>
-            </Pressable>
-          ))}
-      </HStack>
+      <DropdownSelect
+        options={options}
+        value={selectedId}
+        onChange={onSelect}
+        placeholder="Pilih kategori"
+        accessibilityLabel="Pilih kategori menu"
+      />
     </VStack>
   );
-}
-
-function getCategoryIcon(categoryId: string): IconName {
-  if (categoryId === "boba") return "chart-bubble";
-  if (categoryId === "coffee") return "coffee";
-  if (categoryId === "tea") return "tea-outline";
-  return "ice-cream";
 }

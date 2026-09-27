@@ -3,17 +3,21 @@ import {
   Text,
   VStack,
 } from "@gluestack-ui/themed";
-import { useWindowDimensions } from "react-native";
 import {
   AppIcon,
   AppInput,
   AppPressable,
   EmptyState,
-  Panel,
 } from "../../../components/ui";
-import { DataTable, type DataTableColumn } from "../../../components/data-table";
+import {
+  DataTable,
+  DataTableFilterBar,
+  DataTableFilterGrid,
+  DataTableSection,
+  type DataTableColumn,
+} from "../../../components/data-table";
 import { DateRangeButton } from "../../../components/date-period-filter";
-import { SegmentedFilterGroup } from "../../../components/segmented-filter";
+import { DropdownFilter } from "../../../components/dropdown-filter";
 import { colors, spacing } from "../../../theme";
 import type { CashTransaction } from "../../../types/cash";
 import type { DatePeriod, DateRange } from "../../../types/dateRange";
@@ -171,9 +175,6 @@ export function CashLedgerPanel({
   onOpenTransaction: (transaction: CashTransaction) => void;
   onOpenDatePicker: () => void;
 }) {
-  const { width } = useWindowDimensions();
-  const isCompact = width < 980;
-  const isPhone = width < 620;
   const columns = createCashColumns(onOpenTransaction);
   const stockCount = rangedTransactions.filter(
     (transaction) => transaction.categoryKind === "stock_purchase",
@@ -186,70 +187,43 @@ export function CashLedgerPanel({
         : option.key === "stock_purchase"
           ? stockCount
           : operationalCount;
-    return {
-      ...option,
-      label: isCompact ? option.label : option.label + " (" + count + ")",
-    };
+    return { ...option, count };
   });
-
   return (
-    <Panel style={styles.ledgerPanel} padding={0}>
+    <DataTableSection
+      title="Riwayat Transaksi"
+      description="Pengeluaran stok dan operasional yang tercatat pada outlet."
+    >
       <VStack>
-        <VStack style={styles.ledgerHeader}>
-          <VStack style={styles.ledgerHeading}>
-            <Text style={styles.ledgerTitle}>Riwayat Transaksi</Text>
-            <Text style={styles.ledgerDescription}>
-              Pengeluaran stok dan operasional yang tercatat pada outlet.
-            </Text>
-          </VStack>
-          <HStack
-            style={[styles.ledgerToolbar, isCompact && styles.ledgerToolbarCompact]}
-          >
-            <HStack
-              style={[
-                styles.ledgerSearchDateGroup,
-                isCompact && styles.ledgerSearchDateGroupCompact,
-              ]}
-            >
-              <AppInput
-                value={query}
-                onChangeText={onQueryChange}
-                placeholder="Cari transaksi, keterangan, atau sumber dana..."
-                variant="search"
-                style={[
-                  styles.searchInput,
-                  isCompact && styles.searchInputCompact,
-                  isPhone && styles.searchInputPhone,
-                ]}
-                inputStyle={styles.searchText}
-                leading={
-                  <AppIcon name="magnify" size={16} color={colors.inkSubtle} />
-                }
-                accessibilityLabel="Cari transaksi kas"
-              />
-              <DateRangeButton
-                dateRange={dateRange}
-                onPress={onOpenDatePicker}
-                selected={period === "custom"}
-              />
-            </HStack>
-            <HStack
-              style={[
-                styles.ledgerFilterSlot,
-                isCompact && !isPhone && styles.ledgerFilterSlotCompact,
-              ]}
-            >
-              <SegmentedFilterGroup
-                options={filters}
-                value={filter}
-                onChange={onFilterChange}
-                accessibilityLabel="Filter transaksi"
-                fullWidth={isPhone}
-              />
-            </HStack>
-          </HStack>
-        </VStack>
-
+        <DataTableFilterBar>
+          <DataTableFilterGrid>
+            <AppInput
+              value={query}
+              onChangeText={onQueryChange}
+              placeholder="Cari transaksi"
+              variant="search"
+              style={styles.searchInputFilter}
+              inputStyle={styles.searchText}
+              leading={
+                <AppIcon name="magnify" size={16} color={colors.inkSubtle} />
+              }
+              accessibilityLabel="Cari transaksi kas"
+            />
+            <DateRangeButton
+              dateRange={dateRange}
+              onPress={onOpenDatePicker}
+              selected={period === "custom"}
+              fullWidth
+            />
+            <DropdownFilter
+              options={filters}
+              value={filter}
+              onChange={onFilterChange}
+              accessibilityLabel="Filter transaksi"
+              fullWidth
+            />
+          </DataTableFilterGrid>
+        </DataTableFilterBar>
         <DataTable
           rows={transactions}
           columns={columns}
@@ -274,8 +248,7 @@ export function CashLedgerPanel({
             />
           }
         />
-
       </VStack>
-    </Panel>
+    </DataTableSection>
   );
 }

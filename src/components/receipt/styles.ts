@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius, spacing } from "../../theme";
+import { colors, elevation, radius, spacing, typography } from "../../theme";
 
 export const receiptPaperStyles = StyleSheet.create({
   receiptPaper: {
@@ -7,8 +7,8 @@ export const receiptPaperStyles = StyleSheet.create({
     maxWidth: 390,
     backgroundColor: colors.white,
     padding: 17,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
     gap: 9,
     ...elevation.panel,
   },
@@ -26,20 +26,20 @@ export const receiptPaperStyles = StyleSheet.create({
   receiptBrandName: {
     color: colors.ink,
     fontSize: 15,
-    fontWeight: "900",
+    fontWeight: "700",
     letterSpacing: 1,
   },
   receiptSmall: { color: colors.ink, fontSize: 9, lineHeight: 13 },
   receiptTiny: { color: colors.ink, fontSize: 8, lineHeight: 12 },
   receiptMeta: { justifyContent: "space-between" },
   receiptMetaRight: { alignItems: "flex-end" },
-  receiptBold: { color: colors.ink, fontSize: 9, fontWeight: "900" },
+  receiptBold: { color: colors.ink, fontSize: 9, fontWeight: "700" },
   queueReceipt: { alignItems: "center", gap: 4, paddingVertical: 5 },
   queueNumber: {
     color: colors.ink,
     fontSize: 36,
     lineHeight: 38,
-    fontWeight: "900",
+    fontWeight: "700",
   },
   receiptItems: { gap: 7 },
   receiptTotals: { gap: 5 },
@@ -52,7 +52,7 @@ export const receiptPaperStyles = StyleSheet.create({
     flex: 1,
     color: colors.ink,
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "600",
   },
   receiptFooter: { alignItems: "center", gap: 4 },
 });
@@ -80,8 +80,7 @@ export const receiptModalStyles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     color: colors.ink,
-    fontSize: 16,
-    fontWeight: "900",
+    ...typography.sectionTitle,
   },
   receiptModalBody: {
     flex: 1,
@@ -108,17 +107,17 @@ export const receiptModalStyles = StyleSheet.create({
     width: "100%",
     minHeight: 48,
     paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
   },
-  receiptPrintButtonText: { color: colors.white, fontSize: 12, fontWeight: "900" },
+  receiptPrintButtonText: { color: colors.white, ...typography.button },
   receiptPrintError: {
     color: colors.danger,
-    fontSize: 11,
+    ...typography.helper,
     textAlign: "center",
     paddingTop: spacing.xs,
   },

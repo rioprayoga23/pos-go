@@ -1,5 +1,5 @@
-import { OrderScreen } from '../screens/order';
+import { LoginScreen } from '../screens/login';
 
 export default function IndexRoute() {
-  return <OrderScreen />;
+  return <LoginScreen />;
 }

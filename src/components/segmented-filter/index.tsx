@@ -86,7 +86,7 @@ export function SegmentedFilterGroup<Value extends string>({
 const styles = StyleSheet.create({
   group: {
     padding: spacing.xs,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     backgroundColor: colors.surfaceContainerLow,
     alignItems: "center",
     gap: spacing.xs,
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   tab: {
     minHeight: 32,
     paddingHorizontal: spacing.sm,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: "transparent",
     alignItems: "center",
@@ -126,6 +126,6 @@ const styles = StyleSheet.create({
   },
   labelSelected: {
     color: colors.primary,
-    fontWeight: "800",
+    fontWeight: "600",
   },
 });

@@ -6,15 +6,20 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
-import { DataTable, type DataTableColumn } from "../../components/data-table";
-import { DatePeriodFilter } from "../../components/date-period-filter";
-import { SegmentedFilterGroup } from "../../components/segmented-filter";
+import {
+  DataTable,
+  DataTableFilterBar,
+  DataTableFilterGrid,
+  DataTableSection,
+  type DataTableColumn,
+} from "../../components/data-table";
+import { DropdownFilter } from "../../components/dropdown-filter";
+import { DateRangeButton } from "../../components/date-period-filter";
 import {
   AppIcon,
   AppInput,
   AppPressable,
   EmptyState,
-  Panel,
 } from "../../components/ui";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
 import type { DatePeriod, DateRange } from "../../types/dateRange";
@@ -74,9 +79,8 @@ export function StockScreen() {
     kind: "success" | "error";
   } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isPhone = width < 768;
   const isToolbarCompact = width < 920;
-  const isCompact = width < 1240;
+  const isSmallViewport = width < 620;
   const inventoryWidth = Math.max(900, width - (isToolbarCompact ? 32 : 176));
   const historyWidth = Math.max(980, width - (isToolbarCompact ? 32 : 176));
 
@@ -140,12 +144,6 @@ export function StockScreen() {
 
   const changeHistoryFilter = (nextFilter: HistoryFilter) => {
     setHistoryFilter(nextFilter);
-    setHistoryPage(1);
-  };
-
-  const changeHistoryPeriod = (nextPeriod: "today" | "month") => {
-    setHistoryPeriod(nextPeriod);
-    setHistoryDateRange(getPresetDateRange(getLocalDateKey(), nextPeriod));
     setHistoryPage(1);
   };
 
@@ -528,29 +526,35 @@ export function StockScreen() {
   return (
     <AppShell active="Stock" scrollable>
       <VStack style={styles.page}>
-        <Panel style={styles.sectionPanel} padding={0}>
-          <VStack>
-            <HStack
+        <DataTableSection
+          title="Daftar Bahan"
+          description="Stok dan harga modal bahan yang tersedia di outlet."
+          action={
+            <AppPressable
+              onPress={() =>
+                setModal({ mode: "purchase", itemId: items[0]?.id })
+              }
               style={[
-                styles.inventoryToolbar,
-                isToolbarCompact && styles.inventoryToolbarMobile,
+                styles.primaryAction,
+                isSmallViewport && styles.primaryActionFullWidth,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Tambah stok"
             >
-              <HStack
-                style={[
-                  styles.toolbarControls,
-                  isToolbarCompact && styles.toolbarControlsMobile,
-                ]}
-              >
+              <AppIcon name="plus" size={15} color={colors.white} />
+              <Text style={styles.primaryActionText}>Tambah Stok</Text>
+            </AppPressable>
+          }
+        >
+          <VStack>
+            <DataTableFilterBar>
+              <DataTableFilterGrid>
                 <AppInput
                   value={query}
                   onChangeText={changeInventoryQuery}
-                  placeholder="Cari bahan..."
+                  placeholder="Cari bahan"
                   variant="search"
-                  style={[
-                    styles.searchInput,
-                    isToolbarCompact && styles.searchInputMobile,
-                  ]}
+                  style={styles.searchInputFilter}
                   leading={
                     <AppIcon
                       name="magnify"
@@ -560,33 +564,8 @@ export function StockScreen() {
                   }
                   accessibilityLabel="Cari bahan"
                 />
-                <Text
-                  style={[
-                    styles.resultCount,
-                    isToolbarCompact && styles.resultCountMobile,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {visibleItems.length} bahan
-                </Text>
-              </HStack>
-              <AppPressable
-                onPress={() =>
-                  setModal({ mode: "purchase", itemId: items[0]?.id })
-                }
-                style={[
-                  styles.primaryAction,
-                  isToolbarCompact && styles.primaryActionFullWidth,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Tambah stok"
-              >
-                <AppIcon name="plus" size={15} color={colors.white} />
-                <Text style={styles.primaryActionText}>
-                  Tambah Stok
-                </Text>
-              </AppPressable>
-            </HStack>
+              </DataTableFilterGrid>
+            </DataTableFilterBar>
 
             <DataTable
               rows={visibleItems}
@@ -612,80 +591,45 @@ export function StockScreen() {
               }
             />
           </VStack>
-        </Panel>
+        </DataTableSection>
 
-        <Panel style={styles.sectionPanel} padding={0}>
+        <DataTableSection
+          title="Riwayat Mutasi Stok Terbaru"
+          description="Pembelian, penjualan, dan koreksi stok bahan."
+        >
           <VStack>
-            <HStack
-              style={[
-                styles.historyToolbar,
-                isCompact && styles.historyToolbarMobile,
-              ]}
-            >
-              <VStack
-                style={[
-                  styles.toolbarHeading,
-                  isCompact && styles.toolbarHeadingMobile,
-                ]}
-              >
-                <HStack style={styles.historyTitleRow}>
-                  <Text style={styles.historyTitle}>
-                    Riwayat Mutasi Stok Terbaru
-                  </Text>
-                </HStack>
-                <Text style={styles.sectionDescription}>
-                  Pembelian, penjualan, dan koreksi stok bahan.
-                </Text>
-              </VStack>
-              <HStack
-                style={[
-                  styles.historyControls,
-                  isCompact && styles.historyControlsMobile,
-                ]}
-              >
-                <HStack
-                  style={[
-                    styles.historySearchDateGroup,
-                    isPhone && styles.historySearchDateGroupPhone,
-                  ]}
-                >
-                  <AppInput
-                    value={historyQuery}
-                    onChangeText={changeHistoryQuery}
-                    placeholder="Cari riwayat mutasi..."
-                    variant="search"
-                    style={[
-                      styles.historySearchInput,
-                      isCompact &&
-                        !isPhone &&
-                        styles.historySearchInputCompact,
-                      isPhone && styles.historySearchInputMobile,
-                    ]}
-                    leading={
-                      <AppIcon
-                        name="magnify"
-                        size={17}
-                        color={colors.inkSubtle}
-                      />
-                    }
-                    accessibilityLabel="Cari riwayat mutasi"
-                  />
-                  <DatePeriodFilter
-                    period={historyPeriod}
-                    dateRange={historyDateRange}
-                    onSelectPreset={changeHistoryPeriod}
-                    onOpenDatePicker={() => setHistoryDatePickerOpen(true)}
-                  />
-                </HStack>
-                <SegmentedFilterGroup
+            <DataTableFilterBar>
+              <DataTableFilterGrid>
+                <AppInput
+                  value={historyQuery}
+                  onChangeText={changeHistoryQuery}
+                  placeholder="Cari mutasi"
+                  variant="search"
+                  style={styles.searchInputFilter}
+                  leading={
+                    <AppIcon
+                      name="magnify"
+                      size={17}
+                      color={colors.inkSubtle}
+                    />
+                  }
+                  accessibilityLabel="Cari riwayat mutasi"
+                />
+                <DateRangeButton
+                  dateRange={historyDateRange}
+                  onPress={() => setHistoryDatePickerOpen(true)}
+                  selected={historyPeriod === "custom"}
+                  fullWidth
+                />
+                <DropdownFilter
                   options={historyFilters}
                   value={historyFilter}
                   onChange={changeHistoryFilter}
-                  accessibilityLabel="Filter"
-                  fullWidth={isPhone}
+                  accessibilityLabel="Filter jenis mutasi stok"
+                  fullWidth
                 />
-              </HStack>
-            </HStack>
+              </DataTableFilterGrid>
+            </DataTableFilterBar>
             <DataTable
               rows={visibleMovements}
               columns={historyColumns}
@@ -711,7 +655,7 @@ export function StockScreen() {
               }
             />
           </VStack>
-        </Panel>
+        </DataTableSection>
       </VStack>
 
       {modal ? (

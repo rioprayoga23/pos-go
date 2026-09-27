@@ -29,7 +29,6 @@ export function HistoryScreen() {
       >
         <TransactionsPanel
           isWide={isWide}
-          isCompact={isCompact}
           isMobile={isMobile}
           isTablet={isTablet}
           orders={filteredOrders}
@@ -40,7 +39,12 @@ export function HistoryScreen() {
           paymentFilter={paymentFilter}
           onPaymentFilterChange={setPaymentFilter}
         />
-        <SalesSummary isWide={isWide} isMobile={isMobile} isTablet={isTablet} />
+        <SalesSummary
+          isWide={isWide}
+          isCompact={isCompact}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
       </HStack>
     </AppShell>
   );

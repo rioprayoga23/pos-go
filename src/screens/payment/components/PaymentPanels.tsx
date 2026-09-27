@@ -46,14 +46,21 @@ export function QrPaymentPanel({
   verified,
   setVerified,
   subtotal,
+  bounded,
 }: {
   verified: boolean;
   setVerified: (value: boolean) => void;
   subtotal: number;
+  bounded: boolean;
 }) {
   return (
-    <Panel style={styles.qrisPanel} padding={spacing.md}>
-      <VStack style={styles.verifyBox}>
+    <Panel
+      style={[styles.qrisPanel, !bounded && styles.qrisPanelStacked]}
+      padding={spacing.md}
+    >
+      <VStack
+        style={[styles.verifyBox, !bounded && styles.verifyBoxStacked]}
+      >
         <HStack style={styles.verifyIcon}>
           <AppIcon name="check-decagram" size={24} color={colors.warning} />
         </HStack>

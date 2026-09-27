@@ -11,6 +11,7 @@ import {
 } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { ScrollView } from "react-native";
+import { DropdownSelect, type DropdownOption } from "../../../components/dropdown-select";
 import {
   AppIcon,
   AppInput,
@@ -52,16 +53,13 @@ export function StockAdjustmentModal({
   const [itemId, setItemId] = useState(
     initialItemId ?? items[0]?.id ?? (mode === "purchase" ? customItemOptionId : ""),
   );
-  const [itemMenuOpen, setItemMenuOpen] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customUnit, setCustomUnit] = useState("");
-  const [unitMenuOpen, setUnitMenuOpen] = useState(false);
   const [quantityInput, setQuantityInput] = useState("");
   const [totalCostInput, setTotalCostInput] = useState("");
   const [fundingSource, setFundingSource] = useState<"cash" | "transfer">("cash");
   const [actualStockInput, setActualStockInput] = useState("");
   const [reason, setReason] = useState(correctionReasons[0]);
-  const [reasonOpen, setReasonOpen] = useState(false);
   const [correctionNote, setCorrectionNote] = useState("");
   const [purchaseUnitPriceInput, setPurchaseUnitPriceInput] = useState(() => {
     const item = items.find((entry) => entry.id === initialItemId) ?? items[0];
@@ -74,6 +72,20 @@ export function StockAdjustmentModal({
   const selectedItem = isCustomItem
     ? undefined
     : items.find((item) => item.id === itemId);
+  const itemOptions: DropdownOption<string>[] = [
+    ...items.map((item) => ({ value: item.id, label: item.name })),
+    ...(mode === "purchase"
+      ? [{ value: customItemOptionId, label: "Bahan baru" }]
+      : []),
+  ];
+  const unitOptions: DropdownOption<string>[] = stockUnitOptions.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
+  const reasonOptions: DropdownOption<string>[] = correctionReasons.map((option) => ({
+    value: option,
+    label: option,
+  }));
   const normalizedCustomName = customItemName.trim();
   const hasDuplicateCustomName =
     isCustomItem &&
@@ -116,8 +128,6 @@ export function StockAdjustmentModal({
 
   const changeSelectedItem = (nextId: string) => {
     setItemId(nextId);
-    setItemMenuOpen(false);
-    setUnitMenuOpen(false);
     if (mode === "purchase") {
       setQuantityInput("");
       setTotalCostInput("");
@@ -128,7 +138,6 @@ export function StockAdjustmentModal({
       setActualStockInput("");
       setCorrectionNote("");
       setReason(correctionReasons[0]);
-      setReasonOpen(false);
     }
   };
 
@@ -204,53 +213,13 @@ export function StockAdjustmentModal({
             {mode === "purchase" || mode === "correction" ? (
               <VStack style={styles.formGroup}>
                 <Text style={styles.formLabel}>Bahan</Text>
-                <AppPressable
-                  onPress={() => {
-                    setUnitMenuOpen(false);
-                    setItemMenuOpen((current) => !current);
-                  }}
-                  style={styles.modalSelect}
-                  accessibilityRole="button"
+                <DropdownSelect
+                  options={itemOptions}
+                  value={itemId}
+                  onChange={changeSelectedItem}
+                  placeholder="Pilih bahan"
                   accessibilityLabel="Pilih bahan"
-                  accessibilityState={{ expanded: itemMenuOpen }}
-                >
-                  <Text style={styles.modalSelectTitle}>
-                    {isCustomItem ? "Bahan baru" : selectedItem?.name ?? "Pilih bahan"}
-                  </Text>
-                  <AppIcon name="chevron-down" size={17} color={colors.inkMuted} />
-                </AppPressable>
-                {itemMenuOpen ? (
-                  <ScrollView
-                    style={styles.modalOptionMenu}
-                    contentContainerStyle={styles.modalOptionMenuContent}
-                    nestedScrollEnabled
-                    showsVerticalScrollIndicator
-                  >
-                    {items.map((item) => (
-                      <AppPressable
-                        key={item.id}
-                        onPress={() => changeSelectedItem(item.id)}
-                        style={[styles.modalOption, item.id === selectedItem?.id && styles.modalOptionActive]}
-                        accessibilityRole="button"
-                      >
-                        <Text style={[styles.modalOptionTitle, item.id === selectedItem?.id && styles.modalOptionTitleActive]}>
-                          {item.name}
-                        </Text>
-                      </AppPressable>
-                    ))}
-                    {mode === "purchase" ? (
-                      <AppPressable
-                        onPress={() => changeSelectedItem(customItemOptionId)}
-                        style={[styles.modalOption, isCustomItem && styles.modalOptionActive]}
-                        accessibilityRole="button"
-                      >
-                        <Text style={[styles.modalOptionTitle, isCustomItem && styles.modalOptionTitleActive]}>
-                          + Bahan baru
-                        </Text>
-                      </AppPressable>
-                    ) : null}
-                  </ScrollView>
-                ) : null}
+                />
               </VStack>
             ) : null}
 
@@ -263,7 +232,7 @@ export function StockAdjustmentModal({
                       <AppInput
                         value={customItemName}
                         onChangeText={setCustomItemName}
-                        placeholder="Contoh: Susu UHT"
+                        placeholder="Contoh: Susu"
                         autoCapitalize="words"
                         style={styles.formInput}
                         inputStyle={styles.formInputText}
@@ -275,45 +244,13 @@ export function StockAdjustmentModal({
                     </VStack>
                     <VStack style={styles.formGroup}>
                       <Text style={styles.formLabel}>Satuan stok</Text>
-                      <AppPressable
-                        onPress={() => {
-                          setItemMenuOpen(false);
-                          setUnitMenuOpen((current) => !current);
-                        }}
-                        style={styles.modalSelect}
-                        accessibilityRole="button"
+                      <DropdownSelect
+                        options={unitOptions}
+                        value={customUnit}
+                        onChange={setCustomUnit}
+                        placeholder="Pilih satuan"
                         accessibilityLabel="Pilih satuan stok"
-                        accessibilityState={{ expanded: unitMenuOpen }}
-                      >
-                        <Text style={styles.modalSelectTitle}>
-                          {stockUnitOptions.find((option) => option.value === customUnit)?.label ?? "Pilih satuan"}
-                        </Text>
-                        <AppIcon name="chevron-down" size={17} color={colors.inkMuted} />
-                      </AppPressable>
-                      {unitMenuOpen ? (
-                        <ScrollView
-                          style={styles.modalOptionMenu}
-                          contentContainerStyle={styles.modalOptionMenuContent}
-                          nestedScrollEnabled
-                          showsVerticalScrollIndicator
-                        >
-                          {stockUnitOptions.map((option) => (
-                            <AppPressable
-                              key={option.value}
-                              onPress={() => {
-                                setCustomUnit(option.value);
-                                setUnitMenuOpen(false);
-                              }}
-                              style={[styles.modalOption, customUnit === option.value && styles.modalOptionActive]}
-                              accessibilityRole="button"
-                            >
-                              <Text style={[styles.modalOptionTitle, customUnit === option.value && styles.modalOptionTitleActive]}>
-                                {option.label}
-                              </Text>
-                            </AppPressable>
-                          ))}
-                        </ScrollView>
-                      ) : null}
+                      />
                     </VStack>
                   </>
                 ) : null}
@@ -443,34 +380,13 @@ export function StockAdjustmentModal({
                 {hasCorrectionChange ? (
                   <VStack style={styles.formGroup}>
                     <Text style={styles.formLabel}>Alasan koreksi</Text>
-                    <AppPressable
-                      onPress={() => setReasonOpen((current) => !current)}
-                      style={styles.modalSelect}
-                      accessibilityRole="button"
-                      accessibilityState={{ expanded: reasonOpen }}
-                    >
-                      <Text style={styles.modalSelectTitle}>{reason}</Text>
-                      <AppIcon name="chevron-down" size={17} color={colors.inkMuted} />
-                    </AppPressable>
-                    {reasonOpen ? (
-                      <VStack style={styles.modalOptionMenu}>
-                        {correctionReasons.map((option) => (
-                          <AppPressable
-                            key={option}
-                            onPress={() => {
-                              setReason(option);
-                              setReasonOpen(false);
-                            }}
-                            style={[styles.modalOption, option === reason && styles.modalOptionActive]}
-                            accessibilityRole="button"
-                          >
-                            <Text style={[styles.modalOptionTitle, option === reason && styles.modalOptionTitleActive]}>
-                              {option}
-                            </Text>
-                          </AppPressable>
-                        ))}
-                      </VStack>
-                    ) : null}
+                    <DropdownSelect
+                      options={reasonOptions}
+                      value={reason}
+                      onChange={setReason}
+                      placeholder="Pilih alasan"
+                      accessibilityLabel="Pilih alasan koreksi"
+                    />
                   </VStack>
                 ) : null}
                 {hasCorrectionChange && reason === "Lainnya" ? (
@@ -479,7 +395,7 @@ export function StockAdjustmentModal({
                     <AppInput
                       value={correctionNote}
                       onChangeText={setCorrectionNote}
-                      placeholder="Tulis alasan koreksi"
+                      placeholder="Catatan koreksi"
                       style={styles.formInput}
                       inputStyle={styles.formInputText}
                       accessibilityLabel="Catatan koreksi"

@@ -100,7 +100,7 @@ export function AddExpenseModal({
                   setDescription(value);
                   setError("");
                 }}
-                placeholder="Contoh: Beli es batu"
+                placeholder="Contoh: Es batu"
                 accessibilityLabel="Keterangan uang keluar"
               />
             </VStack>
@@ -123,7 +123,7 @@ export function AddExpenseModal({
               <AppInput
                 value={detail}
                 onChangeText={setDetail}
-                placeholder="Tambahkan catatan jika perlu"
+                placeholder="Catatan"
                 accessibilityLabel="Catatan uang keluar"
               />
             </VStack>

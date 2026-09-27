@@ -12,7 +12,15 @@ import {
 import { useState } from "react";
 import { useWindowDimensions, StyleSheet } from "react-native";
 import { useTransactionStore } from "../../../store/transactionStore";
-import { colors, elevation, radius, spacing, type } from "../../../theme";
+import {
+  colors,
+  elevation,
+  fieldHeight,
+  radius,
+  spacing,
+  type,
+  typography,
+} from "../../../theme";
 import { AppIcon, AppInput, AppModalCloseButton, AppPressable } from "../../ui";
 
 function onlyDigits(value: string) {
@@ -86,17 +94,17 @@ export function OpenCashRegisterDialog({
 const dialogStyles = StyleSheet.create({
   content: { width: "94%", maxWidth: 520, borderRadius: radius.lg, backgroundColor: colors.white, overflow: "hidden", ...elevation.panel },
   header: { alignItems: "center", gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.line },
-  icon: { width: 40, height: 40, borderRadius: radius.sm, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
+  icon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
   heading: { flex: 1, minWidth: 0, gap: spacing.xs },
-  title: { color: colors.ink, fontSize: 18, lineHeight: 24, fontWeight: "900" },
+  title: { color: colors.ink, ...typography.sectionTitle },
   body: { padding: spacing.lg },
   form: { gap: spacing.sm },
-  label: { color: colors.ink, fontSize: type.caption, fontWeight: "800" },
-  amountInput: { width: "100%", minHeight: 54 },
-  amountValue: { color: colors.success, fontSize: 21, fontWeight: "900", fontVariant: ["tabular-nums"] },
-  prefix: { color: colors.inkMuted, fontSize: type.bodySmall, fontWeight: "800" },
+  label: { color: colors.ink, ...typography.label },
+  amountInput: { width: "100%", minHeight: fieldHeight },
+  amountValue: { color: colors.success, fontSize: type.amount, lineHeight: 25, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  prefix: { color: colors.inkMuted, ...typography.input, fontWeight: "600" },
   footer: { width: "100%", padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.line },
-  confirmButton: { width: "100%", minHeight: 48, borderRadius: radius.pill, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: spacing.sm, ...elevation.button },
-  confirmText: { color: colors.white, fontSize: type.caption, fontWeight: "900" },
+  confirmButton: { width: "100%", minHeight: 48, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: spacing.sm, ...elevation.button },
+  confirmText: { color: colors.white, ...typography.button },
   disabled: { opacity: 0.45 },
 });

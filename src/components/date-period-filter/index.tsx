@@ -19,10 +19,12 @@ export function DateRangeButton({
   dateRange,
   onPress,
   selected = false,
+  fullWidth = false,
 }: {
   dateRange: DateRange;
   onPress: () => void;
   selected?: boolean;
+  fullWidth?: boolean;
 }) {
   const { width } = useWindowDimensions();
   const isPhone = width < 620;
@@ -34,6 +36,7 @@ export function DateRangeButton({
       style={[
         styles.button,
         styles.rangeButtonStandalone,
+        fullWidth && styles.rangeButtonFullWidth,
         isPhone && styles.rangeButtonPhone,
         selected && styles.buttonActive,
       ]}
@@ -51,6 +54,7 @@ export function DateRangeButton({
           styles.buttonText,
           styles.rangeText,
           styles.rangeButtonStandaloneText,
+          fullWidth && styles.rangeButtonFullWidthText,
           selected && styles.buttonTextActive,
         ]}
         numberOfLines={1}

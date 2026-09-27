@@ -22,6 +22,7 @@ export function QueueScreen() {
   const isWide = width >= 1024;
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
+  const isVeryNarrow = width < 360;
 
   return (
     <AppShell active="Queue" scrollable={!isWide}>
@@ -38,7 +39,7 @@ export function QueueScreen() {
           isMobile={isMobile}
           isTablet={isTablet}
         />
-        <HStack style={styles.kdsTitle}>
+        <HStack style={[styles.kdsTitle, isVeryNarrow && styles.kdsTitleNarrow]}>
           <Text
             style={[
               styles.kdsHeading,
@@ -67,7 +68,7 @@ export function QueueScreen() {
             orders={waiting}
             emptyText="Tidak ada pesanan baru"
             fillHeight={isWide}
-            compactHeight={isMobile}
+            compactHeight={!isWide}
             isMobile={isMobile}
             isTablet={isTablet}
             onAdvance={advanceStatus}
@@ -80,7 +81,7 @@ export function QueueScreen() {
             orders={preparing}
             emptyText="Bar sedang kosong"
             fillHeight={isWide}
-            compactHeight={isMobile}
+            compactHeight={!isWide}
             isMobile={isMobile}
             isTablet={isTablet}
             onAdvance={advanceStatus}
@@ -93,7 +94,7 @@ export function QueueScreen() {
             orders={ready}
             emptyText="Belum ada minuman siap"
             fillHeight={isWide}
-            compactHeight={isMobile}
+            compactHeight={!isWide}
             isMobile={isMobile}
             isTablet={isTablet}
             onAdvance={advanceStatus}

@@ -16,6 +16,7 @@ type Props = {
   cashRegisterOpen: boolean;
   cashRegisterClosedToday: boolean;
   onRequestCashAction: () => void;
+  onLogout: () => void;
 };
 
 export function HeaderActions({
@@ -24,6 +25,7 @@ export function HeaderActions({
   cashRegisterOpen,
   cashRegisterClosedToday,
   onRequestCashAction,
+  onLogout,
 }: Props) {
   const notifications = useNotificationStore((state) => state.notifications);
   const markNotificationRead = useNotificationStore(
@@ -133,6 +135,10 @@ export function HeaderActions({
           setShowProfileMenu(true);
         }}
         onClose={() => setShowProfileMenu(false)}
+        onLogout={() => {
+          setShowProfileMenu(false);
+          onLogout();
+        }}
       />
     </HStack>
   );

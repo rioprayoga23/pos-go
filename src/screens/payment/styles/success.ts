@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, radius, spacing } from "../../../theme";
+import { colors, radius, spacing, typography } from "../../../theme";
 
 export const successStyles = StyleSheet.create({
   successModal: { borderRadius: radius.xl, padding: spacing.md },
@@ -33,11 +33,10 @@ export const successStyles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.sm,
   },
-  successTitle: { color: colors.ink, fontSize: 20, fontWeight: "900" },
+  successTitle: { color: colors.ink, ...typography.sectionTitle },
   successDescription: {
     color: colors.inkMuted,
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.description,
     textAlign: "center",
   },
 });
