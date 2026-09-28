@@ -10,8 +10,7 @@ import { FlatList, View, type ListRenderItem } from "react-native";
 import { DropdownSelect, type DropdownOption } from "../../../components/dropdown-select";
 import { AppIcon, AppPressable as Pressable, EmptyState, Panel } from "../../../components/ui";
 import { colors } from "../../../theme";
-import { Order } from "../../../types/pos";
-import type { DateRange, PaymentFilter } from "../types";
+import type { DateRange, HistoryOrder, PaymentFilter } from "../types";
 import { formatDateRangeLabel } from "../utils/dateRange";
 import { styles } from "../styles";
 import { DateRangePickerModal } from "../../../components/date-range-picker/DateRangePickerModal";
@@ -21,7 +20,12 @@ type Props = {
   isWide: boolean;
   isMobile: boolean;
   isTablet: boolean;
-  orders: Order[];
+  orders: HistoryOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
   query: string;
   onQueryChange: (query: string) => void;
   dateRange: DateRange;
@@ -30,8 +34,8 @@ type Props = {
   onPaymentFilterChange: (filter: PaymentFilter) => void;
 };
 
-const keyExtractor = (order: Order) => order.id;
-const renderTransaction: ListRenderItem<Order> = ({ item }) => <TransactionCard order={item} />;
+const keyExtractor = (order: HistoryOrder) => order.id;
+const renderTransaction: ListRenderItem<HistoryOrder> = ({ item }) => <TransactionCard order={item} />;
 const renderSeparator = () => <View style={styles.transactionSeparator} />;
 const renderEmpty = () => (
   <EmptyState
@@ -51,6 +55,11 @@ export function TransactionsPanel({
   isMobile,
   isTablet,
   orders,
+  total,
+  page,
+  pageSize,
+  pageCount,
+  onPageChange,
   query,
   onQueryChange,
   dateRange,
@@ -60,7 +69,9 @@ export function TransactionsPanel({
 }: Props) {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [filterWidth, setFilterWidth] = useState(0);
-  const useFilterGrid = filterWidth >= 600;
+  // Keep the three history filters on one line on tablet split layouts too.
+  // Below this width, stacked controls remain easier to use on phones.
+  const useFilterGrid = filterWidth >= 420;
   const dateButton = (
     <Pressable
       onPress={() => setIsDatePickerOpen(true)}
@@ -169,6 +180,35 @@ export function TransactionsPanel({
           )}
         </VStack>
       )}
+
+      <HStack style={styles.historyPaginationFooter}>
+        <Text style={styles.historyPaginationSummary}>
+          {total === 0
+            ? "Tidak ada transaksi"
+            : `Menampilkan ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} dari ${total} transaksi`}
+        </Text>
+        <HStack style={styles.historyPaginationControls}>
+          <Pressable
+            onPress={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+            style={[styles.historyPageButton, page <= 1 && styles.historyPageButtonDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Halaman sebelumnya"
+          >
+            <AppIcon name="chevron-left" size={15} color={colors.inkMuted} />
+          </Pressable>
+          <Text style={styles.historyPageText}>{page} / {pageCount}</Text>
+          <Pressable
+            onPress={() => onPageChange(page + 1)}
+            disabled={page >= pageCount}
+            style={[styles.historyPageButton, page >= pageCount && styles.historyPageButtonDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Halaman berikutnya"
+          >
+            <AppIcon name="chevron-right" size={15} color={colors.inkMuted} />
+          </Pressable>
+        </HStack>
+      </HStack>
 
       {isDatePickerOpen ? (
         <DateRangePickerModal

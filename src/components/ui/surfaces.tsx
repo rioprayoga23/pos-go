@@ -1,16 +1,6 @@
-import {
-  Card,
-  HStack,
-  Text,
-  VStack,
-} from "@gluestack-ui/themed";
+import { Card, HStack, Text, VStack } from "@gluestack-ui/themed";
 import { type ReactNode } from "react";
-import {
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewStyle,
-} from "react-native";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import {
   colors,
   elevation,
@@ -73,7 +63,7 @@ const statusMeta: Record<
     icon: "progress-clock",
   },
   ready: {
-    label: "Siap disajikan",
+    label: "Siap Ambil",
     background: colors.successSoft,
     text: colors.success,
     icon: "check-circle-outline",

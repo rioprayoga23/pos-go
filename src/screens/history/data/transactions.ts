@@ -1,23 +1,21 @@
-import type { Order } from "../../../types/pos";
-import { getCartSubtotal } from "../../../utils/cartPricing";
-import type { HistoryTransactionDisplay } from "../types";
+import { historyPaymentLabel } from "../api";
+import type { HistoryOrder, HistoryTransactionDisplay } from "../types";
 
 export function getHistoryTransactionDisplay(
-  order: Order,
+	order: HistoryOrder,
 ): HistoryTransactionDisplay {
   const cupCount = order.items.reduce((total, item) => total + item.quantity, 0);
 
   return {
     orderNumber: order.number,
-    time: order.createdAt,
-    paymentMethod: order.paymentMethod,
-    amount: order.total || getCartSubtotal(order.items),
-    cupCount,
-    details: order.items
-      .map(
-        ({ product, quantity }) =>
-          `${quantity}x ${product.name}`,
-      )
-      .join(", "),
-  };
+		time: new Date(order.createdAt).toLocaleTimeString("id-ID", {
+			hour: "2-digit",
+			minute: "2-digit",
+			timeZone: "Asia/Jakarta",
+		}),
+		paymentMethod: historyPaymentLabel(order.paymentMethod),
+		amount: order.totalRupiah,
+		cupCount,
+		details: order.items.map(({ productName, quantity }) => `${quantity}x ${productName}`).join(", "),
+	};
 }

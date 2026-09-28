@@ -1,4 +1,5 @@
 import type { PaymentMethod } from "../../types/pos";
+import type { HistoryOrderRecord, SalesSummary } from "./api";
 
 export type { DateRange } from "../../types/dateRange";
 
@@ -12,3 +13,6 @@ export type HistoryTransactionDisplay = {
   cupCount: number;
   details: string;
 };
+
+export type HistoryOrder = HistoryOrderRecord;
+export type HistorySalesSummary = SalesSummary;

@@ -17,9 +17,18 @@ export function useQueueBoard(enabled: boolean) {
   const query = useQueueOrders(enabled);
   const mutations = useQueueMutations();
   const orders = query.data?.data ?? EMPTY_ORDERS;
-  const waiting = useMemo(() => orders.filter((order) => order.status === "waiting"), [orders]);
-  const preparing = useMemo(() => orders.filter((order) => order.status === "preparing"), [orders]);
-  const ready = useMemo(() => orders.filter((order) => order.status === "ready"), [orders]);
+  const waiting = useMemo(
+    () => orders.filter((order) => order.status === "waiting"),
+    [orders],
+  );
+  const preparing = useMemo(
+    () => orders.filter((order) => order.status === "preparing"),
+    [orders],
+  );
+  const ready = useMemo(
+    () => orders.filter((order) => order.status === "ready"),
+    [orders],
+  );
 
   const advanceStatus = async (id: string) => {
     const order = orders.find((entry) => entry.id === id);
@@ -30,20 +39,33 @@ export function useQueueBoard(enabled: boolean) {
       const labels: Record<OrderStatus, string> = {
         waiting: "Menunggu",
         preparing: "Sedang dibuat",
-        ready: "Siap disajikan",
+        ready: "Siap Ambil",
         completed: "Selesai",
       };
-      toast.success("Status pesanan diperbarui", `Pesanan #${order.number} · ${labels[target]}.`);
+      toast.success(
+        "Status pesanan diperbarui",
+        `Pesanan #${order.number} · ${labels[target]}.`,
+      );
     } catch (error) {
-      toast.error("Status pesanan gagal diperbarui", error instanceof Error ? error.message : "Coba lagi.");
+      toast.error(
+        "Status pesanan gagal diperbarui",
+        error instanceof Error ? error.message : "Coba lagi.",
+      );
       mutations.status.reset();
     }
   };
-  const togglePreparedItem = async (orderId: string, itemId: string, isPrepared: boolean) => {
+  const togglePreparedItem = async (
+    orderId: string,
+    itemId: string,
+    isPrepared: boolean,
+  ) => {
     try {
       await mutations.itemPrepared.mutateAsync({ orderId, itemId, isPrepared });
     } catch (error) {
-      toast.error("Status bahan pesanan gagal diperbarui", error instanceof Error ? error.message : "Coba lagi.");
+      toast.error(
+        "Status bahan pesanan gagal diperbarui",
+        error instanceof Error ? error.message : "Coba lagi.",
+      );
       mutations.itemPrepared.reset();
     }
   };
@@ -59,7 +81,8 @@ export function useQueueBoard(enabled: boolean) {
     ready,
     readyCount: ready.length,
     activeCupCount: orders.reduce(
-      (total, order) => total + order.items.reduce((cups, item) => cups + item.quantity, 0),
+      (total, order) =>
+        total + order.items.reduce((cups, item) => cups + item.quantity, 0),
       0,
     ),
     advanceStatus,

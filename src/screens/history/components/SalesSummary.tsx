@@ -1,15 +1,12 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { memo, useMemo } from "react";
+import { memo, useState } from "react";
 import { FlatList, Image, View } from "react-native";
 import { AppIcon, EmptyState, Panel } from "../../../components/ui";
-import { useStockStore } from "../../../store/stockStore";
-import { useTransactionStore } from "../../../store/transactionStore";
 import { colors } from "../../../theme";
-import { getLocalDateKey } from "../../../utils/date";
+import type { DateRange } from "../../../types/dateRange";
 import { formatCurrency } from "../../../utils/format";
-import { getRecipeHpp } from "../../../utils/standardRecipe";
-import type { Recipe, StockItem } from "../../../types/stock";
-import type { Order, Product } from "../../../types/pos";
+import type { HistorySalesSummary } from "../types";
+import { formatDateRangeLabel } from "../utils/dateRange";
 import { styles } from "../styles";
 
 type MenuSales = {
@@ -18,9 +15,7 @@ type MenuSales = {
   sub: string;
   qty: number;
   amount: number;
-  color: string;
-  icon: string;
-  image?: Product["image"];
+  image?: string;
 };
 
 const renderSoldMenuRow = ({ item }: { item: MenuSales }) => (
@@ -28,121 +23,37 @@ const renderSoldMenuRow = ({ item }: { item: MenuSales }) => (
 );
 const soldMenuKey = (item: MenuSales) => item.id;
 
-function summarizeOrders(
-  orders: Order[],
-  date: string,
-  inventoryItems: StockItem[],
-  recipes: Recipe[],
-) {
-  const todayOrders = orders.filter((order) => order.createdOn === date);
-  const revenue = todayOrders.reduce((total, order) => total + order.total, 0);
-  const cash = todayOrders.reduce(
-    (total, order) =>
-      total + (order.paymentMethod === "Tunai" ? order.total : 0),
-    0,
-  );
-  const qris = todayOrders.reduce(
-    (total, order) =>
-      total + (order.paymentMethod === "QRIS" ? order.total : 0),
-    0,
-  );
-  const cups = todayOrders.reduce(
-    (total, order) =>
-      total + order.items.reduce((count, item) => count + item.quantity, 0),
-    0,
-  );
-  const recipesById = new Map(recipes.map((recipe) => [recipe.id, recipe]));
-  let costOfGoods = 0;
-  let hasCompleteHpp = true;
-  const menuById = new Map<string, MenuSales>();
-
-  for (const order of todayOrders) {
-    for (const { product, quantity, hppPerPortion } of order.items) {
-      const hpp =
-        hppPerPortion === undefined
-          ? getRecipeHpp(
-              inventoryItems,
-              recipesById.get(product.recipeId),
-              recipes,
-            )
-          : hppPerPortion;
-      if (hpp === null) {
-        hasCompleteHpp = false;
-      } else {
-        costOfGoods += hpp * quantity;
-      }
-
-      const existing = menuById.get(product.id);
-      const amount = quantity * product.price;
-      menuById.set(product.id, {
-        id: product.id,
-        name: product.name,
-        sub: product.categoryName,
-        qty: (existing?.qty ?? 0) + quantity,
-        amount: (existing?.amount ?? 0) + amount,
-        color: product.accent,
-        icon: product.icon,
-        image: product.image,
-      });
-    }
-  }
-
-  const soldMenu = [...menuById.values()].sort(
-    (left, right) => right.amount - left.amount,
-  );
-  return {
-    revenue,
-    cash,
-    qris,
-    cups,
-    transactionCount: todayOrders.length,
-    grossProfit: hasCompleteHpp ? Math.round(revenue - costOfGoods) : null,
-    soldMenu,
-  };
-}
-
 export const SalesSummary = memo(function SalesSummary({
   isWide,
   isCompact,
   isMobile,
   isTablet,
+  summary,
+  dateRange,
 }: {
   isWide: boolean;
   isCompact: boolean;
   isMobile: boolean;
   isTablet: boolean;
+  summary?: HistorySalesSummary;
+  dateRange: DateRange;
 }) {
-  const orders = useTransactionStore((state) => state.orders);
-  const inventoryItems = useStockStore((state) => state.items);
-  const recipes = useStockStore((state) => state.recipes);
-  const reportDate = useMemo(() => {
-    let latestDate = "";
-    for (const order of orders) {
-      if (order.createdOn && order.createdOn > latestDate) {
-        latestDate = order.createdOn;
-      }
-    }
-    return latestDate || getLocalDateKey();
-  }, [orders]);
-  const summary = useMemo(
-    () => summarizeOrders(orders, reportDate, inventoryItems, recipes),
-    [orders, reportDate, inventoryItems, recipes],
-  );
-  const dateLabel = new Date(`${reportDate}T00:00:00`).toLocaleDateString(
-    "id-ID",
-    {
-      weekday: "long",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    },
-  );
-  const qrisPercent = summary.revenue
-    ? Math.round((summary.qris / summary.revenue) * 100)
-    : 0;
-  const cashPercent = summary.revenue
-    ? Math.round((summary.cash / summary.revenue) * 100)
-    : 0;
+  const revenue = summary?.revenueRupiah ?? 0;
+  const cash = summary?.cashRupiah ?? 0;
+  const qris = summary?.qrisRupiah ?? 0;
+  const cups = summary?.itemCount ?? 0;
+  const grossProfit = summary?.grossProfitRupiah ?? null;
+  const soldMenu: MenuSales[] = (summary?.soldMenu ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    sub: item.categoryName,
+    qty: item.quantity,
+    amount: item.amountRupiah,
+    image: item.photoUrl,
+  }));
+  const dateLabel = formatDateRangeLabel(dateRange);
+  const qrisPercent = revenue ? Math.round((qris / revenue) * 100) : 0;
+  const cashPercent = revenue ? Math.round((cash / revenue) * 100) : 0;
   const responsiveText = isMobile || isTablet;
 
   return (
@@ -186,7 +97,7 @@ export const SalesSummary = memo(function SalesSummary({
                 isTablet && styles.revenueValueTablet,
               ]}
             >
-              {formatCurrency(summary.revenue)}
+              {summary ? formatCurrency(revenue) : "—"}
             </Text>
           </HStack>
           <View style={styles.rule} />
@@ -194,8 +105,8 @@ export const SalesSummary = memo(function SalesSummary({
             <PaymentCard
               icon="qrcode-scan"
               label="QRIS"
-              amount={formatCurrency(summary.qris)}
-              percent={`${qrisPercent}%`}
+              amount={summary ? formatCurrency(qris) : "—"}
+              percent={summary ? `${qrisPercent}%` : "—"}
               color={colors.primary}
               adaptive={responsiveText}
             />
@@ -203,8 +114,8 @@ export const SalesSummary = memo(function SalesSummary({
             <PaymentCard
               icon="cash-multiple"
               label="Tunai"
-              amount={formatCurrency(summary.cash)}
-              percent={`${cashPercent}%`}
+              amount={summary ? formatCurrency(cash) : "—"}
+              percent={summary ? `${cashPercent}%` : "—"}
               color={colors.warning}
               adaptive={responsiveText}
             />
@@ -214,7 +125,7 @@ export const SalesSummary = memo(function SalesSummary({
         <HStack style={styles.metrics}>
           <SmallMetric
             label={isCompact ? "TRANSAKSI" : "TOTAL TRANSAKSI"}
-            value={`${summary.transactionCount} Trx`}
+            value={summary ? `${summary.transactionCount} Trx` : "—"}
             adaptive={responsiveText}
             tablet={isTablet}
             compact={isCompact}
@@ -222,7 +133,7 @@ export const SalesSummary = memo(function SalesSummary({
           <View style={styles.metricDivider} />
           <SmallMetric
             label={isCompact ? "CUP TERJUAL" : "MINUMAN TERJUAL"}
-            value={`${summary.cups} Cup`}
+            value={summary ? `${cups} Cup` : "—"}
             active
             adaptive={responsiveText}
             tablet={isTablet}
@@ -232,12 +143,12 @@ export const SalesSummary = memo(function SalesSummary({
           <SmallMetric
             label="LABA KOTOR"
             value={
-              summary.grossProfit === null
+              !summary || grossProfit === null
                 ? "—"
-                : formatCurrency(summary.grossProfit)
+                : formatCurrency(grossProfit)
             }
-            success={summary.grossProfit !== null && summary.grossProfit >= 0}
-            negative={summary.grossProfit !== null && summary.grossProfit < 0}
+            success={summary !== undefined && grossProfit !== null && grossProfit >= 0}
+            negative={summary !== undefined && grossProfit !== null && grossProfit < 0}
             adaptive={responsiveText}
             tablet={isTablet}
             compact={isCompact}
@@ -271,17 +182,17 @@ export const SalesSummary = memo(function SalesSummary({
             </Text>
           </VStack>
           {!isCompact ? (
-            <Text style={styles.datePill}>{summary.cups} Cup Total</Text>
+            <Text style={styles.datePill}>{summary ? `${cups} Cup Total` : "Ringkasan —"}</Text>
           ) : null}
         </HStack>
         {isCompact ? (
           <HStack style={styles.compactHeaderMeta}>
-            <Text style={styles.datePill}>{summary.cups} Cup Total</Text>
+            <Text style={styles.datePill}>{summary ? `${cups} Cup Total` : "Ringkasan —"}</Text>
           </HStack>
         ) : null}
         <View style={styles.rule} />
 
-        {summary.soldMenu.length > 0 && !isCompact ? (
+        {soldMenu.length > 0 && !isCompact ? (
           <HStack style={styles.menuHead}>
             <Text style={[styles.menuCell, styles.menuName]}>MENU MINUMAN</Text>
             <Text style={[styles.menuCell, styles.menuQty]}>VOLUME</Text>
@@ -291,15 +202,15 @@ export const SalesSummary = memo(function SalesSummary({
           </HStack>
         ) : null}
 
-        {summary.soldMenu.length === 0 ? (
+        {soldMenu.length === 0 ? (
           <EmptyState
             icon="chart-box-outline"
-            title="Belum ada penjualan"
+            title={summary ? "Belum ada penjualan" : "Ringkasan tidak tersedia"}
             compact
           />
         ) : isWide ? (
           <FlatList
-            data={summary.soldMenu}
+            data={soldMenu}
             keyExtractor={soldMenuKey}
             renderItem={renderSoldMenuRow}
             style={styles.listScroll}
@@ -309,7 +220,7 @@ export const SalesSummary = memo(function SalesSummary({
           />
         ) : (
           <VStack style={styles.menuListContent}>
-            {summary.soldMenu.map((item) => (
+            {soldMenu.map((item) => (
               <MenuSalesRow
                 key={item.id}
                 item={item}
@@ -333,18 +244,20 @@ function MenuSalesRow({
   adaptive?: boolean;
   compact?: boolean;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   return (
     <HStack style={[styles.menuRow, compact && styles.menuRowCompact]}>
       <View style={[styles.menuThumb, compact && styles.menuThumbCompact]}>
-        {item.image ? (
+        {item.image && !imageFailed ? (
           <Image
-            source={item.image}
+            source={{ uri: item.image }}
             style={styles.menuImage}
             resizeMode="cover"
             accessibilityLabel={`Foto ${item.name}`}
+            onError={() => setImageFailed(true)}
           />
         ) : (
-          <AppIcon name={item.icon as never} size={18} color={item.color} />
+          <AppIcon name="cup-outline" size={18} color={colors.primary} />
         )}
       </View>
       <VStack style={styles.menuDetails}>

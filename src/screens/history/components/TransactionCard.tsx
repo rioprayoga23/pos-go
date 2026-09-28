@@ -4,8 +4,8 @@ import { ReceiptPrintModal } from "../../../components/receipt/ReceiptPrintModal
 import type { ReceiptData } from "../../../components/receipt/types";
 import { AppIcon, AppPressable as Pressable, StatusBadge } from "../../../components/ui";
 import { colors } from "../../../theme";
-import type { Order } from "../../../types/pos";
 import { formatCurrency } from "../../../utils/format";
+import type { HistoryOrder } from "../types";
 import { getHistoryTransactionDisplay } from "../data/transactions";
 import { createHistoryReceiptData } from "../utils/receiptData";
 import { styles } from "../styles";
@@ -14,7 +14,7 @@ export const TransactionCard = memo(function TransactionCard({
   order,
   density = "desktop",
 }: {
-  order: Order;
+  order: HistoryOrder;
   density?: "mobile" | "tablet" | "desktop";
 }) {
   const compact = density !== "desktop";

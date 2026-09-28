@@ -1,71 +1,116 @@
-import { useMemo, useState } from "react";
-import { useTransactionStore } from "../../../store/transactionStore";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { DateRange } from "../../../types/dateRange";
+import { debounce } from "../../../utils/debounce";
 import { getLocalDateKey } from "../../../utils/date";
-import { getHistoryTransactionDisplay } from "../data/transactions";
-import type { DateRange, PaymentFilter } from "../types";
+import {
+  getSalesSummary,
+  listOrderHistory,
+  type OrderHistoryFilters,
+} from "../api";
+import type { PaymentFilter } from "../types";
 
-export function useHistoryOrders() {
-  const orders = useTransactionStore((state) => state.orders);
+const pageSize = 10;
+
+export const historyQueryKeys = {
+  historyRoot: ["orders", "history"] as const,
+  history: (filters: OrderHistoryFilters) => ["orders", "history", filters] as const,
+  summaryRoot: ["orders", "summary"] as const,
+  summary: (range: DateRange) => ["orders", "summary", range] as const,
+};
+
+export function useHistoryOrders(enabled = true) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("Semua metode");
-  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
-  const latestOrderDate = useMemo(() => {
-    let latestDate = "";
-
-    for (const order of orders) {
-      const orderDate = order.createdOn ?? getLocalDateKey();
-      if (orderDate > latestDate) latestDate = orderDate;
-    }
-
-    return latestDate || getLocalDateKey();
-  }, [orders]);
-  const dateRange = useMemo(
-    () =>
-      selectedDateRange ?? {
-        startDate: latestOrderDate,
-        endDate: latestOrderDate,
-      },
-    [latestOrderDate, selectedDateRange],
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const today = getLocalDateKey();
+    return { startDate: today, endDate: today };
+  });
+  const [page, setPage] = useState(1);
+  const updateDebouncedQuery = useMemo(
+    () => debounce((value: string) => {
+      setDebouncedQuery(value);
+      setPage(1);
+    }, 250),
+    [],
   );
-  const filteredOrders = useMemo(
-    () => {
-      const normalizedQuery = query.toLowerCase();
-      const matches: typeof orders = [];
 
-      for (const order of orders) {
-        const orderDate = order.createdOn ?? getLocalDateKey();
-        if (orderDate < dateRange.startDate || orderDate > dateRange.endDate) {
-          continue;
-        }
+  useEffect(() => {
+    updateDebouncedQuery(query.trim());
+    return () => updateDebouncedQuery.cancel();
+  }, [query, updateDebouncedQuery]);
 
-        const transaction = getHistoryTransactionDisplay(order);
-        if (
-          paymentFilter !== "Semua metode" &&
-          transaction.paymentMethod !== paymentFilter
-        ) {
-          continue;
-        }
-
-        const searchableText = `${order.number} ${order.customer} ${order.items
-          .map(({ product }) => product.name)
-          .join(" ")}`.toLowerCase();
-        if (!searchableText.includes(normalizedQuery)) continue;
-
-        matches.push(order);
-      }
-
-      return matches;
-    },
-    [orders, query, paymentFilter, dateRange.startDate, dateRange.endDate],
+  const filters = useMemo<OrderHistoryFilters>(
+    () => ({
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      search: debouncedQuery,
+      paymentMethod: paymentFilter === "Semua metode"
+        ? "all"
+        : paymentFilter === "Tunai"
+          ? "cash"
+          : "qris",
+      page,
+      limit: pageSize,
+    }),
+    [dateRange.endDate, dateRange.startDate, debouncedQuery, page, paymentFilter],
   );
+  const summaryRange = useMemo<DateRange>(
+    () => ({ startDate: dateRange.startDate, endDate: dateRange.endDate }),
+    [dateRange.endDate, dateRange.startDate],
+  );
+  const historyQuery = useQuery({
+    queryKey: historyQueryKeys.history(filters),
+    queryFn: ({ signal }) => listOrderHistory(filters, signal),
+    enabled,
+    staleTime: 0,
+    gcTime: Infinity,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+  });
+  const summaryQuery = useQuery({
+    queryKey: historyQueryKeys.summary(summaryRange),
+    queryFn: ({ signal }) => getSalesSummary(summaryRange, signal),
+    enabled,
+    staleTime: 0,
+    gcTime: Infinity,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+  });
+  const total = historyQuery.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  const changeQuery = (nextQuery: string) => {
+    setQuery(nextQuery);
+  };
+  const changePaymentFilter = (nextFilter: PaymentFilter) => {
+    setPaymentFilter(nextFilter);
+    setPage(1);
+  };
+  const changeDateRange = (nextRange: DateRange) => {
+    setDateRange(nextRange);
+    setPage(1);
+  };
 
   return {
     query,
-    setQuery,
-    filteredOrders,
-    paymentFilter,
-    setPaymentFilter,
+    changeQuery,
     dateRange,
-    setDateRange: setSelectedDateRange,
+    changeDateRange,
+    paymentFilter,
+    changePaymentFilter,
+    orders: historyQuery.data?.data ?? [],
+    total,
+    page,
+    pageSize,
+    pageCount,
+    setPage,
+    summary: summaryQuery.data,
+    isLoading: historyQuery.isLoading || summaryQuery.isLoading,
+    isFetching: historyQuery.isFetching || summaryQuery.isFetching,
+    isError: historyQuery.isError || summaryQuery.isError,
+    refetch: () => Promise.all([historyQuery.refetch(), summaryQuery.refetch()]),
   };
 }

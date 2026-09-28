@@ -7,6 +7,7 @@ import type { CashRegister } from "../../../types/cash";
 import type { ApiEnvelope } from "../../../services/apiTypes";
 import { orderRecordToQueueOrder } from "../../queue/api";
 import { queueQueryKeys } from "../../queue/hooks/useQueueApi";
+import { historyQueryKeys } from "../../history/hooks/useHistoryOrders";
 import type { QueueOrder } from "../../queue/api";
 import { createOrder, type CreateOrderDraft } from "../api";
 
@@ -15,6 +16,14 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (draft: CreateOrderDraft) => createOrder(draft),
     onSuccess: (order) => {
+      void queryClient.invalidateQueries({
+        queryKey: historyQueryKeys.historyRoot,
+        refetchType: "active",
+      });
+      void queryClient.invalidateQueries({
+        queryKey: historyQueryKeys.summaryRoot,
+        refetchType: "active",
+      });
       queryClient.setQueryData<ApiEnvelope<QueueOrder[]>>(
         queueQueryKeys.active,
         (current) => {
