@@ -1,7 +1,8 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { memo } from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { AppIcon, AppPressable as Pressable } from "../../ui";
+import { AppIcon } from "../../ui";
+import { DataTableActionButton, DataTableActions } from "../../data-table";
 import { colors, radius, type } from "../../../theme";
 import { Product } from "../../../types/pos";
 import { formatCurrency } from "../../../utils/format";
@@ -17,6 +18,7 @@ export const MenuListItem = memo(function MenuListItem({
   isMobile,
   isTablet,
   onEdit,
+  onDelete,
 }: {
   product: Product;
   hpp: number | null;
@@ -24,6 +26,7 @@ export const MenuListItem = memo(function MenuListItem({
   isMobile: boolean;
   isTablet: boolean;
   onEdit: (product: Product) => void;
+  onDelete: (product: Product) => void;
 }) {
   const profitPerPortion =
     hpp !== null && product.price > 0 ? product.price - hpp : null;
@@ -71,14 +74,10 @@ export const MenuListItem = memo(function MenuListItem({
               {formatCurrency(product.price)}
             </Text>
           </VStack>
-          <Pressable
-            onPress={() => onEdit(product)}
-            style={styles.editButtonMobile}
-            accessibilityRole="button"
-            accessibilityLabel={`Edit ${product.name}`}
-          >
-            <AppIcon name="pencil-outline" size={16} color={colors.primary} />
-          </Pressable>
+          <DataTableActions>
+            <DataTableActionButton action="edit" label={`Edit ${product.name}`} onPress={() => onEdit(product)} />
+            <DataTableActionButton action="delete" label={`Hapus ${product.name}`} onPress={() => onDelete(product)} />
+          </DataTableActions>
         </HStack>
         <HStack style={styles.menuMetaPriceMobile}>
           <Text
@@ -182,14 +181,10 @@ export const MenuListItem = memo(function MenuListItem({
           </Text>
         </HStack>
       </VStack>
-      <Pressable
-        onPress={() => onEdit(product)}
-        style={styles.editButton}
-        accessibilityRole="button"
-        accessibilityLabel={`Edit ${product.name}`}
-      >
-        <AppIcon name="pencil-outline" size={16} color={colors.primary} />
-      </Pressable>
+      <DataTableActions>
+        <DataTableActionButton action="edit" label={`Edit ${product.name}`} onPress={() => onEdit(product)} />
+        <DataTableActionButton action="delete" label={`Hapus ${product.name}`} onPress={() => onDelete(product)} />
+      </DataTableActions>
     </HStack>
   );
 });
@@ -345,20 +340,4 @@ const styles = StyleSheet.create({
   profitNeutral: { color: colors.inkMuted },
   profitPositive: { color: colors.success },
   profitNegative: { color: colors.danger },
-  editButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editButtonMobile: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });

@@ -1,5 +1,5 @@
 export {
-  ActionPill,
+  ActionText,
   AppButton,
   AppIcon,
   AppModalCloseButton,

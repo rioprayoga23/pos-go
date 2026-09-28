@@ -13,7 +13,7 @@ import { StyleSheet } from "react-native";
 import { AppIcon, AppModalCloseButton, AppPressable } from "../../../components/ui";
 import { colors, radius, spacing, type, typography } from "../../../theme";
 import type { StockMovement } from "../../../types/stock";
-import { formatCurrency, formatThousands } from "../../../utils/format";
+import { formatCurrency, formatQuantity, formatThousands } from "../../../utils/format";
 import { styles } from "../styles";
 
 const detailStyles = StyleSheet.create({
@@ -102,7 +102,7 @@ export function StockMovementDetailModal({
   height: number;
   onClose: () => void;
 }) {
-  const quantity = `${movement.quantity > 0 ? "+" : movement.quantity < 0 ? "−" : ""}${formatThousands(Math.abs(movement.quantity))} ${movement.unit}`;
+  const quantity = `${movement.quantity > 0 ? "+" : movement.quantity < 0 ? "−" : ""}${formatQuantity(Math.abs(movement.quantity))} ${movement.unit}`;
   const note = movement.note.trim();
   const showNote = note && !(movement.type === "purchase" && note === "Pembelian stok");
 

@@ -9,7 +9,7 @@ export type StockItem = {
   unit: string;
   /** Unit used for supplier purchases, such as galon. Defaults to `unit`. */
   purchaseUnit?: string;
-  /** How many stock units are in one purchase unit. Defaults to 1. */
+  /** Stock units per purchase unit; can be fractional, such as 0.001 kg per g. */
   stockUnitsPerPurchaseUnit?: number;
   /** Weighted-average cost per stock unit. Fractional rupiah is retained for HPP. */
   avgPrice: number;

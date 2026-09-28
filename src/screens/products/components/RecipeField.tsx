@@ -1,7 +1,7 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { StyleSheet } from "react-native";
 import { DropdownSelect } from "../../../components/dropdown-select";
-import { ActionPill } from "../../../components/ui";
+import { ActionText } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { colors, spacing, typography } from "../../../theme";
 import type { Recipe, StockItem } from "../../../types/stock";
@@ -42,7 +42,7 @@ export function RecipeField({
             Bahan
           </Text>
         </VStack>
-        <ActionPill icon="pencil-outline" label="Kelola" onPress={onManage} />
+        <ActionText icon="pencil-outline" label="Kelola" onPress={onManage} />
       </HStack>
       <DropdownSelect
         options={options}

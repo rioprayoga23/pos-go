@@ -20,8 +20,6 @@ import {
   AppPressable,
 } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
-import { useProductStore } from "../../../store/productStore";
-import { useStockStore } from "../../../store/stockStore";
 import {
   colors,
   fieldHeight,
@@ -30,11 +28,13 @@ import {
   type,
   typography,
 } from "../../../theme";
-import type { Recipe, RecipeIngredient, RecipeKind } from "../../../types/stock";
+import type { Recipe, RecipeIngredient, RecipeKind, StockItem } from "../../../types/stock";
+import type { Product } from "../../../types/pos";
+import type { MenuRecipeDraft } from "../api";
 import {
   getAvailablePortions,
 } from "../../../utils/standardRecipe";
-import { digitsOnly } from "../../../utils/format";
+import { decimalOnly, formatDecimalInput, formatQuantity, isValidQuantity } from "../../../utils/format";
 
 type DraftIngredient =
   | { type: "stock"; itemId: string; quantity: string }
@@ -44,22 +44,28 @@ type ChoiceType = "stock" | "base";
 export function RecipeManagerModal({
   onClose,
   onCreate,
+  onCreateRecipe,
+  onUpdateRecipe,
+  onDeleteRecipe,
+  recipes,
+  inventoryItems,
+  products,
   selectedRecipeId,
   onSelectedDeleted,
 }: {
   onClose: () => void;
   onCreate: (id: string) => void;
+  onCreateRecipe: (draft: MenuRecipeDraft) => Promise<Recipe>;
+  onUpdateRecipe: (id: string, draft: Pick<MenuRecipeDraft, "name" | "ingredients">) => Promise<Recipe>;
+  onDeleteRecipe: (id: string) => Promise<void>;
+  recipes: Recipe[];
+  inventoryItems: StockItem[];
+  products: Product[];
   selectedRecipeId: string;
   onSelectedDeleted: () => void;
 }) {
   const { height, width } = useWindowDimensions();
   const isCompact = width < 420;
-  const recipes = useStockStore((state) => state.recipes);
-  const inventoryItems = useStockStore((state) => state.items);
-  const addRecipe = useStockStore((state) => state.addRecipe);
-  const updateRecipe = useStockStore((state) => state.updateRecipe);
-  const products = useProductStore((state) => state.products);
-  const deleteRecipe = useProductStore((state) => state.deleteRecipe);
   const [editingId, setEditingId] = useState<string | null | undefined>(undefined);
   const [kind, setKind] = useState<RecipeKind>("menu");
   const [name, setName] = useState("");
@@ -67,6 +73,8 @@ export function RecipeManagerModal({
   const [choiceType, setChoiceType] = useState<ChoiceType | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const startCreate = (nextKind: RecipeKind) => {
     setEditingId(null);
@@ -91,7 +99,7 @@ export function RecipeManagerModal({
     setError("");
   };
 
-  const save = () => {
+  const save = async () => {
     const normalizedName = name.trim();
     const normalizedIngredients: RecipeIngredient[] = ingredients.map((part) => ({
       ...part,
@@ -105,7 +113,9 @@ export function RecipeManagerModal({
       setError("Nama ini sudah dipakai.");
       return;
     }
-    if (!normalizedIngredients.length || normalizedIngredients.some((part) => !Number.isSafeInteger(part.quantity) || part.quantity <= 0)) {
+    if (!normalizedIngredients.length || normalizedIngredients.some((part) =>
+      !isValidQuantity(part.quantity) || part.quantity <= 0 ||
+      (part.type === "base" && !Number.isSafeInteger(part.quantity)))) {
       setError("Pilih bahan dan isi takaran lebih dari 0.");
       return;
     }
@@ -115,28 +125,41 @@ export function RecipeManagerModal({
     }
 
     const draft = { name: normalizedName, kind, ingredients: normalizedIngredients };
-    if (editingId) {
-      if (!updateRecipe(editingId, draft)) {
-        setError("Periksa bahan dan takarannya.");
+    setIsSaving(true);
+    setError("");
+    try {
+      if (editingId) {
+        await onUpdateRecipe(editingId, { name: draft.name, ingredients: draft.ingredients });
+        setEditingId(undefined);
         return;
       }
-      setEditingId(undefined);
-      setError("");
-      return;
+      const created = await onCreateRecipe(draft);
+      if (kind === "base") {
+        setEditingId(undefined);
+        return;
+      }
+      onCreate(created.id);
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Resep gagal disimpan. Coba lagi.");
+    } finally {
+      setIsSaving(false);
     }
+  };
 
-    const id = addRecipe(draft);
-    if (!id) {
-      setError("Periksa bahan dan takarannya.");
-      return;
+  const handleDeleteRecipe = async (id: string) => {
+    if (deletingId) return;
+    setDeletingId(id);
+    setError("");
+    try {
+      await onDeleteRecipe(id);
+      if (selectedRecipeId === id) onSelectedDeleted();
+      setConfirmDeleteId(null);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Resep gagal dihapus.");
+    } finally {
+      setDeletingId(null);
     }
-    if (kind === "base") {
-      setEditingId(undefined);
-      setError("");
-      return;
-    }
-    onCreate(id);
-    onClose();
   };
 
   const availableItems = inventoryItems.filter((item) =>
@@ -152,10 +175,13 @@ export function RecipeManagerModal({
     kind,
     ingredients: ingredients.map((part) => ({ ...part, quantity: Number(part.quantity) })),
   };
-  const validDraft = ingredients.length > 0 && ingredients.every((part) => Number.isSafeInteger(Number(part.quantity)) && Number(part.quantity) > 0);
+  const validDraft = ingredients.length > 0 && ingredients.every((part) =>
+    isValidQuantity(Number(part.quantity)) && Number(part.quantity) > 0 &&
+    (part.type === "stock" || Number.isSafeInteger(Number(part.quantity))));
   const draftStock = validDraft ? getAvailablePortions(inventoryItems, draftRecipe, [...recipes, draftRecipe]) : null;
+
   const choices = choiceType === "stock"
-    ? availableItems.map((item) => ({ id: item.id, name: item.name, meta: `Stok ${item.stock} ${item.unit}`, type: "stock" as const }))
+    ? availableItems.map((item) => ({ id: item.id, name: item.name, meta: `Stok ${formatQuantity(item.stock)} ${item.unit}`, type: "stock" as const }))
     : availableBases.map((recipe) => ({ id: recipe.id, name: recipe.name, meta: `${getAvailablePortions(inventoryItems, recipe, recipes)} porsi dasar tersedia`, type: "base" as const }));
 
   const addChoice = (type: ChoiceType, id: string) => {
@@ -198,7 +224,10 @@ export function RecipeManagerModal({
         </HStack>
         {isCompact ? (
           <HStack style={styles.recipeActions}>
-            <Text style={[styles.portionText, portions ? styles.portionTextReady : styles.portionTextEmpty]}>{portions ? `${portions} porsi` : "Stok habis"}</Text>
+            <HStack style={[styles.portionBadge, portions ? styles.portionBadgeReady : styles.portionBadgeEmpty]}>
+              <AppIcon name={portions ? "check-circle-outline" : "alert-circle-outline"} size={15} color={portions ? colors.success : colors.warning} />
+              <Text style={[styles.portionText, portions ? styles.portionTextReady : styles.portionTextEmpty]}>{portions ? `${portions} porsi` : "Stok habis"}</Text>
+            </HStack>
             <EditAction name={recipe.name} onPress={() => startEdit(recipe)} />
             <DeleteAction name={recipe.name} disabled={!canDelete} onPress={() => setConfirmDeleteId(recipe.id)} />
           </HStack>
@@ -207,13 +236,8 @@ export function RecipeManagerModal({
           <HStack style={styles.confirmRow}>
             <Text style={styles.confirmText}>{usage ? "Formula ini masih dipakai." : "Hapus formula ini?"}</Text>
             <AppPressable onPress={() => setConfirmDeleteId(null)} style={styles.confirmButton} accessibilityRole="button"><Text style={styles.cancelText}>Batal</Text></AppPressable>
-            <AppPressable onPress={() => {
-              if (canDelete && deleteRecipe(recipe.id)) {
-                if (selectedRecipeId === recipe.id) onSelectedDeleted();
-                setConfirmDeleteId(null);
-              }
-            }} disabled={!canDelete} style={styles.confirmButton} accessibilityRole="button" accessibilityState={{ disabled: !canDelete }}>
-              <Text style={[styles.deleteText, !canDelete && styles.disabledText]}>Hapus</Text>
+            <AppPressable onPress={() => { void handleDeleteRecipe(recipe.id); }} disabled={!canDelete || deletingId !== null} style={styles.confirmButton} accessibilityRole="button" accessibilityState={{ disabled: !canDelete || deletingId !== null }}>
+              <Text style={[styles.deleteText, (!canDelete || deletingId !== null) && styles.disabledText]}>{deletingId === recipe.id ? "Menghapus..." : "Hapus"}</Text>
             </AppPressable>
           </HStack>
         ) : null}
@@ -284,7 +308,7 @@ export function RecipeManagerModal({
                         const ingredientId = part.type === "stock" ? `stock:${part.itemId}` : `base:${part.recipeId}`;
                         const ingredientName = item?.name ?? base?.name ?? "Bahan tidak ditemukan";
                         const subline = item
-                          ? `Stok ${item.stock} ${item.unit}`
+                          ? `Stok ${formatQuantity(item.stock)} ${item.unit}`
                           : base
                             ? `Bahan dasar · ${getAvailablePortions(inventoryItems, base, recipes)} porsi tersedia`
                             : "Komponen tidak tersedia";
@@ -295,15 +319,15 @@ export function RecipeManagerModal({
                               <Text style={styles.ingredientStock} numberOfLines={1}>{subline}</Text>
                             </VStack>
                             <AppInput
-                              value={part.quantity}
+                              value={formatDecimalInput(part.quantity)}
                               onChangeText={(value) => {
                                 setIngredients((current) => current.map((entry) => {
                                   const entryId = entry.type === "stock" ? `stock:${entry.itemId}` : `base:${entry.recipeId}`;
-                                  return entryId === ingredientId ? { ...entry, quantity: digitsOnly(value) } : entry;
+                                  return entryId === ingredientId ? { ...entry, quantity: decimalOnly(value) } : entry;
                                 }));
                                 setError("");
                               }}
-                              keyboardType="number-pad"
+                              keyboardType="decimal-pad"
                               accessibilityLabel={`${ingredientName} per porsi`}
                               style={[styles.quantityInput, isCompact && styles.quantityInputCompact]}
                               inputStyle={styles.quantityValue}
@@ -350,13 +374,13 @@ export function RecipeManagerModal({
                       ) : null}
                       {choices.length ? (
                         choices.map((entry) => (
-                            <AppPressable key={entry.id} onPress={() => addChoice(entry.type, entry.id)} style={styles.choice} accessibilityRole="button" accessibilityLabel={`Tambahkan ${entry.name}`}>
-                              <VStack style={styles.choiceCopy}>
-                                <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
-                                <Text style={styles.rowMeta}>{entry.meta}</Text>
-                              </VStack>
-                              <HStack style={styles.choiceAddIcon}><AppIcon name="plus" size={17} color={colors.primary} /></HStack>
-                            </AppPressable>
+                          <AppPressable key={entry.id} onPress={() => addChoice(entry.type, entry.id)} style={styles.choice} accessibilityRole="button" accessibilityLabel={`Tambahkan ${entry.name}`}>
+                            <VStack style={styles.choiceCopy}>
+                              <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
+                              <Text style={styles.rowMeta}>{entry.meta}</Text>
+                            </VStack>
+                            <HStack style={styles.choiceAddIcon}><AppIcon name="plus" size={17} color={colors.primary} /></HStack>
+                          </AppPressable>
                         ))
                       ) : (
                         <Text style={styles.noChoices}>{choiceType === "stock" ? "Semua bahan stok sudah dipilih." : "Belum ada bahan dasar. Buat bahan dasar dulu."}</Text>
@@ -378,6 +402,7 @@ export function RecipeManagerModal({
               </VStack>
             ) : (
               <VStack style={styles.list}>
+                {error ? <Text style={productFormStyles.errorText}>{error}</Text> : null}
                 <VStack style={styles.createBlock}>
                   <Text style={[productFormStyles.fieldLabel, styles.fieldLabelFlush]}>Tambah formula</Text>
                   <HStack style={styles.createActions}>
@@ -393,11 +418,11 @@ export function RecipeManagerModal({
                 </VStack>
                 <VStack style={styles.recipeSection}>
                   <Text style={styles.recipeSectionTitle}>Bahan Dasar</Text>
-                  {baseRecipes.map(renderRecipe)}
+                  {baseRecipes.length ? baseRecipes.map(renderRecipe) : <EmptyRecipeSection kind="base" />}
                 </VStack>
                 <VStack style={styles.recipeSection}>
                   <Text style={styles.recipeSectionTitle}>Menu Jual</Text>
-                  {menuRecipes.map(renderRecipe)}
+                  {menuRecipes.length ? menuRecipes.map(renderRecipe) : <EmptyRecipeSection kind="menu" />}
                 </VStack>
               </VStack>
             )}
@@ -409,13 +434,28 @@ export function RecipeManagerModal({
             <AppPressable onPress={() => { setEditingId(undefined); setChoiceType(null); setError(""); }} style={styles.cancel} accessibilityRole="button" accessibilityLabel="Kembali ke daftar bahan">
               <Text style={styles.cancelText}>Kembali</Text>
             </AppPressable>
-            <Button onPress={save} style={styles.save}>
-              <ButtonText style={styles.saveText}>{editingId ? "Simpan perubahan" : kind === "base" ? "Simpan bahan dasar" : "Simpan menu"}</ButtonText>
+            <Button onPress={() => { void save(); }} isDisabled={isSaving} style={styles.save}>
+              <ButtonText style={styles.saveText}>{isSaving ? "Menyimpan..." : editingId ? "Simpan perubahan" : kind === "base" ? "Simpan bahan dasar" : "Simpan menu"}</ButtonText>
             </Button>
           </ModalFooter>
         ) : null}
       </ModalContent>
     </Modal>
+  );
+}
+
+function EmptyRecipeSection({ kind }: { kind: RecipeKind }) {
+  const isBase = kind === "base";
+  return (
+    <VStack style={styles.emptyRecipe}>
+      <HStack style={styles.emptyRecipeIcon}>
+        <AppIcon name={isBase ? "layers-outline" : "cup-outline"} size={17} color={colors.primary} />
+      </HStack>
+      <VStack style={styles.emptyRecipeCopy}>
+        <Text style={styles.emptyRecipeTitle}>{isBase ? "Belum ada bahan dasar" : "Belum ada menu jual"}</Text>
+        <Text style={styles.emptyRecipeText}>{isBase ? "Buat bahan dasar untuk dipakai dalam formula menu." : "Buat menu jual untuk menghubungkan formula dengan produk."}</Text>
+      </VStack>
+    </VStack>
   );
 }
 
@@ -494,17 +534,22 @@ const styles = StyleSheet.create({
   createActions: { gap: spacing.sm },
   createButton: { flex: 1, minHeight: 48, paddingHorizontal: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surfaceTint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
   createText: { color: colors.primary, fontSize: type.micro, fontWeight: "600" },
+  emptyRecipe: { minHeight: 88, padding: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surfaceContainerLow, flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  emptyRecipeIcon: { width: 36, height: 36, borderRadius: radius.md, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
+  emptyRecipeCopy: { flex: 1, gap: 3 },
+  emptyRecipeTitle: { color: colors.ink, fontSize: type.caption, fontWeight: "600" },
+  emptyRecipeText: { color: colors.inkMuted, fontSize: type.micro, lineHeight: 17 },
   recipeRow: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, gap: spacing.sm },
   recipeMain: { alignItems: "center", gap: spacing.sm },
   recipeActions: { alignItems: "center", justifyContent: "flex-end", gap: spacing.xs },
-  recipeIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
   recipeName: { flex: 1, minWidth: 0, gap: 3 },
   rowName: { color: colors.ink, fontSize: type.caption, fontWeight: "600" },
   rowMeta: { color: colors.inkMuted, fontSize: type.micro },
+  portionText: { fontSize: type.micro, fontWeight: "600" },
+  recipeIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.surfaceTint, alignItems: "center", justifyContent: "center" },
   portionBadge: { minHeight: 28, paddingHorizontal: spacing.sm, borderRadius: radius.sm, flexDirection: "row", alignItems: "center", gap: spacing.xs },
   portionBadgeReady: { backgroundColor: colors.successSoft },
   portionBadgeEmpty: { backgroundColor: colors.warningSoft },
-  portionText: { fontSize: type.micro, fontWeight: "600" },
   portionTextReady: { color: colors.success },
   portionTextEmpty: { color: colors.warning },
   editButton: { minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: radius.md, flexDirection: "row", alignItems: "center", gap: spacing.xs },

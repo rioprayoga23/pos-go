@@ -22,13 +22,20 @@ import { colors } from "../../../theme";
 import {
   digitsOnly,
   formatCurrency,
+  formatQuantity,
   formatThousands,
+  isValidQuantity,
   parseWholeNumber,
 } from "../../../utils/format";
 import type { StockItem } from "../../../types/stock";
 import { customItemOptionId, stockUnitOptions } from "../data/options";
 import type { PurchaseDraft } from "../types";
 import { getPurchaseUnit, getStockUnitsPerPurchaseUnit } from "../utils/stock";
+import {
+  calculateStockUnitsPerPurchaseUnit,
+  getDefaultPurchaseUnit,
+  getPurchaseUnitOptions,
+} from "../utils/unitConversion";
 import { styles } from "../styles";
 
 export function StockPurchaseModal({
@@ -53,6 +60,7 @@ export function StockPurchaseModal({
   );
   const [customItemName, setCustomItemName] = useState("");
   const [customUnit, setCustomUnit] = useState("");
+  const [customPurchaseUnit, setCustomPurchaseUnit] = useState("");
   const [quantityInput, setQuantityInput] = useState("");
   const [totalCostInput, setTotalCostInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,7 +72,11 @@ export function StockPurchaseModal({
     ...items.map((item) => ({ value: item.id, label: item.name })),
     { value: customItemOptionId, label: "Bahan baru" },
   ];
-  const unitOptions: DropdownOption<string>[] = stockUnitOptions.map((option) => ({
+  const stockOptions: DropdownOption<string>[] = stockUnitOptions.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
+  const purchaseOptions: DropdownOption<string>[] = getPurchaseUnitOptions(customUnit).map((option) => ({
     value: option.value,
     label: option.label,
   }));
@@ -75,17 +87,22 @@ export function StockPurchaseModal({
     items.some((item) => item.name.trim().toLowerCase() === normalizedCustomName.toLowerCase());
   const quantity = parseWholeNumber(quantityInput);
   const totalCost = parseWholeNumber(totalCostInput);
-  const purchaseUnit = selectedItem ? getPurchaseUnit(selectedItem) : customUnit;
-  const conversion = selectedItem ? getStockUnitsPerPurchaseUnit(selectedItem) : 1;
+  const stockUnit = selectedItem?.unit ?? customUnit;
+  const purchaseUnit = selectedItem ? getPurchaseUnit(selectedItem) : customPurchaseUnit;
+  const conversion = selectedItem
+    ? getStockUnitsPerPurchaseUnit(selectedItem)
+    : calculateStockUnitsPerPurchaseUnit(customPurchaseUnit, customUnit) ?? 0;
   const incomingStock = quantity * conversion;
   const currentStock = selectedItem?.stock ?? 0;
   const nextStock = currentStock + incomingStock;
   const canSubmit = Boolean(
     quantityInput.trim() &&
     quantity > 0 &&
+    isValidQuantity(incomingStock) &&
+    isValidQuantity(nextStock) &&
     totalCost > 0 &&
     (isCustomItem
-      ? normalizedCustomName && customUnit && !hasDuplicateCustomName
+      ? normalizedCustomName && customUnit && customPurchaseUnit && conversion > 0 && !hasDuplicateCustomName
       : selectedItem),
   );
 
@@ -99,7 +116,15 @@ export function StockPurchaseModal({
         mode: "purchase",
         itemId: isCustomItem ? customItemOptionId : selectedItem!.id,
         ...(isCustomItem
-          ? { newItem: { name: normalizedCustomName, unit: customUnit } }
+          ? {
+              newItem: {
+                name: normalizedCustomName,
+                description: "",
+                unit: customUnit,
+                purchaseUnit: customPurchaseUnit,
+                stockUnitsPerPurchaseUnit: conversion,
+              },
+            }
           : {}),
         quantity,
         totalCost,
@@ -175,15 +200,45 @@ export function StockPurchaseModal({
                   ) : null}
                 </VStack>
                 <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Satuan stok</Text>
+                  <Text style={styles.formLabel}>Satuan stok & resep</Text>
                   <DropdownSelect
-                    options={unitOptions}
+                    options={stockOptions}
                     value={customUnit}
-                    onChange={setCustomUnit}
+                    onChange={(nextUnit) => {
+                      setCustomUnit(nextUnit);
+                      setCustomPurchaseUnit(getDefaultPurchaseUnit(nextUnit));
+                    }}
                     placeholder="Pilih satuan"
-                    accessibilityLabel="Pilih satuan stok"
+                    accessibilityLabel="Pilih satuan stok dan resep"
                   />
+                  <Text style={styles.formHint}>
+                    Satuan ini dipakai untuk takaran resep dan perhitungan HPP.
+                  </Text>
                 </VStack>
+                {customUnit ? (
+                  <VStack style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Satuan pembelian</Text>
+                    <DropdownSelect
+                      options={purchaseOptions}
+                      value={customPurchaseUnit}
+                      onChange={setCustomPurchaseUnit}
+                      placeholder="Pilih satuan pembelian"
+                      accessibilityLabel="Pilih satuan pembelian"
+                    />
+                    {conversion > 0 ? (
+                      <VStack style={styles.formGroup}>
+                        <Text style={styles.formLabel}>Konversi otomatis</Text>
+                        <AppInput
+                          value={`1 ${customPurchaseUnit} = ${formatQuantity(conversion)} ${customUnit}`}
+                          onChangeText={() => undefined}
+                          editable={false}
+                          accessibilityLabel="Konversi satuan otomatis"
+                        />
+                      </VStack>
+                    ) : null}
+                    <Text style={styles.formHint}>Satuan dan konversi ini disimpan pada data bahan.</Text>
+                  </VStack>
+                ) : null}
               </>
             ) : null}
 
@@ -200,8 +255,19 @@ export function StockPurchaseModal({
               />
               {conversion > 1 ? (
                 <Text style={styles.formHint}>
-                  1 {purchaseUnit} = {formatThousands(conversion)} {selectedItem?.unit ?? customUnit}
+                  1 {purchaseUnit} = {formatQuantity(conversion)} {stockUnit}
                 </Text>
+              ) : null}
+              {quantity > 0 && conversion > 0 ? (
+                <VStack style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Stok masuk setelah konversi</Text>
+                  <AppInput
+                    value={`${formatQuantity(incomingStock)} ${stockUnit}`}
+                    onChangeText={() => undefined}
+                    editable={false}
+                    accessibilityLabel="Jumlah stok yang akan masuk setelah konversi"
+                  />
+                </VStack>
               ) : null}
             </VStack>
 
@@ -228,7 +294,7 @@ export function StockPurchaseModal({
               <HStack style={styles.summaryLine}>
                 <Text style={styles.summaryLineLabel}>Stok setelah masuk</Text>
                 <Text style={styles.summaryLineValue}>
-                  {formatThousands(nextStock)} {selectedItem?.unit ?? customUnit}
+                  {formatQuantity(nextStock)} {stockUnit}
                 </Text>
               </HStack>
               <HStack style={styles.summaryLine}>

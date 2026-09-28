@@ -224,47 +224,45 @@ export function AppModalCloseButton({
   );
 }
 
-export function ActionPill({
+export function ActionText({
   icon,
   label,
   onPress,
   accessibilityLabel,
+  tone = "primary",
 }: {
   icon: IconName;
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
+  tone?: "primary" | "danger";
 }) {
-  const { width } = useWindowDimensions();
+  const color = tone === "danger" ? colors.danger : colors.primaryDark;
   return (
     <AppPressable
       onPress={onPress}
-      style={styles.actionPill}
+      style={styles.actionText}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
     >
-      <AppIcon name={icon} size={16} color={colors.primary} />
-      <Text style={[styles.actionPillText, width < 768 && styles.actionPillTextMobile, width >= 768 && width < 1024 && styles.actionPillTextTablet]}>{label}</Text>
+      <AppIcon name={icon} size={18} color={color} />
+      <Text style={[styles.actionTextLabel, { color }]}>{label}</Text>
     </AppPressable>
   );
 }
 
 const styles = StyleSheet.create({
   touchPressed: { opacity: 0.78 },
-  actionPill: {
+  actionText: {
     minHeight: 44,
-    paddingHorizontal: 10,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceTint,
+    paddingHorizontal: 4,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 4,
+    gap: 5,
   },
-  actionPillText: { color: colors.primaryDark, ...typography.compactButton },
-  actionPillTextMobile: { fontSize: typography.compactButton.fontSize, lineHeight: 17 },
-  actionPillTextTablet: { fontSize: typography.compactButton.fontSize, lineHeight: 17 },
+  actionTextLabel: { ...typography.button },
   appModalCloseButton: {
     width: 44,
     height: 44,

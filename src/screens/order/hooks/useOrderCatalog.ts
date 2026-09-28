@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { useProductStore } from '../../../store/productStore';
 import { spacing } from '../../../theme';
+import { useMenuData } from '../../products/hooks/useMenuApi';
 
 export function useOrderCatalog() {
   const { width } = useWindowDimensions();
-  const categories = useProductStore((state) => state.categories);
-  const products = useProductStore((state) => state.products);
+  const menu = useMenuData();
+  const categories = menu.categories;
+  const products = menu.products;
   const [query, onQueryChange] = useState('');
   const [selectedCategory, onSelectCategory] = useState('all');
   const [catalogWidth, setCatalogWidth] = useState(0);
@@ -40,6 +41,9 @@ export function useOrderCatalog() {
     cardWidth,
     mobile,
     filteredProducts,
+    isLoading: menu.isLoading,
+    isError: menu.isError,
+    retry: menu.refetch,
     handleCatalogLayout,
     onQueryChange,
     onSelectCategory,

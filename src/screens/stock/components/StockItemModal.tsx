@@ -24,22 +24,31 @@ import {
 import { colors } from "../../../theme";
 import {
   digitsOnly,
+  decimalOnly,
+  formatDecimalInput,
   formatPreciseCurrency,
+  formatQuantity,
   formatThousands,
+  isValidQuantity,
+  parseDecimal,
   parseWholeNumber,
 } from "../../../utils/format";
 import type { StockItem } from "../../../types/stock";
 import type { StockItemDraft } from "../api";
-import { stockUnitOptions } from "../data/options";
 import { styles } from "../styles";
 import {
   getPurchaseUnitPrice,
   getStockUnitsPerPurchaseUnit,
 } from "../utils/stock";
+import {
+  calculateStockUnitsPerPurchaseUnit,
+  getPurchaseUnitOptions,
+} from "../utils/unitConversion";
 
 export type StockItemFormDraft = StockItemDraft & {
   actualStock: number;
   purchaseUnitPriceRupiah: number;
+  purchaseUnitPriceEdited: boolean;
   note: string;
 };
 
@@ -53,18 +62,20 @@ type Props = {
 export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description);
-  const [unit, setUnit] = useState(item.unit);
-  const purchaseUnit = item.purchaseUnit ?? item.unit;
+  const unit = item.unit;
+  const [purchaseUnit, setPurchaseUnit] = useState(item.purchaseUnit ?? item.unit);
   const [actualStockInput, setActualStockInput] = useState(String(item.stock));
   const [purchaseUnitPriceInput, setPurchaseUnitPriceInput] = useState(() =>
     String(Math.round(getPurchaseUnitPrice(item))),
   );
+  const [purchaseUnitPriceEdited, setPurchaseUnitPriceEdited] = useState(false);
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const actualStock = parseWholeNumber(actualStockInput);
+  const actualStock = parseDecimal(actualStockInput);
   const purchaseUnitPrice = parseWholeNumber(purchaseUnitPriceInput);
   const currentPurchaseUnitPrice = Math.round(getPurchaseUnitPrice(item));
+  const stockUnitsPerPurchaseUnit = calculateStockUnitsPerPurchaseUnit(purchaseUnit, unit) ?? 0;
   const stockChanged =
     actualStockInput.trim() !== "" && actualStock !== item.stock;
   const priceChanged =
@@ -73,20 +84,25 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
   const metadataChanged =
     name.trim() !== item.name ||
     description.trim() !== item.description ||
-    unit !== item.unit;
-  const correctionDelta = actualStock - item.stock;
-  const pricePreview = purchaseUnitPrice / getStockUnitsPerPurchaseUnit(item);
-  const unitOptions: DropdownOption<string>[] = stockUnitOptions.map(
-    (option) => ({
-      value: option.value,
-      label: option.label,
-    }),
-  );
+    unit !== item.unit ||
+    purchaseUnit !== (item.purchaseUnit ?? item.unit) ||
+    stockUnitsPerPurchaseUnit !== getStockUnitsPerPurchaseUnit(item);
+  const correctionDelta = Math.round((actualStock - item.stock) * 1_000_000_000) / 1_000_000_000;
+  const pricePreview = stockUnitsPerPurchaseUnit > 0
+    ? purchaseUnitPrice / stockUnitsPerPurchaseUnit
+    : 0;
+  const purchaseUnitOptions: DropdownOption<string>[] = getPurchaseUnitOptions(unit).map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
   const canSubmit = Boolean(
     name.trim() &&
     unit &&
+    purchaseUnit &&
+    stockUnitsPerPurchaseUnit > 0 &&
     purchaseUnitPriceInput.trim() &&
     (metadataChanged || stockChanged || priceChanged) &&
+    isValidQuantity(actualStock) &&
     (!stockChanged || note.trim()),
   );
 
@@ -100,9 +116,10 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
         description: description.trim(),
         unit,
         purchaseUnit,
-        stockUnitsPerPurchaseUnit: getStockUnitsPerPurchaseUnit(item),
+        stockUnitsPerPurchaseUnit,
         actualStock: actualStockInput.trim() ? actualStock : item.stock,
         purchaseUnitPriceRupiah: purchaseUnitPrice,
+        purchaseUnitPriceEdited,
         note: note.trim(),
       });
     } catch (error) {
@@ -166,23 +183,56 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
               />
             </VStack>
             <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Satuan stok</Text>
-              <DropdownSelect
-                options={unitOptions}
+              <Text style={styles.formLabel}>Satuan stok & resep</Text>
+              <AppInput
                 value={unit}
-                onChange={setUnit}
-                placeholder="Pilih satuan stok"
-                accessibilityLabel="Pilih satuan stok"
+                onChangeText={() => undefined}
+                editable={false}
+                accessibilityLabel="Satuan stok dan resep"
               />
+              <Text style={styles.formHint}>
+                Satuan stok dan resep ditetapkan saat bahan dibuat agar saldo dan HPP konsisten.
+              </Text>
+            </VStack>
+            <VStack style={styles.formGroup}>
+              <Text style={styles.formLabel}>Satuan pembelian</Text>
+              <DropdownSelect
+                options={purchaseUnitOptions}
+                value={purchaseUnit}
+                onChange={(nextPurchaseUnit) => {
+                  const currentFactor = calculateStockUnitsPerPurchaseUnit(purchaseUnit, unit);
+                  const nextFactor = calculateStockUnitsPerPurchaseUnit(nextPurchaseUnit, unit);
+                  const enteredPrice = parseWholeNumber(purchaseUnitPriceInput);
+                  if (currentFactor && nextFactor && enteredPrice > 0) {
+                    setPurchaseUnitPriceInput(
+                      String(Math.round((enteredPrice / currentFactor) * nextFactor)),
+                    );
+                  }
+                  setPurchaseUnit(nextPurchaseUnit);
+                }}
+                placeholder="Pilih satuan pembelian"
+                accessibilityLabel="Pilih satuan pembelian"
+              />
+              {stockUnitsPerPurchaseUnit > 0 ? (
+                <VStack style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Konversi otomatis</Text>
+                  <AppInput
+                    value={`1 ${purchaseUnit} = ${formatQuantity(stockUnitsPerPurchaseUnit)} ${unit}`}
+                    onChangeText={() => undefined}
+                    editable={false}
+                    accessibilityLabel="Konversi satuan otomatis"
+                  />
+                </VStack>
+              ) : null}
             </VStack>
             <VStack style={styles.formGroup}>
               <Text style={styles.formLabel}>Stok fisik saat ini</Text>
               <AppInput
-                value={formatThousands(actualStockInput)}
+                value={formatDecimalInput(actualStockInput)}
                 onChangeText={(value) =>
-                  setActualStockInput(digitsOnly(value))
+                  setActualStockInput(decimalOnly(value))
                 }
-                keyboardType="number-pad"
+                keyboardType="decimal-pad"
                 style={styles.formInput}
                 inputStyle={styles.formInputText}
                 trailing={<Text style={styles.inputPrefix}>{unit}</Text>}
@@ -205,7 +255,7 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
                         : correctionDelta < 0
                           ? "−"
                           : ""}
-                      {formatThousands(Math.abs(correctionDelta))} {unit}
+                      {formatQuantity(Math.abs(correctionDelta))} {unit}
                     </Text>
                   </HStack>
                 </VStack>
@@ -228,9 +278,10 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
               </Text>
               <AppInput
                 value={formatThousands(purchaseUnitPriceInput)}
-                onChangeText={(value) =>
-                  setPurchaseUnitPriceInput(digitsOnly(value))
-                }
+                onChangeText={(value) => {
+                  setPurchaseUnitPriceInput(digitsOnly(value));
+                  setPurchaseUnitPriceEdited(true);
+                }}
                 placeholder="0"
                 keyboardType="number-pad"
                 style={styles.formInput}

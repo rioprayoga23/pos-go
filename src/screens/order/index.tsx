@@ -4,6 +4,8 @@ import { HStack, VStack } from '@gluestack-ui/themed';
 import { useCallback } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { AppShell } from '../../components/app-shell';
+import { LoadingScreen } from '../../components/loading-screen';
+import { QueryErrorNotice } from '../../components/query-error-notice';
 import { useCartStore } from '../../store/cartStore';
 import { CartPanel } from './components/CartPanel';
 import { MenuCatalog } from './components/MenuCatalog';
@@ -23,6 +25,9 @@ export function OrderScreen() {
     onQueryChange,
     query,
     selectedCategory,
+    isLoading,
+    isError,
+    retry,
   } = useOrderCatalog();
   const items = useCartStore((state) => state.items);
   const addItem = useCartStore((state) => state.addItem);
@@ -36,8 +41,10 @@ export function OrderScreen() {
   );
 
   return (
+    <>
     <AppShell active="Order" scrollable={!isWide}>
       <VStack style={[styles.page, isWide && styles.pageFixed]}>
+        {isError ? <QueryErrorNotice onRetry={() => { void retry(); }} /> : null}
         <HStack style={[styles.workspace, !isWide && styles.workspaceStack]}>
           <MenuCatalog
             categories={categories}
@@ -64,5 +71,7 @@ export function OrderScreen() {
         </HStack>
       </VStack>
     </AppShell>
+    <LoadingScreen visible={isLoading} />
+    </>
   );
 }

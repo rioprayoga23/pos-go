@@ -1,4 +1,5 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
+import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import {
   AppIcon,
@@ -13,6 +14,8 @@ import { colors, spacing } from "../../../theme";
 import { getRecipeHpp } from "../../../utils/standardRecipe";
 import { ProductCatalogModel } from "../types";
 import { styles } from "../styles";
+import { DeleteMenuProductModal } from "./DeleteMenuProductModal";
+import type { Product } from "../../../types/pos";
 
 export function ProductCatalog({
   model,
@@ -23,6 +26,7 @@ export function ProductCatalog({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const inventoryItems = useStockStore((state) => state.items);
   const recipes = useStockStore((state) => state.recipes);
   const menuItems = model.filteredProducts.map((product) => (
@@ -34,6 +38,7 @@ export function ProductCatalog({
       isMobile={isMobile}
       isTablet={isTablet}
       onEdit={model.openEdit}
+      onDelete={setDeleteTarget}
     />
   ));
 
@@ -124,6 +129,13 @@ export function ProductCatalog({
           </HStack>
         </HStack>
       </Panel>
+      {deleteTarget ? (
+        <DeleteMenuProductModal
+          product={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDelete={(product) => model.deleteProduct(product)}
+        />
+      ) : null}
     </VStack>
   );
 }

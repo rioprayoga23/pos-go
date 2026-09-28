@@ -1,6 +1,6 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { DropdownSelect } from "../../../components/dropdown-select";
-import { ActionPill } from "../../../components/ui";
+import { ActionText } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { Category } from "../../../types/pos";
 import { styles } from "../styles";
@@ -29,7 +29,7 @@ export function CategoryField({ categories, selectedId, isMobile, isTablet, onSe
         <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet, styles.categoryLabel]}>
           Kategori Menu Minuman
         </Text>
-        <ActionPill
+        <ActionText
           icon="plus"
           label="Kategori Baru"
           onPress={onAdd}

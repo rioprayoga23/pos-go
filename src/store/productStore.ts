@@ -15,6 +15,7 @@ type ProductState = {
   addCategory: (category: Omit<Category, 'id' | 'count'>) => void;
   deleteRecipe: (id: string) => boolean;
   syncInventory: (items: StockItem[], recipes: Recipe[]) => void;
+  setCatalog: (products: Product[], categories: Category[]) => void;
 };
 
 const syncCounts = (items: Product[], currentCategories: Category[]) => currentCategories.map((category) => category.id === 'all' ? { ...category, count: items.length } : { ...category, count: items.filter((item) => item.categoryId === category.id).length });
@@ -62,6 +63,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
       products: state.products.map((product) => ({ ...product, stock: availableFor(product, items, recipes) })),
     }));
     useCartStore.getState().reconcileInventory(get().products);
+  },
+  setCatalog: (products, categories) => {
+    const normalizedCategories = syncCounts(products, categories);
+    set({ products, categories: normalizedCategories });
+    useCartStore.getState().reconcileInventory(products);
   },
 }));
 

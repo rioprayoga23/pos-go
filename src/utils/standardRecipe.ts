@@ -72,10 +72,11 @@ export function getRecipeStockRequirements(
     if (!current.ingredients.length || ancestors.has(current.id)) return false;
     const nextAncestors = new Set(ancestors).add(current.id);
     for (const part of current.ingredients) {
-      if (!Number.isSafeInteger(part.quantity) || part.quantity <= 0) return false;
+      if (!Number.isFinite(part.quantity) || part.quantity <= 0) return false;
       if (part.type === "stock") {
-        required.set(part.itemId, (required.get(part.itemId) ?? 0) + part.quantity * factor);
+        required.set(part.itemId, roundQuantity((required.get(part.itemId) ?? 0) + part.quantity * factor));
       } else {
+        if (!Number.isSafeInteger(part.quantity)) return false;
         const base = recipesById.get(part.recipeId);
         if (!base || base.kind !== "base" || current.kind !== "menu") return false;
         if (!expand(base, part.quantity * factor, nextAncestors)) return false;
@@ -96,7 +97,7 @@ export function getAvailablePortions(
   if (!required) return 0;
   const byId = new Map(items.map((item) => [item.id, item.stock]));
   return Math.max(0, Math.min(...[...required].map(([itemId, quantity]) =>
-    Math.floor((byId.get(itemId) ?? 0) / quantity),
+    Math.floor((byId.get(itemId) ?? 0) / quantity + 1e-9),
   )));
 }
 
@@ -146,10 +147,14 @@ export function getRequiredStock(
     const recipeStock = getRecipeStockRequirements(recipe, recipes, selection.quantity);
     if (!recipeStock) return null;
     for (const [itemId, quantity] of recipeStock) {
-      required.set(itemId, (required.get(itemId) ?? 0) + quantity);
+      required.set(itemId, roundQuantity((required.get(itemId) ?? 0) + quantity));
     }
   }
   return required;
+}
+
+function roundQuantity(value: number) {
+  return Math.round(value * 1_000_000_000) / 1_000_000_000;
 }
 
 export function canFulfillRecipes(

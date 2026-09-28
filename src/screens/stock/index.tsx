@@ -29,7 +29,7 @@ import { DateRangePickerModal } from "../../components/date-range-picker/DateRan
 import type { DatePeriod, DateRange } from "../../types/dateRange";
 import { getLocalDateKey, getPresetDateRange } from "../../utils/date";
 import { colors, spacing } from "../../theme";
-import { formatCurrency, formatThousands } from "../../utils/format";
+import { formatCurrency, formatQuantity } from "../../utils/format";
 import { debounce } from "../../utils/debounce";
 import { StockPurchaseModal } from "./components/StockPurchaseModal";
 import { StockItemModal, type StockItemFormDraft } from "./components/StockItemModal";
@@ -224,7 +224,7 @@ export function StockScreen() {
             isLowStock(item) && styles.cellWarning,
           ]}
         >
-          {formatThousands(item.stock)}
+          {formatQuantity(item.stock)}
         </Text>
       ),
     },
@@ -366,7 +366,7 @@ export function StockScreen() {
         return (
           <Text style={[styles.cellValue, { color: quantityColor }]}>
             {movement.quantity > 0 ? "+" : movement.quantity < 0 ? "−" : ""}
-            {formatThousands(Math.abs(movement.quantity))}
+            {formatQuantity(Math.abs(movement.quantity))}
           </Text>
         );
       },
@@ -417,13 +417,7 @@ export function StockScreen() {
     const requestDraft: StockPurchaseDraft = {
       ...(draft.newItem
         ? {
-            newItem: {
-              name: draft.newItem.name,
-              description: "",
-              unit: draft.newItem.unit,
-              purchaseUnit: draft.newItem.unit,
-              stockUnitsPerPurchaseUnit: 1,
-            },
+            newItem: draft.newItem,
           }
         : { stockItemId: draft.itemId }),
       quantity: draft.quantity,
@@ -447,10 +441,13 @@ export function StockScreen() {
       draft.name !== editingItem.name ||
       draft.description !== editingItem.description ||
       draft.unit !== editingItem.unit ||
-      draft.purchaseUnit !== (editingItem.purchaseUnit ?? editingItem.unit);
+      draft.purchaseUnit !== (editingItem.purchaseUnit ?? editingItem.unit) ||
+      draft.stockUnitsPerPurchaseUnit !== getStockUnitsPerPurchaseUnit(editingItem);
     const stockChanged = draft.actualStock !== editingItem.stock;
-    const priceChanged =
-      draft.purchaseUnitPriceRupiah !== Math.round(getPurchaseUnitPrice(editingItem));
+    const nextAveragePrice =
+      draft.purchaseUnitPriceRupiah / draft.stockUnitsPerPurchaseUnit;
+    const priceChanged = draft.purchaseUnitPriceEdited &&
+      Math.abs(nextAveragePrice - editingItem.avgPrice) > 0.000000000001;
 
     if (metadataChanged) {
       await mutations.updateItem.mutateAsync({
@@ -460,7 +457,7 @@ export function StockScreen() {
           description: draft.description,
           unit: draft.unit,
           purchaseUnit: draft.purchaseUnit,
-          stockUnitsPerPurchaseUnit: getStockUnitsPerPurchaseUnit(editingItem),
+          stockUnitsPerPurchaseUnit: draft.stockUnitsPerPurchaseUnit,
         },
       });
     }

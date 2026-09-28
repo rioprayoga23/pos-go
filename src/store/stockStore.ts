@@ -12,6 +12,7 @@ type StockState = {
   recipes: Recipe[];
   setItems: (update: CollectionUpdate<StockItem>) => void;
   setMovements: (update: CollectionUpdate<StockMovement>) => void;
+  replaceRecipes: (recipes: Recipe[]) => void;
   addRecipe: (draft: { name: string; kind: RecipeKind; ingredients: RecipeIngredient[] }) => string | null;
   updateRecipe: (id: string, draft: { name: string; kind: RecipeKind; ingredients: RecipeIngredient[] }) => boolean;
   deleteRecipe: (id: string) => boolean;
@@ -32,7 +33,7 @@ function isValidRecipeDraft(
     part.type === "stock" ? `stock:${part.itemId}` : `base:${part.recipeId}`,
   );
   const validIngredients = draft.ingredients.every((part) => {
-    if (!Number.isSafeInteger(part.quantity) || part.quantity <= 0) return false;
+    if (!Number.isFinite(part.quantity) || part.quantity <= 0) return false;
     if (part.type === "stock") return availableIds.has(part.itemId);
     const base = recipes.find((recipe) => recipe.id === part.recipeId);
     return draft.kind === "menu" && base?.kind === "base";
@@ -58,6 +59,7 @@ export const useStockStore = create<StockState>((set, get) => ({
       movements:
         typeof update === "function" ? update(state.movements) : update,
     })),
+  replaceRecipes: (recipes) => set({ recipes }),
   addRecipe: (draft) => {
     if (!isValidRecipeDraft(draft, get().items, get().recipes)) return null;
     const id = `recipe-${Date.now()}-${++nextRecipeId}`;

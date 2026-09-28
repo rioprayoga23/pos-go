@@ -17,11 +17,21 @@ export class ApiError extends Error {
 }
 
 function getApiRoot() {
+  return `${getApiBaseUrl()}/api/v1`;
+}
+
+export function getApiBaseUrl() {
   const baseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
     throw new ApiError("URL API belum diatur.", 0, "api_url_missing");
   }
-  return `${baseUrl.replace(/\/+$/, "")}/api/v1`;
+  return baseUrl.replace(/\/+$/, "");
+}
+
+export function resolveApiUrl(path: string) {
+  if (/^https?:\/\//i.test(path)) return path;
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  return `${getApiBaseUrl()}${suffix}`;
 }
 
 type QueryParamValue = string | number | boolean | null | undefined;
@@ -46,7 +56,8 @@ async function request<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const headers = new Headers({ Accept: "application/json" });
-  if (body !== undefined) headers.set("Content-Type", "application/json");
+  const multipart = typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !multipart) headers.set("Content-Type", "application/json");
 
   let response: Response;
   try {
@@ -54,7 +65,7 @@ async function request<T>(
     response = await fetch(`${getApiRoot()}${endpoint}`, {
       method,
       headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
       signal,
     });
   } catch (error) {
@@ -82,6 +93,9 @@ export const apiClient = {
     return request<T>("GET", path, undefined, signal);
   },
   post<T>(path: string, body: unknown) {
+    return request<T>("POST", path, body);
+  },
+  postMultipart<T>(path: string, body: FormData) {
     return request<T>("POST", path, body);
   },
   patch<T>(path: string, body: unknown) {

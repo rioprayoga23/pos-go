@@ -14,7 +14,7 @@ import { StyleSheet } from "react-native";
 import { AppIcon, AppModalCloseButton, AppPressable } from "../../../components/ui";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { StockItem } from "../../../types/stock";
-import { formatThousands } from "../../../utils/format";
+import { formatQuantity } from "../../../utils/format";
 import { styles } from "../styles";
 
 const deleteStyles = StyleSheet.create({
@@ -137,7 +137,7 @@ export function DeleteStockItemModal({
               <VStack style={deleteStyles.stockCopy}>
                 <Text style={deleteStyles.stockLabel}>Stok saat ini</Text>
                 <Text style={deleteStyles.stockValue}>
-                  {formatThousands(item.stock)} {item.unit}
+                  {formatQuantity(item.stock)} {item.unit}
                 </Text>
               </VStack>
               <Text style={[

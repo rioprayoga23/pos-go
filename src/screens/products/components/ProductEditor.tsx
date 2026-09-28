@@ -120,11 +120,11 @@ export function ProductEditor({
       ) : null}
       <VStack style={styles.formActions}>
         <Button
-          onPress={model.save}
-          isDisabled={!isFormComplete}
+          onPress={() => { void model.save(); }}
+          isDisabled={!isFormComplete || model.isSaving}
           style={[
             styles.formPublishButton,
-            !isFormComplete && styles.formPublishButtonDisabled,
+            (!isFormComplete || model.isSaving) && styles.formPublishButtonDisabled,
           ]}
         >
           <AppIcon
@@ -137,10 +137,10 @@ export function ProductEditor({
               productFormStyles.publishText,
               isMobile && productFormStyles.publishTextMobile,
               isTablet && productFormStyles.publishTextTablet,
-              !isFormComplete && styles.formPublishButtonTextDisabled,
+              (!isFormComplete || model.isSaving) && styles.formPublishButtonTextDisabled,
             ]}
           >
-            {editing ? "Simpan Perubahan" : "Simpan & Publikasikan Menu"}
+            {model.isSaving ? "Menyimpan..." : editing ? "Simpan Perubahan" : "Simpan & Publikasikan Menu"}
           </ButtonText>
         </Button>
       </VStack>
@@ -195,11 +195,18 @@ export function ProductEditor({
         name={model.categoryModal.name}
         setName={model.categoryModal.setName}
         error={model.categoryModal.error}
+        isSaving={model.categoryModal.isSaving}
         onClose={model.categoryModal.close}
-        onSave={model.categoryModal.save}
+        onSave={() => { void model.categoryModal.save(); }}
       />
       {recipeManagerOpen ? (
         <RecipeManagerModal
+          recipes={model.recipes}
+          inventoryItems={model.inventoryItems}
+          products={model.products}
+          onCreateRecipe={model.recipeActions.create}
+          onUpdateRecipe={model.recipeActions.update}
+          onDeleteRecipe={model.recipeActions.delete}
           onClose={() => setRecipeManagerOpen(false)}
           onCreate={(recipeId) => setForm((current) => ({ ...current, recipeId }))}
           selectedRecipeId={form.recipeId}

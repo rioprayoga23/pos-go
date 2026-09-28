@@ -2,6 +2,8 @@ import { HStack, VStack } from "@gluestack-ui/themed";
 import { useRef } from "react";
 import { useWindowDimensions, type ScrollView } from "react-native";
 import { AppShell } from "../../components/app-shell";
+import { LoadingScreen } from "../../components/loading-screen";
+import { QueryErrorNotice } from "../../components/query-error-notice";
 import { ProductCatalog } from "./components/ProductCatalog";
 import { ProductEditor } from "./components/ProductEditor";
 import { styles } from "./styles";
@@ -9,7 +11,7 @@ import { useProductsManager } from "./hooks/useProductsManager";
 
 export function ProductsScreen() {
   const { width } = useWindowDimensions();
-  const { formScrollRef, editor, catalog } = useProductsManager();
+  const { formScrollRef, editor, catalog, isLoading, isError, retry, isMutating } = useProductsManager();
   const pageScrollRef = useRef<ScrollView>(null);
   const isWide = width >= 1024;
   const isMobile = width < 768;
@@ -23,12 +25,14 @@ export function ProductsScreen() {
   };
 
   return (
+    <>
     <AppShell
       active="Products"
       scrollRef={pageScrollRef}
       scrollable={isMobile}
     >
       <VStack style={[styles.page, isMobile && styles.pageMobile]}>
+        {isError ? <QueryErrorNotice onRetry={retry} /> : null}
         <HStack
           style={[
             styles.layout,
@@ -46,5 +50,7 @@ export function ProductsScreen() {
         </HStack>
       </VStack>
     </AppShell>
+    <LoadingScreen visible={isLoading || isMutating} />
+    </>
   );
 }

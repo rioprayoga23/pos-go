@@ -26,6 +26,7 @@ export function CategoryModal({
   name,
   setName,
   error,
+  isSaving,
   onClose,
   onSave,
 }: {
@@ -33,6 +34,7 @@ export function CategoryModal({
   name: string;
   setName: (value: string) => void;
   error: string;
+  isSaving?: boolean;
   onClose: () => void;
   onSave: () => void;
 }) {
@@ -97,10 +99,10 @@ export function CategoryModal({
         </ModalBody>
         <ModalFooter>
           <VStack style={styles.categoryModalActions}>
-            <Button onPress={onSave} style={styles.categorySaveButton}>
+            <Button onPress={onSave} isDisabled={isSaving} style={styles.categorySaveButton}>
               <AppIcon name="check" size={17} color={colors.white} />
               <ButtonText style={productFormStyles.publishText}>
-                Simpan Kategori
+                {isSaving ? "Menyimpan..." : "Simpan Kategori"}
               </ButtonText>
             </Button>
           </VStack>

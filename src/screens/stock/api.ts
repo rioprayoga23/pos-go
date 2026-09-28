@@ -100,6 +100,18 @@ export async function listStockItems(
   return { ...result, data: result.data.map(itemFromApi) };
 }
 
+export async function listAllStockItems(signal?: AbortSignal): Promise<StockItem[]> {
+  const limit = 100;
+  const firstPage = await listStockItems({ page: 1, limit }, signal);
+  const items = [...firstPage.data];
+  const pageCount = Math.ceil(firstPage.total / limit);
+  for (let page = 2; page <= pageCount; page += 1) {
+    const result = await listStockItems({ page, limit }, signal);
+    items.push(...result.data);
+  }
+  return items;
+}
+
 export async function getStockItem(
   id: string,
   signal?: AbortSignal,

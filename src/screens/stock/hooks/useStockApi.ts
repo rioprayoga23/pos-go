@@ -20,6 +20,7 @@ export const stockQueryKeys = {
     ["stock", "items", filters] as const,
   item: (id: string) => ["stock", "item", id] as const,
   itemChoices: ["stock", "item-choices"] as const,
+  allItems: ["stock", "all-items"] as const,
   movements: (filters: StockMovementFilters) => ["stock", "movements", filters] as const,
 };
 
@@ -58,7 +59,9 @@ export function useStockMovements(filters: StockMovementFilters) {
 
 export function useStockMutations() {
   const queryClient = useQueryClient();
-  const refreshStock = () => queryClient.invalidateQueries({ queryKey: stockQueryKeys.all });
+  const refreshStock = async () => {
+    await queryClient.invalidateQueries({ queryKey: stockQueryKeys.all });
+  };
   const refreshAfterPurchase = async () => {
     await refreshStock();
     await Promise.all([

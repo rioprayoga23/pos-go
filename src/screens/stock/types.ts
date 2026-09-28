@@ -1,3 +1,5 @@
+import type { StockItemDraft } from "./api";
+
 export type {
   HistoryFilter,
   StockItem,
@@ -10,7 +12,7 @@ export type ModalMode = "purchase";
 export type PurchaseDraft = {
   mode: "purchase";
   itemId: string;
-  newItem?: { name: string; unit: string };
+  newItem?: StockItemDraft;
   /** Count in purchase units (for example, 1 galon). */
   quantity: number;
   totalCost: number;
