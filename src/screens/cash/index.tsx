@@ -1,5 +1,6 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useState } from "react";
+import { useIsFocused } from "expo-router/react-navigation";
 import { useWindowDimensions } from "react-native";
 import { AppShell } from "../../components/app-shell";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
@@ -112,13 +113,14 @@ function CashRegisterSummary({ register }: { register: CashRegister }) {
 }
 
 export function CashScreen() {
+  const isFocused = useIsFocused();
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<CashTransaction | null>(null);
   const [savedNotice, setSavedNotice] = useState("");
-  const ledger = useCashLedger();
-  const registerQuery = useCashRegister({ alwaysRefresh: true });
+  const ledger = useCashLedger(isFocused);
+  const registerQuery = useCashRegister({ alwaysRefresh: true, enabled: isFocused });
   const mutations = useCashMutations();
   const register = registerQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";

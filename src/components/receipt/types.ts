@@ -18,4 +18,6 @@ export type ReceiptData = {
   paymentMethod: PaymentMethod;
   items: ReceiptLine[];
   subtotal: number;
+  cashReceivedRupiah?: number;
+  changeRupiah?: number;
 };

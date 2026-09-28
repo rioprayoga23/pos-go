@@ -6,13 +6,8 @@ import {
   getCashRegister,
   listCashOutflows,
   openCashRegister,
-  recordCashSale,
 } from "../api";
-import type {
-  CashOutflowFilters,
-  CashRegister,
-} from "../../../types/cash";
-import type { ApiEnvelope } from "../../../services/apiTypes";
+import type { CashOutflowFilters } from "../../../types/cash";
 
 export const cashQueryKeys = {
   register: ["cash", "register"] as const,
@@ -25,12 +20,16 @@ export const cashQueryKeys = {
 };
 
 export function useCashRegister(
-  { alwaysRefresh = false }: { alwaysRefresh?: boolean } = {},
+  {
+    alwaysRefresh = false,
+    enabled = true,
+  }: { alwaysRefresh?: boolean; enabled?: boolean } = {},
 ) {
   return useQuery({
     queryKey: cashQueryKeys.register,
     queryFn: ({ signal }) => getCashRegister(signal),
-    staleTime: Infinity,
+    enabled,
+    staleTime: 0,
     gcTime: Infinity,
     // Kelola Kas needs current register status every time the screen mounts.
     refetchOnMount: alwaysRefresh ? "always" : true,
@@ -38,20 +37,25 @@ export function useCashRegister(
   });
 }
 
-export function useCashOutflows(filters: CashOutflowFilters) {
+export function useCashOutflows(filters: CashOutflowFilters, enabled = true) {
   return useQuery({
     queryKey: cashQueryKeys.outflows(filters),
     queryFn: ({ signal }) => listCashOutflows(filters, signal),
+    enabled,
+    staleTime: 0,
     placeholderData: (previousData) => previousData,
   });
 }
 
 export function useCashOutflowSummary(
   filters: Pick<CashOutflowFilters, "from" | "to">,
+  enabled = true,
 ) {
   return useQuery({
     queryKey: cashQueryKeys.summary(filters),
     queryFn: ({ signal }) => getCashOutflowSummary(filters, signal),
+    enabled,
+    staleTime: 0,
     placeholderData: (previousData) => previousData,
   });
 }
@@ -63,18 +67,6 @@ export function useCashMutations() {
       queryClient.invalidateQueries({ queryKey: cashQueryKeys.outflowsRoot }),
       queryClient.invalidateQueries({ queryKey: cashQueryKeys.summaryRoot }),
     ]);
-  const updateOpenRegister = (
-    update: (register: CashRegister) => CashRegister,
-  ) => {
-    queryClient.setQueryData<ApiEnvelope<CashRegister>>(
-      cashQueryKeys.register,
-      (current) => {
-        if (!current || current.data.status !== "open") return current;
-        return { ...current, data: update(current.data) };
-      },
-    );
-  };
-
   return {
     openRegister: useMutation({
       mutationFn: openCashRegister,
@@ -86,27 +78,11 @@ export function useCashMutations() {
       onSuccess: (register) =>
         queryClient.setQueryData(cashQueryKeys.register, register),
     }),
-    recordSale: useMutation({
-      mutationFn: recordCashSale,
-      onSuccess: (_, sale) =>
-        updateOpenRegister((register) => ({
-          ...register,
-          cashSalesRupiah: register.cashSalesRupiah + sale.amountRupiah,
-          expectedAmountRupiah:
-            register.expectedAmountRupiah + sale.amountRupiah,
-        })),
-    }),
     createExpense: useMutation({
       mutationFn: createCashExpense,
       onSuccess: async (_, expense) => {
         if (expense.fundingSource === "cash_drawer") {
-          updateOpenRegister((register) => ({
-            ...register,
-            cashOutflowsRupiah:
-              register.cashOutflowsRupiah + expense.amountRupiah,
-            expectedAmountRupiah:
-              register.expectedAmountRupiah - expense.amountRupiah,
-          }));
+          await queryClient.invalidateQueries({ queryKey: cashQueryKeys.register });
         }
         await refreshCashHistory();
       },

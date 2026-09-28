@@ -50,8 +50,3 @@ export type CashExpenseDraft = {
   amountRupiah: number;
   fundingSource: CashFundingSource;
 };
-
-export type CashSaleDraft = {
-  orderRef: string;
-  amountRupiah: number;
-};

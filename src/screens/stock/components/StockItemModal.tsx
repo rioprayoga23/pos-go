@@ -183,15 +183,15 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
               />
             </VStack>
             <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Satuan stok & resep</Text>
+              <Text style={styles.formLabel}>Satuan stok</Text>
               <AppInput
                 value={unit}
                 onChangeText={() => undefined}
                 editable={false}
-                accessibilityLabel="Satuan stok dan resep"
+                accessibilityLabel="Satuan stok"
               />
               <Text style={styles.formHint}>
-                Satuan stok dan resep ditetapkan saat bahan dibuat agar saldo dan HPP konsisten.
+                Takaran resep mengikuti satuan pembelian dan dikonversi otomatis ke satuan stok ini.
               </Text>
             </VStack>
             <VStack style={styles.formGroup}>

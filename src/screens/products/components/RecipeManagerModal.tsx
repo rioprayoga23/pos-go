@@ -35,11 +35,38 @@ import {
   getAvailablePortions,
 } from "../../../utils/standardRecipe";
 import { decimalOnly, formatDecimalInput, formatQuantity, isValidQuantity } from "../../../utils/format";
+import { calculateStockUnitsPerPurchaseUnit } from "../../stock/utils/unitConversion";
 
 type DraftIngredient =
   | { type: "stock"; itemId: string; quantity: string }
   | { type: "base"; recipeId: string; quantity: string };
 type ChoiceType = "stock" | "base";
+
+function getPurchaseUnit(item: StockItem) {
+  return item.purchaseUnit ?? item.unit;
+}
+
+function getStockUnitsPerPurchaseUnit(item: StockItem) {
+  return calculateStockUnitsPerPurchaseUnit(getPurchaseUnit(item), item.unit) ?? 1;
+}
+
+function getStockQuantityInPurchaseUnit(item: StockItem) {
+  return item.stock / getStockUnitsPerPurchaseUnit(item);
+}
+
+function toStoredIngredients(ingredients: DraftIngredient[], items: StockItem[]): RecipeIngredient[] {
+  return ingredients.map((part) => {
+    const quantity = Number(part.quantity);
+    if (part.type === "base") return { ...part, quantity };
+
+    const item = items.find((entry) => entry.id === part.itemId);
+    const stockFactor = item ? getStockUnitsPerPurchaseUnit(item) : 1;
+    return {
+      ...part,
+      quantity: Math.round(quantity * stockFactor * 1_000_000_000) / 1_000_000_000,
+    };
+  });
+}
 
 export function RecipeManagerModal({
   onClose,
@@ -91,20 +118,19 @@ export function RecipeManagerModal({
     setKind(recipe.kind);
     setConfirmDeleteId(null);
     setName(recipe.name);
-    setIngredients(recipe.ingredients.map((part) => ({
-      ...part,
-      quantity: String(part.quantity),
-    })));
+    setIngredients(recipe.ingredients.map((part) => {
+      if (part.type === "base") return { ...part, quantity: String(part.quantity) };
+      const item = inventoryItems.find((entry) => entry.id === part.itemId);
+      const quantityInPurchaseUnit = part.quantity / (item ? getStockUnitsPerPurchaseUnit(item) : 1);
+      return { ...part, quantity: String(quantityInPurchaseUnit) };
+    }));
     setChoiceType(null);
     setError("");
   };
 
   const save = async () => {
     const normalizedName = name.trim();
-    const normalizedIngredients: RecipeIngredient[] = ingredients.map((part) => ({
-      ...part,
-      quantity: Number(part.quantity),
-    }));
+    const normalizedIngredients = toStoredIngredients(ingredients, inventoryItems);
     if (!normalizedName) {
       setError(kind === "base" ? "Isi nama bahan dasar." : "Isi nama menu.");
       return;
@@ -117,6 +143,10 @@ export function RecipeManagerModal({
       !isValidQuantity(part.quantity) || part.quantity <= 0 ||
       (part.type === "base" && !Number.isSafeInteger(part.quantity)))) {
       setError("Pilih bahan dan isi takaran lebih dari 0.");
+      return;
+    }
+    if (ingredients.some((part) => part.type === "stock" && !inventoryItems.some((item) => item.id === part.itemId))) {
+      setError("Ada bahan stok yang sudah tidak tersedia. Hapus lalu pilih kembali bahan tersebut.");
       return;
     }
     if (kind === "base" && normalizedIngredients.some((part) => part.type !== "stock")) {
@@ -173,15 +203,15 @@ export function RecipeManagerModal({
     id: editingId ?? "draft",
     name,
     kind,
-    ingredients: ingredients.map((part) => ({ ...part, quantity: Number(part.quantity) })),
+    ingredients: toStoredIngredients(ingredients, inventoryItems),
   };
-  const validDraft = ingredients.length > 0 && ingredients.every((part) =>
-    isValidQuantity(Number(part.quantity)) && Number(part.quantity) > 0 &&
-    (part.type === "stock" || Number.isSafeInteger(Number(part.quantity))));
+  const validDraft = ingredients.length > 0 && draftRecipe.ingredients.every((part) =>
+    isValidQuantity(part.quantity) && part.quantity > 0 &&
+    (part.type === "stock" || Number.isSafeInteger(part.quantity)));
   const draftStock = validDraft ? getAvailablePortions(inventoryItems, draftRecipe, [...recipes, draftRecipe]) : null;
 
   const choices = choiceType === "stock"
-    ? availableItems.map((item) => ({ id: item.id, name: item.name, meta: `Stok ${formatQuantity(item.stock)} ${item.unit}`, type: "stock" as const }))
+    ? availableItems.map((item) => ({ id: item.id, name: item.name, meta: `Stok ${formatQuantity(getStockQuantityInPurchaseUnit(item))} ${getPurchaseUnit(item)}`, type: "stock" as const }))
     : availableBases.map((recipe) => ({ id: recipe.id, name: recipe.name, meta: `${getAvailablePortions(inventoryItems, recipe, recipes)} porsi dasar tersedia`, type: "base" as const }));
 
   const addChoice = (type: ChoiceType, id: string) => {
@@ -308,7 +338,7 @@ export function RecipeManagerModal({
                         const ingredientId = part.type === "stock" ? `stock:${part.itemId}` : `base:${part.recipeId}`;
                         const ingredientName = item?.name ?? base?.name ?? "Bahan tidak ditemukan";
                         const subline = item
-                          ? `Stok ${formatQuantity(item.stock)} ${item.unit}`
+                          ? `Stok ${formatQuantity(getStockQuantityInPurchaseUnit(item))} ${getPurchaseUnit(item)}`
                           : base
                             ? `Bahan dasar · ${getAvailablePortions(inventoryItems, base, recipes)} porsi tersedia`
                             : "Komponen tidak tersedia";
@@ -328,10 +358,10 @@ export function RecipeManagerModal({
                                 setError("");
                               }}
                               keyboardType="decimal-pad"
-                              accessibilityLabel={`${ingredientName} per porsi`}
+                              accessibilityLabel={`${ingredientName} per porsi dalam ${item ? getPurchaseUnit(item) : "porsi"}`}
                               style={[styles.quantityInput, isCompact && styles.quantityInputCompact]}
                               inputStyle={styles.quantityValue}
-                              trailing={<Text style={styles.unitText}>{item?.unit ?? "porsi"}</Text>}
+                              trailing={<Text style={styles.unitText}>{item ? getPurchaseUnit(item) : "porsi"}</Text>}
                             />
                             <AppPressable
                               onPress={() => setIngredients((current) => current.filter((entry) => {

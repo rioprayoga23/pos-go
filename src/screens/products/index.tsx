@@ -1,6 +1,7 @@
 import { HStack, VStack } from "@gluestack-ui/themed";
 import { useRef } from "react";
 import { useWindowDimensions, type ScrollView } from "react-native";
+import { useIsFocused } from "expo-router/react-navigation";
 import { AppShell } from "../../components/app-shell";
 import { LoadingScreen } from "../../components/loading-screen";
 import { QueryErrorNotice } from "../../components/query-error-notice";
@@ -11,7 +12,8 @@ import { useProductsManager } from "./hooks/useProductsManager";
 
 export function ProductsScreen() {
   const { width } = useWindowDimensions();
-  const { formScrollRef, editor, catalog, isLoading, isError, retry, isMutating } = useProductsManager();
+  const isFocused = useIsFocused();
+  const { formScrollRef, editor, catalog, isLoading, isError, retry, isMutating } = useProductsManager(isFocused);
   const pageScrollRef = useRef<ScrollView>(null);
   const isWide = width >= 1024;
   const isMobile = width < 768;

@@ -28,7 +28,7 @@ export function OrderScreen() {
     isLoading,
     isError,
     retry,
-  } = useOrderCatalog();
+  } = useOrderCatalog(isFocused);
   const items = useCartStore((state) => state.items);
   const addItem = useCartStore((state) => state.addItem);
   const setQuantity = useCartStore((state) => state.setQuantity);

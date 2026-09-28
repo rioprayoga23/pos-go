@@ -34,7 +34,9 @@ export function AppShell({
   const queueCount = orders.filter(
     (order) => order.status !== "completed",
   ).length;
-  const cashRegisterQuery = useCashRegister();
+  // Screens that need register data own the automatic query; the shell only
+  // refreshes it after the user explicitly presses the cashier action.
+  const cashRegisterQuery = useCashRegister({ enabled: false });
   const cashMutations = useCashMutations();
   const register = cashRegisterQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
@@ -42,10 +44,22 @@ export function AppShell({
   const [showOpenCashDialog, setShowOpenCashDialog] = useState(false);
   const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false);
   const [cashActionError, setCashActionError] = useState("");
-  const handleCashAction = () => {
+  const [isCheckingCash, setIsCheckingCash] = useState(false);
+  const handleCashAction = async () => {
     setCashActionError("");
-    if (cashRegisterOpen) setShowCloseShiftDialog(true);
-    else if (register?.status === "not_opened") setShowOpenCashDialog(true);
+    setIsCheckingCash(true);
+    try {
+      const result = await cashRegisterQuery.refetch();
+      if (result.isError || !result.data?.data) {
+        setCashActionError("Status kasir gagal dimuat. Coba lagi.");
+        return;
+      }
+      const currentRegister = result.data.data;
+      if (currentRegister.status === "open") setShowCloseShiftDialog(true);
+      else if (currentRegister.status === "not_opened") setShowOpenCashDialog(true);
+    } finally {
+      setIsCheckingCash(false);
+    }
   };
   const handleOpenRegister = async (amount: number) => {
     try {
@@ -105,6 +119,7 @@ export function AppShell({
     >
       <LoadingScreen
         visible={
+          isCheckingCash ||
           cashMutations.openRegister.isPending ||
           cashMutations.closeRegister.isPending
         }

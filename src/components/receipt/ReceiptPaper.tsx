@@ -59,6 +59,18 @@ export function ReceiptPaper({ data }: { data: ReceiptData }) {
           <Text style={styles.receiptSmall}>Pembayaran</Text>
           <Text style={styles.receiptBold}>{data.paymentMethod}</Text>
         </HStack>
+        {data.paymentMethod === "Tunai" && data.cashReceivedRupiah !== undefined ? (
+          <>
+            <HStack style={styles.receiptLine}>
+              <Text style={styles.receiptSmall}>Uang diterima</Text>
+              <Text style={styles.receiptBold}>{formatCurrency(data.cashReceivedRupiah)}</Text>
+            </HStack>
+            <HStack style={styles.receiptLine}>
+              <Text style={styles.receiptSmall}>Kembalian</Text>
+              <Text style={styles.receiptBold}>{formatCurrency(data.changeRupiah ?? 0)}</Text>
+            </HStack>
+          </>
+        ) : null}
       </VStack>
       <Divider />
       <VStack style={styles.receiptFooter}>

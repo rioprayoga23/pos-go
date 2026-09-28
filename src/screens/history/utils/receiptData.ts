@@ -27,5 +27,7 @@ export function createHistoryReceiptData(
     paymentMethod: order.paymentMethod,
     items,
     subtotal: order.total,
+    cashReceivedRupiah: order.cashReceivedRupiah,
+    changeRupiah: order.changeRupiah,
   };
 }

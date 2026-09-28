@@ -1,28 +1,58 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useWindowDimensions } from 'react-native';
 import { spacing } from '../../../theme';
-import { useMenuData } from '../../products/hooks/useMenuApi';
+import { debounce } from '../../../utils/debounce';
+import {
+  menuProductToProduct,
+  menuQueryKeys,
+  useMenuData,
+} from '../../products/hooks/useMenuApi';
+import { searchMenuProducts } from '../../products/api';
 
-export function useOrderCatalog() {
+export function useOrderCatalog(enabled = true) {
   const { width } = useWindowDimensions();
-  const menu = useMenuData();
+  const menu = useMenuData(enabled);
   const categories = menu.categories;
   const products = menu.products;
   const [query, onQueryChange] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, onSelectCategory] = useState('all');
   const [catalogWidth, setCatalogWidth] = useState(0);
+  const scheduleSearch = useMemo(
+    () => debounce((value: string) => setSearchTerm(value), 300),
+    [],
+  );
+  useEffect(() => {
+    scheduleSearch(query.trim());
+    return scheduleSearch.cancel;
+  }, [query, scheduleSearch]);
+
+  const searchQuery = useQuery({
+    queryKey: menuQueryKeys.searchProducts(searchTerm),
+    queryFn: ({ signal }) => searchMenuProducts(searchTerm, signal),
+    enabled: enabled && searchTerm.length > 0,
+  });
   const filteredProducts = useMemo(
-    () =>
-      products.filter(
-        (product) =>
-          product.isAvailable &&
-          product.stock > 0 &&
-          (selectedCategory === 'all' || product.categoryId === selectedCategory) &&
-          `${product.name} ${product.categoryName}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
-      ),
-    [products, query, selectedCategory],
+    () => {
+      const sourceProducts = searchTerm
+        ? (searchQuery.data ?? []).map((product) =>
+            menuProductToProduct(product, menu.categories, menu.stockItems, menu.recipes),
+          )
+        : products;
+      return sourceProducts.filter((product) =>
+        selectedCategory === 'all' || product.categoryId === selectedCategory,
+      );
+    },
+    [
+      menu.categories,
+      menu.recipes,
+      menu.stockItems,
+      products,
+      searchQuery.data,
+      searchTerm,
+      selectedCategory,
+    ],
   );
   const mobile = width < 768;
   const columns = catalogWidth > 0
@@ -41,9 +71,9 @@ export function useOrderCatalog() {
     cardWidth,
     mobile,
     filteredProducts,
-    isLoading: menu.isLoading,
-    isError: menu.isError,
-    retry: menu.refetch,
+    isLoading: menu.isLoading || searchQuery.isFetching,
+    isError: menu.isError || Boolean(searchTerm && searchQuery.isError),
+    retry: () => (searchTerm ? searchQuery.refetch() : menu.refetch()),
     handleCatalogLayout,
     onQueryChange,
     onSelectCategory,

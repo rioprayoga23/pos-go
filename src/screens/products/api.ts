@@ -1,6 +1,6 @@
 import type { Category, Product } from "../../types/pos";
 import type { Recipe, RecipeKind, RecipeIngredient } from "../../types/stock";
-import { apiClient, getApiBaseUrl } from "../../services/apiClient";
+import { apiClient, buildQueryString, getApiBaseUrl } from "../../services/apiClient";
 import type { ApiEnvelope } from "../../services/apiTypes";
 
 export type ApiMenuCategory = Pick<Category, "id" | "name">;
@@ -96,6 +96,14 @@ export async function deleteMenuRecipe(id: string) {
 
 export async function listMenuProducts(signal?: AbortSignal) {
   const result = await apiClient.get<ApiEnvelope<MenuProductRecord[]>>("/menu-products", signal);
+  return result.data.map(productFromApi);
+}
+
+export async function searchMenuProducts(search: string, signal?: AbortSignal) {
+  const result = await apiClient.get<ApiEnvelope<MenuProductRecord[]>>(
+    `/menu-products${buildQueryString({ search })}`,
+    signal,
+  );
   return result.data.map(productFromApi);
 }
 

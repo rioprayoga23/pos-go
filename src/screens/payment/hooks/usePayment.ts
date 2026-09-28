@@ -1,62 +1,50 @@
 import { useRef, useState } from "react";
 import { getCartTotals, useCartStore } from "../../../store/cartStore";
 import { useTransactionStore } from "../../../store/transactionStore";
-import type { Order, PaymentMethod } from "../../../types/pos";
+import type { Order } from "../../../types/pos";
 import { digitsOnly, parseWholeNumber } from "../../../utils/format";
-import { useCashMutations, useCashRegister } from "../../cash/hooks/useCashApi";
+import { useCashRegister } from "../../cash/hooks/useCashApi";
+import { orderRecordToLocalOrder, type CreateOrderDraft } from "../../order/api";
+import { useCreateOrder } from "../../order/hooks/useCreateOrder";
 
-export function usePayment() {
+function createRequestKey() {
+  return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export function usePayment(enabled = true) {
   const items = useCartStore((state) => state.items);
   const orderType = useCartStore((state) => state.orderType);
   const subtotal = getCartTotals(items).subtotal;
   const clearCart = useCartStore((state) => state.clearCart);
-  const completeOrder = useTransactionStore((state) => state.completeOrder);
-  const canCompleteOrder = useTransactionStore(
-    (state) => state.canCompleteOrder,
-  );
-  const cashRegisterQuery = useCashRegister();
-  const cashMutations = useCashMutations();
+  const addCreatedOrder = useTransactionStore((state) => state.addCreatedOrder);
+  const cashRegisterQuery = useCashRegister({ enabled });
+  const createOrderMutation = useCreateOrder();
   const register = cashRegisterQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
   const cashRegisterClosedToday = register?.status === "closed_today";
-  const [paymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod>("Tunai");
+  const [paymentMethod, setSelectedPaymentMethod] = useState<"Tunai" | "QRIS">("Tunai");
   const [cash, setCashValue] = useState("");
-  const [cashConfirmationKey, setCashConfirmationKey] = useState<string | null>(
-    null,
-  );
+  const [cashConfirmationKey, setCashConfirmationKey] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastOrderNumber, setLastOrderNumber] = useState("");
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
-  const [qrisConfirmationKey, setQrisConfirmationKey] = useState<string | null>(
-    null,
-  );
+  const [qrisConfirmationKey, setQrisConfirmationKey] = useState<string | null>(null);
   const [paymentErrorState, setPaymentErrorState] = useState<{
     cartKey: string;
     message: string;
   } | null>(null);
-  const pendingCashReceipt = useRef<{
-    identity: string;
-    orderRef: string;
-  } | null>(null);
-  const saleIdentity =
-    items
-      .map(({ product, quantity }) => `${product.id}:${quantity}:${product.price}`)
-      .join("|") + `|${register?.id ?? "no-register"}`;
+  const pendingRequest = useRef<{ identity: string; key: string } | null>(null);
   const cartKey =
     items
-      .map(
-        ({ product, quantity }) =>
-          `${product.id}:${quantity}:${product.price}:${product.stock}:${product.isAvailable}`,
+      .map(({ product, quantity }) =>
+        `${product.id}:${quantity}:${product.price}:${product.stock}:${product.isAvailable}`,
       )
       .join("|") + `|${register?.id ?? register?.status ?? "loading"}`;
   const qrisVerified = qrisConfirmationKey === cartKey && Boolean(cartKey);
-  const paymentError =
-    paymentErrorState?.cartKey === cartKey ? paymentErrorState.message : "";
+  const paymentError = paymentErrorState?.cartKey === cartKey ? paymentErrorState.message : "";
   const received = parseWholeNumber(cash);
   const change = received - subtotal;
-  const cashReady =
-    cashConfirmationKey === cartKey && cashRegisterOpen && received >= subtotal;
+  const cashReady = cashConfirmationKey === cartKey && cashRegisterOpen && received >= subtotal;
 
   const setCash = (value: string) => {
     setCashValue(digitsOnly(value, 12));
@@ -65,11 +53,10 @@ export function usePayment() {
   };
 
   const applyCash = () => {
-    if (cashRegisterOpen && received >= subtotal)
-      setCashConfirmationKey(cartKey);
+    if (cashRegisterOpen && received >= subtotal) setCashConfirmationKey(cartKey);
   };
 
-  const setPaymentMethod = (method: PaymentMethod) => {
+  const setPaymentMethod = (method: "Tunai" | "QRIS") => {
     setSelectedPaymentMethod(method);
     setCashConfirmationKey(null);
     setQrisConfirmationKey(null);
@@ -87,65 +74,50 @@ export function usePayment() {
       !cashRegisterOpen ||
       (paymentMethod === "Tunai" && !cashReady) ||
       (paymentMethod === "QRIS" && !qrisVerified)
-    )
-      return;
+    ) return;
 
-    if (!canCompleteOrder(items)) {
+    const draft: CreateOrderDraft = {
+      requestKey: "",
+      orderType: orderType === "Dine in" ? "dine_in" : "take_away",
+      paymentMethod: paymentMethod === "Tunai" ? "cash" : "qris",
+      ...(paymentMethod === "Tunai" ? { cashReceivedRupiah: received } : { qrisConfirmedManually: true }),
+      items: items.map(({ product, quantity }) => ({
+        productId: product.id,
+        quantity,
+        expectedUnitPriceRupiah: product.price,
+      })),
+    };
+    const identity = JSON.stringify({
+      orderType: draft.orderType,
+      paymentMethod: draft.paymentMethod,
+      cashReceivedRupiah: draft.cashReceivedRupiah,
+      items: draft.items,
+      registerID: register?.id,
+    });
+    if (pendingRequest.current?.identity !== identity) {
+      pendingRequest.current = { identity, key: createRequestKey() };
+    }
+    draft.requestKey = pendingRequest.current.key;
+
+    try {
+      const saved = await createOrderMutation.mutateAsync(draft);
+      const order = orderRecordToLocalOrder(saved, items);
+      addCreatedOrder(order);
+      setLastOrderNumber(order.number);
+      setLastOrder(order);
+      pendingRequest.current = null;
+      clearCart();
+      setCashValue("");
+      setCashConfirmationKey(null);
+      setQrisConfirmationKey(null);
+      setPaymentErrorState(null);
+      setShowSuccess(true);
+    } catch (error) {
       setPaymentErrorState({
         cartKey,
-        message:
-          "Stok berubah atau menu tidak tersedia. Periksa pesanan sebelum melanjutkan.",
+        message: error instanceof Error ? error.message : "Pembayaran gagal dicatat.",
       });
-      return;
     }
-
-    if (paymentMethod === "Tunai") {
-      if (pendingCashReceipt.current?.identity !== saleIdentity) {
-        pendingCashReceipt.current = {
-          identity: saleIdentity,
-          orderRef: `cash-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-        };
-      }
-      try {
-        await cashMutations.recordSale.mutateAsync({
-          orderRef: pendingCashReceipt.current.orderRef,
-          amountRupiah: subtotal,
-        });
-      } catch (error) {
-        setPaymentErrorState({
-          cartKey,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Pembayaran gagal dicatat.",
-        });
-        return;
-      }
-    }
-
-    const order = completeOrder(
-      items,
-      "Pelanggan umum",
-      paymentMethod,
-      orderType,
-    );
-    if (!order) {
-      setPaymentErrorState({
-        cartKey,
-        message:
-          "Stok berubah atau kasir belum dibuka. Periksa stok dan status kas sebelum melanjutkan.",
-      });
-      return;
-    }
-    pendingCashReceipt.current = null;
-    setLastOrderNumber(order.number);
-    setLastOrder(order);
-    clearCart();
-    setCashValue("");
-    setCashConfirmationKey(null);
-    setQrisConfirmationKey(null);
-    setPaymentErrorState(null);
-    setShowSuccess(true);
   };
 
   return {
@@ -167,7 +139,7 @@ export function usePayment() {
     qrisVerified,
     setQrisVerified,
     paymentError,
-    isSubmitting: cashMutations.recordSale.isPending,
+    isSubmitting: createOrderMutation.isPending,
     isRegisterLoading: cashRegisterQuery.isFetching,
     received,
     change,

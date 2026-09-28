@@ -5,7 +5,6 @@ import type {
   CashOutflowFilters,
   CashOutflowSummary,
   CashRegister,
-  CashSaleDraft,
   CashTransaction,
 } from "../../types/cash";
 
@@ -23,10 +22,6 @@ export function closeCashRegister(countedAmountRupiah: number) {
   return apiClient.post<ApiEnvelope<CashRegister>>("/cash-register/close", {
     countedAmountRupiah,
   });
-}
-
-export function recordCashSale(draft: CashSaleDraft) {
-  return apiClient.post<ApiEnvelope<{ orderRef: string }>>("/cash-sales", draft);
 }
 
 export function createCashExpense(draft: CashExpenseDraft) {

@@ -4,6 +4,7 @@ import {
   VStack,
 } from "@gluestack-ui/themed";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useIsFocused } from "expo-router/react-navigation";
 import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
 import { LoadingScreen } from "../../components/loading-screen";
@@ -71,6 +72,7 @@ function RetryButton({ onRetry }: { onRetry: () => void }) {
 
 export function StockScreen() {
   const { height, width } = useWindowDimensions();
+  const isFocused = useIsFocused();
   const [inventoryPage, setInventoryPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -111,7 +113,7 @@ export function StockScreen() {
     search: debouncedQuery,
     page: inventoryPage,
     limit: stockTablePageSize,
-  });
+  }, isFocused);
   const movementsQuery = useStockMovements({
     search: debouncedHistoryQuery,
     type: historyFilter,
@@ -119,28 +121,28 @@ export function StockScreen() {
     to: historyDateRange.endDate,
     page: historyPage,
     limit: stockTablePageSize,
-  });
+  }, isFocused);
   const pickerOpen = modal?.mode === "purchase";
-  const itemChoicesQuery = useStockItemChoices(Boolean(pickerOpen));
+  const itemChoicesQuery = useStockItemChoices(Boolean(pickerOpen) && isFocused);
   const editingItemQuery = useStockItem(
     modal?.mode === "edit-item" ? modal.itemId ?? "" : "",
-    modal?.mode === "edit-item",
+    modal?.mode === "edit-item" && isFocused,
   );
-  const mutations = useStockMutations();
+  const { refreshStock, ...mutations } = useStockMutations();
   const items = itemsQuery.data?.data ?? emptyStockItems;
   const movements = movementsQuery.data?.data ?? [];
   const editingItem = modal?.mode === "edit-item"
     ? editingItemQuery.data ?? items.find((item) => item.id === modal.itemId)
     : undefined;
   const pickerItems = useMemo(() => {
-    const combined = [...(itemChoicesQuery.data?.data ?? []), ...items];
+    const combined = [...(itemChoicesQuery.data ?? []), ...items];
     const seen = new Set<string>();
     return combined.filter((item) => {
       if (seen.has(item.id)) return false;
       seen.add(item.id);
       return true;
     });
-  }, [itemChoicesQuery.data?.data, items]);
+  }, [itemChoicesQuery.data, items]);
   const isMutating = Object.values(mutations).some((mutation) => mutation.isPending);
   const isLoading =
     itemsQuery.isFetching ||
@@ -449,30 +451,41 @@ export function StockScreen() {
     const priceChanged = draft.purchaseUnitPriceEdited &&
       Math.abs(nextAveragePrice - editingItem.avgPrice) > 0.000000000001;
 
-    if (metadataChanged) {
-      await mutations.updateItem.mutateAsync({
-        id: modal.itemId,
-        draft: {
-          name: draft.name,
-          description: draft.description,
-          unit: draft.unit,
-          purchaseUnit: draft.purchaseUnit,
-          stockUnitsPerPurchaseUnit: draft.stockUnitsPerPurchaseUnit,
-        },
-      });
-    }
-
-    if (stockChanged || priceChanged) {
-      const adjustment: StockAdjustmentDraft = {};
-      if (stockChanged) {
-        adjustment.actualStock = draft.actualStock;
-        adjustment.note = draft.note;
+    let savedChanges = false;
+    let movementChanged = false;
+    try {
+      if (metadataChanged) {
+        savedChanges = true;
+        await mutations.updateItem.mutateAsync({
+          id: modal.itemId,
+          refresh: false,
+          draft: {
+            name: draft.name,
+            description: draft.description,
+            unit: draft.unit,
+            purchaseUnit: draft.purchaseUnit,
+            stockUnitsPerPurchaseUnit: draft.stockUnitsPerPurchaseUnit,
+          },
+        });
       }
-      if (priceChanged) {
-        adjustment.purchaseUnitPriceRupiah = draft.purchaseUnitPriceRupiah;
+      if (stockChanged || priceChanged) {
+        const adjustment: StockAdjustmentDraft = {};
+        if (stockChanged) {
+          adjustment.actualStock = draft.actualStock;
+          adjustment.note = draft.note;
+        }
+        if (priceChanged) {
+          adjustment.purchaseUnitPriceRupiah = draft.purchaseUnitPriceRupiah;
+        }
+        savedChanges = true;
+        movementChanged = true;
+        await mutations.adjust.mutateAsync({ id: modal.itemId, draft: adjustment, refresh: false });
+        setHistoryPage(1);
       }
-      await mutations.adjust.mutateAsync({ id: modal.itemId, draft: adjustment });
-      setHistoryPage(1);
+    } finally {
+      if (savedChanges) {
+        await refreshStock({ itemId: modal.itemId, includeMovements: movementChanged });
+      }
     }
 
     setModal(null);

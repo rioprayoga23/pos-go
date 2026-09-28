@@ -30,6 +30,7 @@ export const menuQueryKeys = {
   categories: ["menu", "categories"] as const,
   recipes: ["menu", "recipes"] as const,
   products: ["menu", "products"] as const,
+  searchProducts: (search: string) => ["menu", "products", "search", search] as const,
 };
 
 const menuCacheOptions = {
@@ -56,26 +57,30 @@ export function menuProductToProduct(
   };
 }
 
-export function useMenuData() {
+export function useMenuData(enabled = true) {
   const categoriesQuery = useQuery({
     queryKey: menuQueryKeys.categories,
     queryFn: ({ signal }) => listMenuCategories(signal),
+    enabled,
     ...menuCacheOptions,
   });
   const recipesQuery = useQuery({
     queryKey: menuQueryKeys.recipes,
     queryFn: ({ signal }) => listMenuRecipes(signal),
+    enabled,
     ...menuCacheOptions,
   });
   const productsQuery = useQuery({
     queryKey: menuQueryKeys.products,
     queryFn: ({ signal }) => listMenuProducts(signal),
+    enabled,
     ...menuCacheOptions,
   });
   const stockQuery = useQuery({
     queryKey: stockQueryKeys.allItems,
     queryFn: ({ signal }) => listAllStockItems(signal),
-    staleTime: 30_000,
+    enabled,
+    staleTime: 0,
   });
 
   const rawCategories = categoriesQuery.data;
@@ -123,28 +128,40 @@ export function useMenuData() {
     isLoading: categoriesQuery.isFetching || recipesQuery.isFetching || productsQuery.isFetching || stockQuery.isFetching,
     isError: !hasData && hasError,
     refetch: () => Promise.all([
-      categoriesQuery.refetch(), recipesQuery.refetch(), productsQuery.refetch(), stockQuery.refetch(),
+      ...(categoriesQuery.isError ? [categoriesQuery.refetch()] : []),
+      ...(recipesQuery.isError ? [recipesQuery.refetch()] : []),
+      ...(productsQuery.isError ? [productsQuery.refetch()] : []),
+      ...(stockQuery.isError ? [stockQuery.refetch()] : []),
     ]),
   };
 }
 
 export function useMenuMutations() {
   const queryClient = useQueryClient();
-  const refreshCatalog = () => Promise.all([
-    queryClient.invalidateQueries({ queryKey: menuQueryKeys.categories }),
-    queryClient.invalidateQueries({ queryKey: menuQueryKeys.recipes }),
-    queryClient.invalidateQueries({ queryKey: menuQueryKeys.products }),
-  ]);
+  const refreshRecipes = () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.recipes });
   const refreshProducts = () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.products });
   return {
+    refreshProducts,
     createCategory: useMutation({ mutationFn: createMenuCategory, onSuccess: () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.categories }) }),
-    createRecipe: useMutation({ mutationFn: createMenuRecipe, onSuccess: refreshCatalog }),
-    updateRecipe: useMutation({ mutationFn: ({ id, draft }: { id: string; draft: Pick<MenuRecipeDraft, "name" | "ingredients"> }) => updateMenuRecipe(id, draft), onSuccess: refreshCatalog }),
-    deleteRecipe: useMutation({ mutationFn: deleteMenuRecipe, onSuccess: refreshCatalog }),
-    createProduct: useMutation({ mutationFn: createMenuProduct, onSuccess: refreshProducts }),
-    updateProduct: useMutation({ mutationFn: ({ id, draft }: { id: string; draft: MenuProductDraft }) => updateMenuProduct(id, draft), onSuccess: refreshProducts }),
-    deleteProduct: useMutation({ mutationFn: deleteMenuProduct, onSuccess: refreshCatalog }),
-    uploadPhoto: useMutation({ mutationFn: ({ id, photo }: { id: string; photo: Parameters<typeof uploadMenuProductPhoto>[1] }) => uploadMenuProductPhoto(id, photo), onSuccess: refreshProducts }),
-    deletePhoto: useMutation({ mutationFn: deleteMenuProductPhoto, onSuccess: refreshProducts }),
+    createRecipe: useMutation({ mutationFn: createMenuRecipe, onSuccess: refreshRecipes }),
+    updateRecipe: useMutation({ mutationFn: ({ id, draft }: { id: string; draft: Pick<MenuRecipeDraft, "name" | "ingredients"> }) => updateMenuRecipe(id, draft), onSuccess: refreshRecipes }),
+    deleteRecipe: useMutation({ mutationFn: deleteMenuRecipe, onSuccess: refreshRecipes }),
+    createProduct: useMutation({
+      mutationFn: ({ draft }: { draft: MenuProductDraft; refresh?: boolean }) => createMenuProduct(draft),
+      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+    }),
+    updateProduct: useMutation({
+      mutationFn: ({ id, draft }: { id: string; draft: MenuProductDraft; refresh?: boolean }) => updateMenuProduct(id, draft),
+      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+    }),
+    deleteProduct: useMutation({ mutationFn: deleteMenuProduct, onSuccess: refreshProducts }),
+    uploadPhoto: useMutation({
+      mutationFn: ({ id, photo }: { id: string; photo: Parameters<typeof uploadMenuProductPhoto>[1]; refresh?: boolean }) => uploadMenuProductPhoto(id, photo),
+      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+    }),
+    deletePhoto: useMutation({
+      mutationFn: ({ id }: { id: string; refresh?: boolean }) => deleteMenuProductPhoto(id),
+      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+    }),
   };
 }

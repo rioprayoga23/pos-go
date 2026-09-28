@@ -48,4 +48,6 @@ export type Order = {
   paymentMethod: PaymentMethod;
   orderType: OrderType;
   total: number;
+  cashReceivedRupiah?: number;
+  changeRupiah?: number;
 };

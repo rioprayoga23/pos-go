@@ -9,9 +9,9 @@ import type { ProductForm } from "../types";
 import type { MenuPhotoUpload, MenuRecipeDraft } from "../api";
 import { menuProductToProduct, useMenuData, useMenuMutations } from "./useMenuApi";
 
-export function useProductsManager() {
-  const menu = useMenuData();
-  const mutations = useMenuMutations();
+export function useProductsManager(enabled = true) {
+  const menu = useMenuData(enabled);
+  const { refreshProducts, ...mutations } = useMenuMutations();
   const products = menu.products;
   const recipes = menu.recipes;
   const inventoryItems = menu.stockItems;
@@ -163,19 +163,23 @@ export function useProductsManager() {
       isAvailable: form.isAvailable,
     };
     setFormError("");
+    let productSaved = false;
     try {
       const record = editing
-        ? await mutations.updateProduct.mutateAsync({ id: editing.id, draft })
-        : await mutations.createProduct.mutateAsync(draft);
+        ? await mutations.updateProduct.mutateAsync({ id: editing.id, draft, refresh: false })
+        : await mutations.createProduct.mutateAsync({ draft, refresh: false });
+      productSaved = true;
       const savedProduct = menuProductToProduct(record, categories, inventoryItems, recipes);
       setEditing(savedProduct);
       if (pendingPhoto) {
-        await mutations.uploadPhoto.mutateAsync({ id: record.id, photo: pendingPhoto });
+        await mutations.uploadPhoto.mutateAsync({ id: record.id, photo: pendingPhoto, refresh: false });
       } else if (removePhoto) {
-        await mutations.deletePhoto.mutateAsync(record.id);
+        await mutations.deletePhoto.mutateAsync({ id: record.id, refresh: false });
       }
+      await refreshProducts();
       resetForm();
     } catch (error) {
+      if (productSaved) await refreshProducts();
       setFormError(error instanceof Error ? error.message : "Menu gagal disimpan. Periksa koneksi lalu coba lagi.");
     }
   };

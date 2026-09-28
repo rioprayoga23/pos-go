@@ -10,7 +10,7 @@ export type CashTransactionFilter = "all" | "stock_purchase" | "operational";
 
 const pageSize = 10;
 
-export function useCashLedger() {
+export function useCashLedger(enabled = true) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filter, setFilter] = useState<CashTransactionFilter>("all");
@@ -44,8 +44,8 @@ export function useCashLedger() {
     [debouncedQuery, filter, page, rangeFilters],
   );
 
-  const outflowsQuery = useCashOutflows(filters);
-  const summaryQuery = useCashOutflowSummary(rangeFilters);
+  const outflowsQuery = useCashOutflows(filters, enabled);
+  const summaryQuery = useCashOutflowSummary(rangeFilters, enabled);
   const pageCount = Math.max(
     1,
     Math.ceil((outflowsQuery.data?.total ?? 0) / pageSize),

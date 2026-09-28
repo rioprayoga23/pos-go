@@ -65,11 +65,11 @@ export function QrPaymentPanel({
           <AppIcon name="check-decagram" size={24} color={colors.warning} />
         </HStack>
         <Text style={styles.verifyTitle}>Verifikasi Pembayaran QRIS</Text>
-        <Text style={styles.verifyDescription}>
-          Pastikan dana sebesar{" "}
-          <Text style={styles.verifyAmount}>{formatCurrency(subtotal)}</Text>{" "}
-          sudah berhasil masuk ke notifikasi merchant atau mutasi m-banking
-          sebelum mencetak tiket antrean.
+          <Text style={styles.verifyDescription}>
+            Pastikan dana sebesar{" "}
+            <Text style={styles.verifyAmount}>{formatCurrency(subtotal)}</Text>{" "}
+            sudah berhasil masuk ke notifikasi merchant atau mutasi m-banking
+            sebelum menyelesaikan pesanan.
         </Text>
         <Pressable
           onPress={() => setVerified(true)}

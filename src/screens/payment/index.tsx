@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { ButtonText, HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useWindowDimensions } from "react-native";
+import { useIsFocused } from "expo-router/react-navigation";
 import { AppShell } from "../../components/app-shell";
 import { LoadingScreen } from "../../components/loading-screen";
 import {
@@ -28,6 +29,7 @@ import { usePayment } from "./hooks/usePayment";
 
 export function PaymentScreen() {
   const { width } = useWindowDimensions();
+  const isFocused = useIsFocused();
   const {
     items,
     orderType,
@@ -52,7 +54,7 @@ export function PaymentScreen() {
     submitPayment,
     isSubmitting,
     isRegisterLoading,
-  } = usePayment();
+  } = usePayment(isFocused);
   const isWide = width >= 1024;
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;

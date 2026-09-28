@@ -130,6 +130,7 @@ export const MenuCatalog = memo(function MenuCatalog({
             <InputField
               value={query}
               onChangeText={onQueryChange}
+              maxLength={100}
               placeholder="Cari menu"
               placeholderTextColor={colors.inkSubtle}
               style={styles.inputText}
@@ -188,6 +189,7 @@ const ProductCard = memo(function ProductCard({
   onAddProduct: (product: Product) => void;
 }) {
   const meta = productMeta[product.id] ?? {};
+  const disabled = !product.isAvailable || product.stock <= 0;
   const size = cardWidth
     ? { width: cardWidth, flexBasis: cardWidth }
     : mobile
@@ -197,28 +199,36 @@ const ProductCard = memo(function ProductCard({
   return (
     <Pressable
       onPress={() => onAddProduct(product)}
-      style={[styles.productCard, size]}
+      disabled={disabled}
+      style={[styles.productCard, size, disabled && styles.productCardDisabled]}
       accessibilityRole="button"
-      accessibilityLabel={`Tambah ${product.name}`}
+      accessibilityLabel={
+        disabled ? `${product.name}, tidak tersedia` : `Tambah ${product.name}`
+      }
+      accessibilityState={{ disabled }}
     >
       <View style={styles.productImageWrap}>
         {product.image ? (
           <Image
             source={product.image}
-            style={styles.productImage}
+            style={[styles.productImage, disabled && styles.productImageDisabled]}
             resizeMode="cover"
           />
         ) : (
           <View
             style={[
               styles.productPlaceholder,
-              { backgroundColor: `${product.accent}18` },
+              {
+                backgroundColor: disabled
+                  ? colors.surfaceContainerLow
+                  : `${product.accent}18`,
+              },
             ]}
           >
             <AppIcon
               name={product.icon as never}
               size={36}
-              color={product.accent}
+              color={disabled ? colors.inkSubtle : product.accent}
             />
           </View>
         )}
@@ -227,37 +237,49 @@ const ProductCard = memo(function ProductCard({
             <Text style={styles.featureText}>{meta.badge}</Text>
           </View>
         ) : null}
-        <View style={styles.stockBadge}>
+        <View style={[styles.stockBadge, disabled && styles.stockBadgeDisabled]}>
           <View
             style={[
               styles.stockDot,
-              product.stock <= 0 && styles.stockDotEmpty,
+              disabled && styles.stockDotDisabled,
             ]}
           />
           <Text
             style={[
               styles.stockText,
-              product.stock <= 0 && styles.stockTextEmpty,
+              disabled && styles.stockTextDisabled,
             ]}
           >
-            {product.stock > 0 ? `${product.stock} stok` : "Habis"}
+            {product.stock <= 0
+              ? "Habis"
+              : product.isAvailable
+                ? `${product.stock} stok`
+                : "Nonaktif"}
           </Text>
         </View>
       </View>
       <VStack style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>
+        <Text
+          style={[styles.productName, disabled && styles.productTextDisabled]}
+          numberOfLines={2}
+        >
           {product.name}
         </Text>
-        <Text style={styles.productDescription} numberOfLines={1}>
+        <Text
+          style={[styles.productDescription, disabled && styles.productTextDisabled]}
+          numberOfLines={1}
+        >
           {product.description}
         </Text>
         <HStack style={styles.productBottom}>
-          <Text style={styles.productPrice}>
+          <Text style={[styles.productPrice, disabled && styles.productTextDisabled]}>
             {formatCurrency(product.price)}
           </Text>
-          <HStack style={styles.plusButton}>
-            <AppIcon name="plus" size={20} color={colors.primary} />
-          </HStack>
+          {!disabled ? (
+            <HStack style={styles.plusButton}>
+              <AppIcon name="plus" size={20} color={colors.primary} />
+            </HStack>
+          ) : null}
         </HStack>
       </VStack>
     </Pressable>
