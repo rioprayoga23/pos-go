@@ -21,6 +21,8 @@ type Props = {
   onLayout: (width: number) => void;
   onQueryChange: (query: string) => void;
   onSelectCategory: (category: string) => void;
+  recommendedOnly: boolean;
+  onToggleRecommended: () => void;
   query: string;
   selectedCategory: string;
   wide: boolean;
@@ -35,6 +37,8 @@ export const MenuCatalog = memo(function MenuCatalog({
   onLayout,
   onQueryChange,
   onSelectCategory,
+  recommendedOnly,
+  onToggleRecommended,
   query,
   selectedCategory,
   wide,
@@ -45,7 +49,13 @@ export const MenuCatalog = memo(function MenuCatalog({
       <Panel>
         <EmptyState
           icon={hasAnyProducts ? "magnify-close" : "coffee-outline"}
-          title={hasAnyProducts ? "Menu tidak ditemukan" : "Belum ada menu"}
+          title={
+            recommendedOnly && hasAnyProducts
+              ? "Belum ada menu rekomendasi"
+              : hasAnyProducts
+                ? "Menu tidak ditemukan"
+                : "Belum ada menu"
+          }
           compact
         />
       </Panel>
@@ -151,10 +161,22 @@ export const MenuCatalog = memo(function MenuCatalog({
               <AppIcon name="barcode-scan" size={19} color={colors.inkMuted} />
             ) : null}
           </Input>
-          <HStack style={styles.bestSeller}>
-            <AppIcon name="star" size={17} color={colors.warning} />
-            <Text style={styles.bestSellerText}>Best Seller</Text>
-          </HStack>
+          <Pressable
+            onPress={onToggleRecommended}
+            style={[styles.recommendationFilter, recommendedOnly && styles.recommendationFilterActive]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: recommendedOnly }}
+            accessibilityLabel={recommendedOnly ? "Matikan filter Rekomendasi" : "Filter Rekomendasi"}
+          >
+            <AppIcon
+              name="star"
+              size={17}
+              color={recommendedOnly ? colors.white : colors.primary}
+            />
+            <Text style={[styles.recommendationFilterText, recommendedOnly && styles.recommendationFilterTextActive]}>
+              Rekomendasi
+            </Text>
+          </Pressable>
         </HStack>
       </VStack>
       {wide ? (
@@ -172,11 +194,6 @@ export const MenuCatalog = memo(function MenuCatalog({
   );
 });
 
-const productMeta: Record<string, { badge?: string }> = {
-  "p-01": { badge: "Best Seller" },
-  "p-02": { badge: "Favorit" },
-};
-
 const ProductCard = memo(function ProductCard({
   product,
   cardWidth,
@@ -188,7 +205,6 @@ const ProductCard = memo(function ProductCard({
   mobile: boolean;
   onAddProduct: (product: Product) => void;
 }) {
-  const meta = productMeta[product.id] ?? {};
   const disabled = !product.isAvailable || product.stock <= 0;
   const size = cardWidth
     ? { width: cardWidth, flexBasis: cardWidth }
@@ -232,11 +248,6 @@ const ProductCard = memo(function ProductCard({
             />
           </View>
         )}
-        {meta.badge ? (
-          <View style={styles.featureBadge}>
-            <Text style={styles.featureText}>{meta.badge}</Text>
-          </View>
-        ) : null}
         <View style={[styles.stockBadge, disabled && styles.stockBadgeDisabled]}>
           <View
             style={[
@@ -265,19 +276,24 @@ const ProductCard = memo(function ProductCard({
         >
           {product.name}
         </Text>
-        <Text
-          style={[styles.productDescription, disabled && styles.productTextDisabled]}
-          numberOfLines={1}
-        >
-          {product.description}
+        <Text style={styles.productCategory} numberOfLines={1}>
+          {product.categoryName}
         </Text>
+        {product.description ? (
+          <Text
+            style={[styles.productDescription, disabled && styles.productTextDisabled]}
+            numberOfLines={1}
+          >
+            {product.description}
+          </Text>
+        ) : null}
         <HStack style={styles.productBottom}>
           <Text style={[styles.productPrice, disabled && styles.productTextDisabled]}>
             {formatCurrency(product.price)}
           </Text>
           {!disabled ? (
             <HStack style={styles.plusButton}>
-              <AppIcon name="plus" size={20} color={colors.primary} />
+              <AppIcon name="plus" size={20} color={colors.white} />
             </HStack>
           ) : null}
         </HStack>

@@ -2,6 +2,7 @@ import { ButtonText, HStack, Modal, ModalBackdrop, ModalBody, ModalContent, Moda
 import { useState } from "react";
 import { StyleSheet } from "react-native";
 import { AppButton, AppIcon, AppModalCloseButton, AppPressable } from "../../../components/ui";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { Product } from "../../../types/pos";
 import { styles } from "../styles";
@@ -16,7 +17,6 @@ const deleteStyles = StyleSheet.create({
   content: { gap: spacing.md, paddingVertical: spacing.sm },
   description: { color: colors.inkMuted, ...typography.body },
   product: { padding: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surfaceContainerLow, color: colors.ink, ...typography.label },
-  error: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.dangerSoft, color: colors.danger, ...typography.helper },
   footer: { gap: spacing.sm },
   confirm: { backgroundColor: colors.danger },
   cancel: { minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: radius.md },
@@ -33,7 +33,7 @@ export function DeleteMenuProductModal({
   onDelete: (product: Product) => Promise<void>;
 }) {
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useAppToast();
   const close = () => {
     if (!pending) onClose();
   };
@@ -41,12 +41,11 @@ export function DeleteMenuProductModal({
   const confirm = async () => {
     if (pending) return;
     setPending(true);
-    setError("");
     try {
       await onDelete(product);
       onClose();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Menu gagal dihapus. Coba lagi.");
+      toast.error("Menu gagal dihapus", deleteError instanceof Error ? deleteError.message : "Coba lagi.");
     } finally {
       setPending(false);
     }
@@ -69,7 +68,6 @@ export function DeleteMenuProductModal({
           <VStack style={deleteStyles.content}>
             <Text style={deleteStyles.description}>Menu ini akan dihapus permanen dari katalog.</Text>
             <Text style={deleteStyles.product}>{product.name}</Text>
-            {error ? <Text style={deleteStyles.error}>{error}</Text> : null}
           </VStack>
         </ModalBody>
         <ModalFooter style={deleteStyles.footer}>

@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { StyleSheet } from "react-native";
 import { AppIcon, AppModalCloseButton, AppPressable } from "../../../components/ui";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { StockItem } from "../../../types/stock";
 import { formatQuantity } from "../../../utils/format";
@@ -48,14 +49,6 @@ const deleteStyles = StyleSheet.create({
   stockStatusBlocked: { backgroundColor: colors.warningSoft },
   stockStatusReady: { backgroundColor: colors.successSoft },
   stockHint: { color: colors.inkMuted, ...typography.helper },
-  error: {
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.dangerSoft,
-    color: colors.danger,
-    ...typography.helper,
-    fontWeight: "600",
-  },
   footer: {
     flexDirection: "row",
     gap: spacing.sm,
@@ -99,17 +92,16 @@ export function DeleteStockItemModal({
   onDelete: () => Promise<void>;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const toast = useAppToast();
   const canDelete = item.stock === 0;
 
   const handleDelete = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    setErrorMessage("");
     try {
       await onDelete();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Bahan gagal dihapus.");
+      toast.error("Bahan gagal dihapus", error instanceof Error ? error.message : "Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +144,6 @@ export function DeleteStockItemModal({
                 Ubah stok menjadi 0 sebelum menghapus bahan.
               </Text>
             ) : null}
-            {errorMessage ? <Text style={deleteStyles.error}>{errorMessage}</Text> : null}
           </VStack>
         </ModalBody>
         <ModalFooter style={[styles.modalFooter, deleteStyles.footer]}>

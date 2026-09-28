@@ -8,6 +8,7 @@ export const emptyForm: ProductForm = {
   description: "",
   categoryId: "",
   isAvailable: true,
+  isRecommended: false,
   accent: colors.cyan,
   icon: "cup-outline",
 };

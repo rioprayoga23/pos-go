@@ -30,12 +30,14 @@ export type OrderRecord = {
   changeRupiah: number;
   createdAt: string;
   items: {
+    id: string;
     productId: string;
     productName: string;
     quantity: number;
     unitPriceRupiah: number;
     lineTotalRupiah: number;
     hppPerPortionRupiah: number | null;
+    isPrepared: boolean;
   }[];
 };
 
@@ -77,6 +79,7 @@ export function orderRecordToLocalOrder(
             stock: 0,
             description: "",
             isAvailable: false,
+            isRecommended: false,
             accent: "#5B45D6",
             icon: "cup-outline",
           };

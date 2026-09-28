@@ -33,6 +33,7 @@ export function CategoryField({ categories, selectedId, isMobile, isTablet, onSe
           icon="plus"
           label="Kategori Baru"
           onPress={onAdd}
+          compact
           accessibilityLabel="Tambah kategori baru"
         />
       </HStack>

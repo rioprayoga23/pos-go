@@ -29,8 +29,18 @@ const actionAppearance: Record<
   },
 };
 
-export function DataTableActions({ children }: { children: React.ReactNode }) {
-  return <HStack style={styles.group}>{children}</HStack>;
+export function DataTableActions({
+  children,
+  compact = false,
+}: {
+  children: React.ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <HStack style={[styles.group, compact && styles.compactGroup]}>
+      {children}
+    </HStack>
+  );
 }
 
 export function DataTableActionButton({
@@ -38,11 +48,13 @@ export function DataTableActionButton({
   label,
   onPress,
   disabled = false,
+  compact = false,
 }: {
   action: TableAction;
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const appearance = actionAppearance[action];
 
@@ -52,6 +64,7 @@ export function DataTableActionButton({
       disabled={disabled}
       style={[
         styles.button,
+        compact && styles.compactButton,
         {
           backgroundColor: appearance.backgroundColor,
           borderColor: appearance.borderColor,
@@ -62,7 +75,7 @@ export function DataTableActionButton({
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
     >
-      <AppIcon name={appearance.icon} size={16} color={appearance.color} />
+      <AppIcon name={appearance.icon} size={compact ? 13 : 16} color={appearance.color} />
     </AppPressable>
   );
 }
@@ -74,6 +87,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
   },
+  compactGroup: { gap: 8 },
   button: {
     width: 40,
     height: 40,
@@ -82,4 +96,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  compactButton: { width: 28, height: 28 },
 });

@@ -14,7 +14,7 @@ import { colors, spacing } from "../../../theme";
 import { parseWholeNumber } from "../../../utils/format";
 import { CategoryField } from "./CategoryField";
 import { PriceField } from "./PriceField";
-import { ProductAvailabilityField } from "./ProductAvailabilityField";
+import { ProductToggleField } from "./ProductToggleField";
 import { PhotoField } from "./PhotoField";
 import { RecipeField } from "./RecipeField";
 import { RecipeManagerModal } from "./RecipeManagerModal";
@@ -51,6 +51,7 @@ export function ProductEditor({
     form.categoryId !== emptyForm.categoryId ||
     form.recipeId !== emptyForm.recipeId ||
     form.isAvailable !== emptyForm.isAvailable ||
+    form.isRecommended !== emptyForm.isRecommended ||
     form.accent !== emptyForm.accent ||
     form.icon !== emptyForm.icon ||
     form.image !== undefined;
@@ -96,11 +97,21 @@ export function ProductEditor({
         costLines={model.recipeCostLines}
         onChange={(priceValue) => setForm((current) => ({ ...current, price: priceValue }))}
       />
-      <ProductAvailabilityField
+      <ProductToggleField
+        label="Tampilkan di Kasir"
         isActive={form.isAvailable}
         onChange={(isAvailable) =>
           setForm((current) => ({ ...current, isAvailable }))
         }
+        accessibilityLabel="Tampilkan menu di kasir"
+      />
+      <ProductToggleField
+        label="Rekomendasi"
+        isActive={form.isRecommended}
+        onChange={(isRecommended) =>
+          setForm((current) => ({ ...current, isRecommended }))
+        }
+        accessibilityLabel="Tandai menu sebagai rekomendasi"
       />
       <PhotoField
         form={form}

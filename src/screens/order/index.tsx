@@ -22,6 +22,8 @@ export function OrderScreen() {
     filteredProducts,
     handleCatalogLayout,
     onSelectCategory,
+    recommendedOnly,
+    onToggleRecommended,
     onQueryChange,
     query,
     selectedCategory,
@@ -55,6 +57,8 @@ export function OrderScreen() {
             onLayout={handleCatalogLayout}
             onQueryChange={onQueryChange}
             onSelectCategory={onSelectCategory}
+            recommendedOnly={recommendedOnly}
+            onToggleRecommended={onToggleRecommended}
             query={query}
             selectedCategory={selectedCategory}
             wide={isWide}

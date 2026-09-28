@@ -58,9 +58,4 @@ export const styles = StyleSheet.create({
   saveButton: { width: "100%", minHeight: 48, paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
   saveButtonDisabled: { opacity: 0.45 },
   saveButtonText: { color: colors.white, ...typography.button },
-  toast: { position: "absolute", right: spacing.lg, bottom: spacing.lg, maxWidth: 360, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.ink, alignItems: "center", flexDirection: "row", gap: spacing.sm, shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
-  toastError: { backgroundColor: colors.danger },
-  toastCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
-  toastTitle: { color: colors.white, fontSize: type.caption, lineHeight: 18, fontWeight: "600" },
-  toastMessage: { color: "rgba(255,255,255,0.78)", ...typography.helper },
 });

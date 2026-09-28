@@ -140,6 +140,15 @@ export function useMenuMutations() {
   const queryClient = useQueryClient();
   const refreshRecipes = () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.recipes });
   const refreshProducts = () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.products });
+  const updateProductCache = (product: MenuProductRecord) => {
+    queryClient.setQueryData<MenuProductRecord[]>(menuQueryKeys.products, (current) => {
+      if (!current) return current;
+      const exists = current.some((entry) => entry.id === product.id);
+      return exists
+        ? current.map((entry) => entry.id === product.id ? product : entry)
+        : [...current, product];
+    });
+  };
   return {
     refreshProducts,
     createCategory: useMutation({ mutationFn: createMenuCategory, onSuccess: () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.categories }) }),
@@ -148,20 +157,36 @@ export function useMenuMutations() {
     deleteRecipe: useMutation({ mutationFn: deleteMenuRecipe, onSuccess: refreshRecipes }),
     createProduct: useMutation({
       mutationFn: ({ draft }: { draft: MenuProductDraft; refresh?: boolean }) => createMenuProduct(draft),
-      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+      onSuccess: (product, variables) => {
+        updateProductCache(product);
+        return variables.refresh === false ? undefined : refreshProducts();
+      },
     }),
     updateProduct: useMutation({
       mutationFn: ({ id, draft }: { id: string; draft: MenuProductDraft; refresh?: boolean }) => updateMenuProduct(id, draft),
-      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+      onSuccess: (product, variables) => {
+        updateProductCache(product);
+        return variables.refresh === false ? undefined : refreshProducts();
+      },
     }),
     deleteProduct: useMutation({ mutationFn: deleteMenuProduct, onSuccess: refreshProducts }),
     uploadPhoto: useMutation({
       mutationFn: ({ id, photo }: { id: string; photo: Parameters<typeof uploadMenuProductPhoto>[1]; refresh?: boolean }) => uploadMenuProductPhoto(id, photo),
-      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+      onSuccess: (product, variables) => {
+        updateProductCache(product);
+        return variables.refresh === false ? undefined : refreshProducts();
+      },
     }),
     deletePhoto: useMutation({
       mutationFn: ({ id }: { id: string; refresh?: boolean }) => deleteMenuProductPhoto(id),
-      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshProducts(),
+      onSuccess: (_, variables) => {
+        queryClient.setQueryData<MenuProductRecord[]>(menuQueryKeys.products, (current) =>
+          current?.map((product) => product.id === variables.id
+            ? { ...product, photoUrl: undefined }
+            : product),
+        );
+        return variables.refresh === false ? undefined : refreshProducts();
+      },
     }),
   };
 }

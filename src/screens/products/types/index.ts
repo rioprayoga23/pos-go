@@ -11,6 +11,7 @@ export type ProductForm = {
   description: string;
   categoryId: string;
   isAvailable: boolean;
+  isRecommended: boolean;
   accent: string;
   icon: string;
   image?: Product["image"];

@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { ScrollView } from "react-native";
 import { DropdownSelect, type DropdownOption } from "../../../components/dropdown-select";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import {
   AppIcon,
   AppInput,
@@ -64,7 +65,7 @@ export function StockPurchaseModal({
   const [quantityInput, setQuantityInput] = useState("");
   const [totalCostInput, setTotalCostInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const toast = useAppToast();
 
   const isCustomItem = itemId === customItemOptionId;
   const selectedItem = items.find((item) => item.id === itemId);
@@ -110,7 +111,6 @@ export function StockPurchaseModal({
     if (!canSubmit || isSubmitting) return;
 
     setIsSubmitting(true);
-    setSubmitError("");
     try {
       const draft: PurchaseDraft = {
         mode: "purchase",
@@ -131,7 +131,7 @@ export function StockPurchaseModal({
       };
       await onSubmit(draft);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Stok gagal disimpan.");
+      toast.error("Stok gagal disimpan", error instanceof Error ? error.message : "Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -303,11 +303,6 @@ export function StockPurchaseModal({
               </HStack>
             </VStack>
           </ScrollView>
-          {submitError ? (
-            <Text style={[styles.formError, { marginHorizontal: 16, marginBottom: 8 }]}>
-              {submitError}
-            </Text>
-          ) : null}
         </ModalBody>
 
         <ModalFooter style={styles.modalFooter}>

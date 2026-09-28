@@ -1,12 +1,13 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { memo } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { memo, useState } from "react";
+import { Image, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { AppIcon } from "../../ui";
 import { DataTableActionButton, DataTableActions } from "../../data-table";
 import { colors, radius, type } from "../../../theme";
 import { Product } from "../../../types/pos";
 import { formatCurrency } from "../../../utils/format";
 
+const inlineCardBreakpoint = 480;
 const profitPercentFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 1,
 });
@@ -15,329 +16,209 @@ export const MenuListItem = memo(function MenuListItem({
   product,
   hpp,
   selected,
-  isMobile,
-  isTablet,
   onEdit,
   onDelete,
 }: {
   product: Product;
   hpp: number | null;
   selected: boolean;
-  isMobile: boolean;
-  isTablet: boolean;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
 }) {
-  const profitPerPortion =
-    hpp !== null && product.price > 0 ? product.price - hpp : null;
-  const profitPercent =
-    profitPerPortion !== null && product.price > 0
-      ? (profitPerPortion / product.price) * 100
-      : null;
+  const [itemWidth, setItemWidth] = useState(0);
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
+  const isNarrow = itemWidth > 0 && itemWidth < inlineCardBreakpoint;
+  const photoUrl =
+    product.image && typeof product.image === "object" && !Array.isArray(product.image) && "uri" in product.image
+      ? product.image.uri
+      : undefined;
+  const showPhoto = Boolean(product.image) && (!photoUrl || failedPhotoUrl !== photoUrl);
+  const profit = hpp !== null && product.price > 0 ? product.price - hpp : null;
+  const profitPercent = profit !== null ? (profit / product.price) * 100 : null;
   const profitLabel =
-    profitPerPortion === null
+    profit === null
       ? "Laba —"
-      : `Laba ${formatCurrency(profitPerPortion)} (${profitPercentFormatter.format(profitPercent ?? 0)}%)`;
-  const compactAvailabilityLabel = !product.isAvailable
+      : `Laba ${formatCurrency(profit)} (${profitPercentFormatter.format(profitPercent ?? 0)}%)`;
+  const availabilityLabel = !product.isAvailable
     ? "Nonaktif"
     : product.stock > 0
       ? `${product.stock} porsi`
       : "Habis";
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const width = Math.round(event.nativeEvent.layout.width);
+    setItemWidth((current) => (current === width ? current : width));
+  };
 
-  if (isMobile) {
+  const thumbnail = (
+    <View style={[styles.thumbnail, isNarrow && styles.thumbnailNarrow]}>
+      {showPhoto ? (
+        <Image
+          source={product.image}
+          style={styles.image}
+          onError={() => setFailedPhotoUrl(photoUrl ?? "unreadable-local-photo")}
+        />
+      ) : (
+        <AppIcon name="cup-outline" size={17} color={colors.primary} />
+      )}
+    </View>
+  );
+
+  const identity = (
+    <VStack style={styles.identity}>
+      <Text style={styles.name} numberOfLines={1}>
+        {product.name}
+      </Text>
+      <HStack style={styles.subtitle}>
+        <Text style={styles.category} numberOfLines={1}>
+          {product.categoryName}
+        </Text>
+        <View style={styles.metaDot} />
+        <Text
+          style={[
+            styles.availability,
+            (!product.isAvailable || product.stock <= 0) && styles.availabilityMuted,
+          ]}
+          numberOfLines={1}
+        >
+          {availabilityLabel}
+        </Text>
+      </HStack>
+    </VStack>
+  );
+
+  const financialDetails = (
+    <HStack style={styles.financialDetails}>
+      <Text style={styles.cost} numberOfLines={1}>
+        HPP {hpp === null ? "—" : formatCurrency(hpp)}
+      </Text>
+      <View style={styles.financialDivider} />
+      <Text
+        style={[
+          styles.profit,
+          profit === null
+            ? styles.profitNeutral
+            : profit >= 0
+              ? styles.profitPositive
+              : styles.profitNegative,
+        ]}
+        numberOfLines={1}
+      >
+        {profitLabel}
+      </Text>
+    </HStack>
+  );
+
+  const actions = (
+    <DataTableActions compact>
+      <DataTableActionButton compact action="edit" label={`Edit ${product.name}`} onPress={() => onEdit(product)} />
+      <DataTableActionButton compact action="delete" label={`Hapus ${product.name}`} onPress={() => onDelete(product)} />
+    </DataTableActions>
+  );
+
+  if (isNarrow) {
     return (
       <VStack
-        style={[styles.menuItemMobile, selected && styles.menuItemActive]}
+        onLayout={handleLayout}
+        style={[styles.card, styles.cardNarrow, selected && styles.cardSelected]}
       >
-        <HStack style={styles.menuMainMobile}>
-          <View style={styles.menuThumbMobile}>
-            {product.image ? (
-              <Image source={product.image} style={styles.menuImage} />
-            ) : (
-              <AppIcon
-                name={product.icon as never}
-                size={19}
-                color={product.accent}
-              />
-            )}
-          </View>
-          <VStack style={styles.menuInfoMobile}>
-            <Text style={styles.menuNameMobile} numberOfLines={1}>
-              {product.name}
-            </Text>
-            <Text style={styles.menuMetaMobile} numberOfLines={1}>
-              {product.categoryName}
-            </Text>
-          </VStack>
-          <VStack style={styles.menuPriceMobile}>
-            <Text style={styles.priceTextMobile} numberOfLines={1}>
-              {formatCurrency(product.price)}
-            </Text>
-          </VStack>
-          <DataTableActions>
-            <DataTableActionButton action="edit" label={`Edit ${product.name}`} onPress={() => onEdit(product)} />
-            <DataTableActionButton action="delete" label={`Hapus ${product.name}`} onPress={() => onDelete(product)} />
-          </DataTableActions>
-        </HStack>
-        <HStack style={styles.menuMetaPriceMobile}>
-          <Text
-            style={[
-              styles.availabilityMobile,
-              (!product.isAvailable || product.stock <= 0) &&
-                styles.availabilityMobileMuted,
-            ]}
-            numberOfLines={1}
-          >
-            {compactAvailabilityLabel}
+        <HStack style={styles.narrowMain}>
+          {thumbnail}
+          {identity}
+          <Text style={styles.price} numberOfLines={1}>
+            {formatCurrency(product.price)}
           </Text>
-          <HStack style={styles.menuMetricsMobile}>
-            <Text style={styles.costTextMobile} numberOfLines={1}>
-              {hpp === null ? "HPP —" : `HPP ${formatCurrency(hpp)}`}
-            </Text>
-            <View style={styles.mobileMetricDivider} />
-            <Text
-              style={[
-                styles.profitTextMobile,
-                profitPerPortion === null
-                  ? styles.profitNeutral
-                  : profitPerPortion >= 0
-                    ? styles.profitPositive
-                    : styles.profitNegative,
-              ]}
-              numberOfLines={1}
-            >
-              {profitLabel}
-            </Text>
-          </HStack>
+          {actions}
         </HStack>
+        <HStack style={styles.narrowMetrics}>{financialDetails}</HStack>
       </VStack>
     );
   }
 
   return (
-    <HStack style={[styles.menuItem, selected && styles.menuItemActive]}>
-      <View style={styles.menuThumb}>
-        {product.image ? (
-          <Image source={product.image} style={styles.menuImage} />
-        ) : (
-          <AppIcon
-            name={product.icon as never}
-            size={20}
-            color={product.accent}
-          />
-        )}
-      </View>
-      <VStack style={styles.menuInfo}>
-        <Text
-          style={[styles.menuName, isTablet && styles.menuNameTablet]}
-          numberOfLines={1}
-        >
-          {product.name}
-        </Text>
-        <HStack style={styles.menuMetaRow}>
-          <Text
-            style={[styles.menuMeta, isTablet && styles.menuMetaTablet]}
-            numberOfLines={1}
-          >
-            {product.categoryName}
-          </Text>
-          <Text
-            style={[
-              styles.availablePill,
-              isTablet && styles.availablePillTablet,
-              !product.isAvailable && styles.inactivePill,
-            ]}
-            numberOfLines={1}
-          >
-            {!product.isAvailable
-              ? "Nonaktif"
-              : product.stock > 0
-                ? `${product.stock} porsi`
-                : "Habis"}
-          </Text>
-        </HStack>
-      </VStack>
-      <VStack style={styles.menuFinancials}>
-        <Text style={styles.priceText} numberOfLines={1}>
+    <HStack
+      onLayout={handleLayout}
+      style={[styles.card, styles.cardInline, selected && styles.cardSelected]}
+    >
+      {thumbnail}
+      {identity}
+      <VStack style={styles.financials}>
+        <Text style={styles.price} numberOfLines={1}>
           {formatCurrency(product.price)}
         </Text>
-        <HStack style={styles.menuFinancialDetails}>
-          <Text style={styles.costText} numberOfLines={1}>
-            HPP {hpp === null ? "—" : formatCurrency(hpp)}
-          </Text>
-          <View style={styles.financialDivider} />
-          <Text
-            style={[
-              styles.menuMetricValue,
-              profitPerPortion === null
-                ? styles.profitNeutral
-                : profitPerPortion >= 0
-                  ? styles.profitPositive
-                  : styles.profitNegative,
-            ]}
-            numberOfLines={1}
-          >
-            {profitLabel}
-          </Text>
-        </HStack>
+        {financialDetails}
       </VStack>
-      <DataTableActions>
-        <DataTableActionButton action="edit" label={`Edit ${product.name}`} onPress={() => onEdit(product)} />
-        <DataTableActionButton action="delete" label={`Hapus ${product.name}`} onPress={() => onDelete(product)} />
-      </DataTableActions>
+      {actions}
     </HStack>
   );
 });
 
 const styles = StyleSheet.create({
-  menuItem: {
-    minHeight: 58,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceContainerLow,
-    alignItems: "center",
-    gap: 8,
-  },
-  menuItemActive: { backgroundColor: colors.surfaceTint },
-  menuItemMobile: {
+  card: {
+    alignSelf: "stretch",
+    minWidth: 0,
     padding: 8,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceContainerLow,
-    gap: 5,
-  },
-  menuMainMobile: { alignItems: "center", gap: 8 },
-  menuThumbMobile: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  cardInline: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  cardNarrow: { gap: 6 },
+  cardSelected: {
+    backgroundColor: colors.surfaceContainerLow,
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+  },
+  thumbnail: {
+    width: 32,
+    height: 32,
+    flexShrink: 0,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceTint,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
-  menuInfoMobile: { flex: 1, minWidth: 0, gap: 1 },
-  menuNameMobile: {
+  thumbnailNarrow: { width: 30, height: 30 },
+  image: { width: "100%", height: "100%" },
+  identity: { flex: 1, minWidth: 0, gap: 2 },
+  name: {
     color: colors.ink,
     fontSize: type.bodySmall,
-    lineHeight: 21,
+    lineHeight: 19,
     fontWeight: "600",
   },
-  menuMetaMobile: {
-    color: colors.inkMuted,
-    fontSize: type.micro,
-    lineHeight: 17,
-  },
-  menuMetaPriceMobile: {
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    paddingLeft: 48,
-  },
-  availabilityMobile: {
-    flexShrink: 0,
-    color: colors.success,
-    backgroundColor: colors.successSoft,
-    borderRadius: radius.sm,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    fontSize: type.micro,
-    lineHeight: 15,
-    fontWeight: "600",
-  },
-  availabilityMobileMuted: {
-    color: colors.inkMuted,
-    backgroundColor: colors.line,
-  },
-  menuPriceMobile: { alignItems: "flex-end", flexShrink: 0 },
-  priceTextMobile: {
-    color: colors.ink,
-    fontSize: type.bodySmall,
-    lineHeight: 21,
-    fontWeight: "600",
-  },
-  costTextMobile: {
+  subtitle: { alignItems: "center", minWidth: 0, gap: 5 },
+  category: { flexShrink: 1, minWidth: 0, color: colors.inkMuted, fontSize: type.micro, lineHeight: 16 },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.inkMuted },
+  availability: { flexShrink: 0, color: colors.success, fontSize: type.micro, lineHeight: 16, fontWeight: "600" },
+  availabilityMuted: { color: colors.inkMuted },
+  financials: {
+    width: 226,
+    minWidth: 0,
     flexShrink: 1,
-    color: colors.inkMuted,
-    fontSize: type.micro,
-    lineHeight: 15,
-  },
-  profitTextMobile: {
-    flexShrink: 1,
-    fontSize: type.micro,
-    lineHeight: 15,
-    fontWeight: "600",
-  },
-  menuMetricsMobile: { minWidth: 0, alignItems: "center", gap: 6 },
-  mobileMetricDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: colors.line,
-  },
-  menuThumb: {
-    width: 43,
-    height: 43,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  menuImage: { width: "100%", height: "100%" },
-  menuInfo: { flex: 1, minWidth: 0, gap: 5 },
-  menuName: {
-    color: colors.ink,
-    fontSize: type.bodySmall,
-    lineHeight: 21,
-    fontWeight: "600",
-  },
-  menuNameTablet: { fontSize: type.bodySmall, lineHeight: 21 },
-  menuMetaRow: { alignItems: "center", gap: 6 },
-  menuMeta: { flexShrink: 1, minWidth: 0, color: colors.inkMuted, fontSize: type.micro },
-  menuMetaTablet: { fontSize: type.micro },
-  availablePill: {
-    color: colors.success,
-    backgroundColor: colors.successSoft,
-    borderRadius: radius.sm,
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-    fontSize: type.micro,
-    fontWeight: "600",
-  },
-  inactivePill: {
-    color: colors.inkMuted,
-    backgroundColor: colors.surfaceContainerLow,
-  },
-  menuFinancials: {
-    width: 250,
-    flexShrink: 0,
     alignItems: "flex-end",
     gap: 2,
   },
-  menuFinancialDetails: {
-    alignItems: "center",
-    gap: 5,
-  },
-  menuMetricValue: {
-    color: colors.inkMuted,
-    fontSize: type.overline,
-    lineHeight: 14,
-    fontWeight: "600",
-  },
-  financialDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: colors.line,
-  },
-  availablePillTablet: { fontSize: type.micro },
-  priceText: {
+  price: {
+    flexShrink: 0,
     color: colors.ink,
     fontSize: type.bodySmall,
-    lineHeight: 18,
+    lineHeight: 19,
     fontWeight: "600",
   },
-  costText: { color: colors.inkMuted, fontSize: type.overline, lineHeight: 14 },
+  financialDetails: { alignItems: "center", justifyContent: "flex-end", gap: 5, minWidth: 0 },
+  cost: { flexShrink: 1, color: colors.inkMuted, fontSize: type.overline, lineHeight: 14 },
+  financialDivider: { width: 1, height: 12, backgroundColor: colors.line },
+  profit: { flexShrink: 1, fontSize: type.overline, lineHeight: 14, fontWeight: "600" },
   profitNeutral: { color: colors.inkMuted },
   profitPositive: { color: colors.success },
   profitNegative: { color: colors.danger },
+  narrowMain: { alignItems: "center", gap: 7, minWidth: 0 },
+  narrowMetrics: { paddingLeft: 37, minWidth: 0 },
 });

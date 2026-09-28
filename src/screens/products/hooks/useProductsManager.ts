@@ -1,6 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView } from "react-native";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import type { Product } from "../../../types/pos";
 import { parseWholeNumber } from "../../../utils/format";
 import { getAvailablePortions, getRecipeCostBreakdown } from "../../../utils/standardRecipe";
@@ -10,6 +11,7 @@ import type { MenuPhotoUpload, MenuRecipeDraft } from "../api";
 import { menuProductToProduct, useMenuData, useMenuMutations } from "./useMenuApi";
 
 export function useProductsManager(enabled = true) {
+  const toast = useAppToast();
   const menu = useMenuData(enabled);
   const { refreshProducts, ...mutations } = useMenuMutations();
   const products = menu.products;
@@ -110,6 +112,7 @@ export function useProductsManager(enabled = true) {
       description: product.description,
       categoryId: product.categoryId,
       isAvailable: product.isAvailable,
+      isRecommended: product.isRecommended,
       accent: product.accent,
       icon: product.icon,
       image: product.image,
@@ -161,6 +164,7 @@ export function useProductsManager(enabled = true) {
       description: form.description.trim(),
       categoryId: category.id,
       isAvailable: form.isAvailable,
+      isRecommended: form.isRecommended,
     };
     setFormError("");
     let productSaved = false;
@@ -177,10 +181,21 @@ export function useProductsManager(enabled = true) {
         await mutations.deletePhoto.mutateAsync({ id: record.id, refresh: false });
       }
       await refreshProducts();
+      toast.success(
+        editing ? "Menu diperbarui" : "Menu ditambahkan",
+        `${draft.name} berhasil disimpan.`,
+      );
       resetForm();
     } catch (error) {
-      if (productSaved) await refreshProducts();
-      setFormError(error instanceof Error ? error.message : "Menu gagal disimpan. Periksa koneksi lalu coba lagi.");
+      if (productSaved) {
+        await refreshProducts();
+        setPhotoError("Menu tersimpan, tetapi foto gagal disimpan. Pilih ulang foto lalu simpan kembali.");
+      }
+      setFormError("");
+      toast.error(
+        productSaved ? "Menu tersimpan, foto gagal diperbarui" : "Menu gagal disimpan",
+        error instanceof Error ? error.message : "Periksa koneksi lalu coba lagi.",
+      );
     }
   };
 
@@ -196,8 +211,10 @@ export function useProductsManager(enabled = true) {
       const category = await mutations.createCategory.mutateAsync(name);
       setForm((current) => ({ ...current, categoryId: category.id }));
       closeCategoryModal();
+      toast.success("Kategori ditambahkan", `${category.name} siap digunakan.`);
     } catch (error) {
-      setCategoryError(error instanceof Error ? error.message : "Kategori gagal disimpan.");
+      setCategoryError("");
+      toast.error("Kategori gagal disimpan", error instanceof Error ? error.message : "Coba lagi.");
     } finally {
       setCategorySaving(false);
     }
@@ -207,6 +224,7 @@ export function useProductsManager(enabled = true) {
   const removeProduct = async (product: Product) => {
     await mutations.deleteProduct.mutateAsync(product.id);
     if (editing?.id === product.id) resetForm();
+    toast.success("Menu dihapus", `${product.name} berhasil dihapus.`);
   };
 
   return {

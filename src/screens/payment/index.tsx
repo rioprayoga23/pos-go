@@ -50,7 +50,6 @@ export function PaymentScreen() {
     setQrisVerified,
     received,
     change,
-    paymentError,
     submitPayment,
     isSubmitting,
     isRegisterLoading,
@@ -242,9 +241,6 @@ export function PaymentScreen() {
                 ]}
               >
                 <ReceiptPreview data={receiptData} bounded={isWide} />
-                {paymentError ? (
-                  <Text style={styles.paymentError}>{paymentError}</Text>
-                ) : null}
                 <Button
                   onPress={submitPayment}
                   isDisabled={

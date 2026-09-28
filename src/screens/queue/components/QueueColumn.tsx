@@ -2,7 +2,7 @@ import { HStack, Text, VStack } from '@gluestack-ui/themed';
 import { memo } from 'react';
 import { ScrollView } from 'react-native';
 import { AppIcon, EmptyState, Panel } from '../../../components/ui';
-import type { Order } from '../../../types/pos';
+import type { QueueOrder } from '../api';
 import { colors } from '../../../theme';
 import type { QueueTone } from '../types';
 import { QueueTicket } from './QueueTicket';
@@ -12,14 +12,14 @@ type Props = {
   title: string;
   subtitle: string;
   tone: QueueTone;
-  orders: Order[];
+  orders: QueueOrder[];
   emptyText: string;
   fillHeight: boolean;
   compactHeight: boolean;
   isMobile: boolean;
   isTablet: boolean;
   onAdvance: (id: string) => void;
-  onTogglePreparedItem: (orderId: string, productId: string) => void;
+  onTogglePreparedItem: (orderId: string, itemId: string, isPrepared: boolean) => void;
 };
 
 export const QueueColumn = memo(function QueueColumn({

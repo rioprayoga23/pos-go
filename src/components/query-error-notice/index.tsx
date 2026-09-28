@@ -2,7 +2,13 @@ import { HStack, Text } from "@gluestack-ui/themed";
 import { AppPressable } from "../ui";
 import { colors, spacing } from "../../theme";
 
-export function QueryErrorNotice({ onRetry }: { onRetry: () => void }) {
+export function QueryErrorNotice({
+  onRetry,
+  message = "Data gagal diperbarui.",
+}: {
+  onRetry: () => void;
+  message?: string;
+}) {
   return (
     <HStack
       style={{
@@ -14,7 +20,7 @@ export function QueryErrorNotice({ onRetry }: { onRetry: () => void }) {
       }}
     >
       <Text style={{ color: colors.danger, flex: 1 }}>
-        Data gagal diperbarui.
+        {message}
       </Text>
       <AppPressable
         onPress={onRetry}

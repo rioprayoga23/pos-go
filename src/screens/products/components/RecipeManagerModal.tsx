@@ -19,6 +19,7 @@ import {
   AppModalCloseButton,
   AppPressable,
 } from "../../../components/ui";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import { productFormStyles } from "../../../components/products/styles/form";
 import {
   colors,
@@ -91,6 +92,7 @@ export function RecipeManagerModal({
   selectedRecipeId: string;
   onSelectedDeleted: () => void;
 }) {
+  const toast = useAppToast();
   const { height, width } = useWindowDimensions();
   const isCompact = width < 420;
   const [editingId, setEditingId] = useState<string | null | undefined>(undefined);
@@ -160,18 +162,22 @@ export function RecipeManagerModal({
     try {
       if (editingId) {
         await onUpdateRecipe(editingId, { name: draft.name, ingredients: draft.ingredients });
+        toast.success(kind === "base" ? "Bahan dasar diperbarui" : "Resep menu diperbarui", `${draft.name} berhasil disimpan.`);
         setEditingId(undefined);
         return;
       }
       const created = await onCreateRecipe(draft);
       if (kind === "base") {
+        toast.success("Bahan dasar ditambahkan", `${draft.name} berhasil disimpan.`);
         setEditingId(undefined);
         return;
       }
+      toast.success("Resep menu ditambahkan", `${draft.name} berhasil disimpan.`);
       onCreate(created.id);
       onClose();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Resep gagal disimpan. Coba lagi.");
+      setError("");
+      toast.error("Resep gagal disimpan", saveError instanceof Error ? saveError.message : "Coba lagi.");
     } finally {
       setIsSaving(false);
     }
@@ -185,8 +191,10 @@ export function RecipeManagerModal({
       await onDeleteRecipe(id);
       if (selectedRecipeId === id) onSelectedDeleted();
       setConfirmDeleteId(null);
+      toast.success("Resep dihapus", "Formula sudah dihapus.");
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Resep gagal dihapus.");
+      setError("");
+      toast.error("Resep gagal dihapus", deleteError instanceof Error ? deleteError.message : "Coba lagi.");
     } finally {
       setDeletingId(null);
     }

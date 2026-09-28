@@ -42,7 +42,7 @@ export function RecipeField({
             Bahan
           </Text>
         </VStack>
-        <ActionText icon="pencil-outline" label="Kelola" onPress={onManage} />
+        <ActionText icon="pencil-outline" label="Kelola" onPress={onManage} compact />
       </HStack>
       <DropdownSelect
         options={options}
@@ -61,7 +61,7 @@ export function RecipeField({
 const styles = StyleSheet.create({
   field: { gap: spacing.sm },
   heading: { alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
-  headingTitle: { minHeight: 44, justifyContent: "center" },
+  headingTitle: { justifyContent: "center" },
   headingLabel: { marginBottom: 0, includeFontPadding: false },
   stockText: { color: colors.inkMuted, ...typography.helper },
 });

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import { getCartTotals, useCartStore } from "../../../store/cartStore";
 import { useTransactionStore } from "../../../store/transactionStore";
 import type { Order } from "../../../types/pos";
@@ -12,6 +13,7 @@ function createRequestKey() {
 }
 
 export function usePayment(enabled = true) {
+  const toast = useAppToast();
   const items = useCartStore((state) => state.items);
   const orderType = useCartStore((state) => state.orderType);
   const subtotal = getCartTotals(items).subtotal;
@@ -29,10 +31,6 @@ export function usePayment(enabled = true) {
   const [lastOrderNumber, setLastOrderNumber] = useState("");
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
   const [qrisConfirmationKey, setQrisConfirmationKey] = useState<string | null>(null);
-  const [paymentErrorState, setPaymentErrorState] = useState<{
-    cartKey: string;
-    message: string;
-  } | null>(null);
   const pendingRequest = useRef<{ identity: string; key: string } | null>(null);
   const cartKey =
     items
@@ -41,7 +39,6 @@ export function usePayment(enabled = true) {
       )
       .join("|") + `|${register?.id ?? register?.status ?? "loading"}`;
   const qrisVerified = qrisConfirmationKey === cartKey && Boolean(cartKey);
-  const paymentError = paymentErrorState?.cartKey === cartKey ? paymentErrorState.message : "";
   const received = parseWholeNumber(cash);
   const change = received - subtotal;
   const cashReady = cashConfirmationKey === cartKey && cashRegisterOpen && received >= subtotal;
@@ -49,7 +46,6 @@ export function usePayment(enabled = true) {
   const setCash = (value: string) => {
     setCashValue(digitsOnly(value, 12));
     setCashConfirmationKey(null);
-    setPaymentErrorState(null);
   };
 
   const applyCash = () => {
@@ -60,12 +56,10 @@ export function usePayment(enabled = true) {
     setSelectedPaymentMethod(method);
     setCashConfirmationKey(null);
     setQrisConfirmationKey(null);
-    setPaymentErrorState(null);
   };
 
   const setQrisVerified = (verified: boolean) => {
     setQrisConfirmationKey(verified ? cartKey : null);
-    setPaymentErrorState(null);
   };
 
   const submitPayment = async () => {
@@ -110,13 +104,12 @@ export function usePayment(enabled = true) {
       setCashValue("");
       setCashConfirmationKey(null);
       setQrisConfirmationKey(null);
-      setPaymentErrorState(null);
       setShowSuccess(true);
     } catch (error) {
-      setPaymentErrorState({
-        cartKey,
-        message: error instanceof Error ? error.message : "Pembayaran gagal dicatat.",
-      });
+      toast.error(
+        "Pembayaran gagal dicatat",
+        error instanceof Error ? error.message : "Coba lagi.",
+      );
     }
   };
 
@@ -138,7 +131,6 @@ export function usePayment(enabled = true) {
     lastOrder,
     qrisVerified,
     setQrisVerified,
-    paymentError,
     isSubmitting: createOrderMutation.isPending,
     isRegisterLoading: cashRegisterQuery.isFetching,
     received,

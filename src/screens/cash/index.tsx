@@ -3,12 +3,12 @@ import { useState } from "react";
 import { useIsFocused } from "expo-router/react-navigation";
 import { useWindowDimensions } from "react-native";
 import { AppShell } from "../../components/app-shell";
+import { useAppToast } from "../../components/toast/useAppToast";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
 import { LoadingScreen } from "../../components/loading-screen";
 import { QueryErrorNotice } from "../../components/query-error-notice";
 import {
   AppIcon,
-  AppModalCloseButton,
   AppPressable,
   Panel,
 } from "../../components/ui";
@@ -118,7 +118,7 @@ export function CashScreen() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<CashTransaction | null>(null);
-  const [savedNotice, setSavedNotice] = useState("");
+  const toast = useAppToast();
   const ledger = useCashLedger(isFocused);
   const registerQuery = useCashRegister({ alwaysRefresh: true, enabled: isFocused });
   const mutations = useCashMutations();
@@ -136,7 +136,7 @@ export function CashScreen() {
   const saveExpense = async (expense: CashExpenseDraft) => {
     await mutations.createExpense.mutateAsync(expense);
     setExpenseModalOpen(false);
-    setSavedNotice("Uang keluar tercatat di kas hari ini.");
+    toast.success("Uang keluar dicatat", "Transaksi sudah masuk ke riwayat kas.");
   };
 
   return (
@@ -184,21 +184,6 @@ export function CashScreen() {
               void registerQuery.refetch();
             }}
           />
-        ) : null}
-
-        {savedNotice ? (
-          <HStack style={styles.successNotice}>
-            <AppIcon
-              name="check-circle-outline"
-              size={16}
-              color={colors.success}
-            />
-            <Text style={styles.successNoticeText}>{savedNotice}</Text>
-            <AppModalCloseButton
-              onPress={() => setSavedNotice("")}
-              accessibilityLabel="Tutup notifikasi"
-            />
-          </HStack>
         ) : null}
 
         {register && register.status !== "not_opened" ? (

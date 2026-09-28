@@ -18,6 +18,7 @@ export function useOrderCatalog(enabled = true) {
   const [query, onQueryChange] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, onSelectCategory] = useState('all');
+  const [recommendedOnly, setRecommendedOnly] = useState(false);
   const [catalogWidth, setCatalogWidth] = useState(0);
   const scheduleSearch = useMemo(
     () => debounce((value: string) => setSearchTerm(value), 300),
@@ -40,9 +41,17 @@ export function useOrderCatalog(enabled = true) {
             menuProductToProduct(product, menu.categories, menu.stockItems, menu.recipes),
           )
         : products;
-      return sourceProducts.filter((product) =>
-        selectedCategory === 'all' || product.categoryId === selectedCategory,
-      );
+      return sourceProducts
+        .filter((product) =>
+          (selectedCategory === 'all' || product.categoryId === selectedCategory) &&
+          (!recommendedOnly || product.isRecommended),
+        )
+        .sort((left, right) => {
+          const leftUnavailable = !left.isAvailable || left.stock <= 0;
+          const rightUnavailable = !right.isAvailable || right.stock <= 0;
+          if (leftUnavailable !== rightUnavailable) return leftUnavailable ? 1 : -1;
+          return 0;
+        });
     },
     [
       menu.categories,
@@ -52,6 +61,7 @@ export function useOrderCatalog(enabled = true) {
       searchQuery.data,
       searchTerm,
       selectedCategory,
+      recommendedOnly,
     ],
   );
   const mobile = width < 768;
@@ -77,6 +87,8 @@ export function useOrderCatalog(enabled = true) {
     handleCatalogLayout,
     onQueryChange,
     onSelectCategory,
+    recommendedOnly,
+    onToggleRecommended: () => setRecommendedOnly((active) => !active),
     query,
     selectedCategory,
   };

@@ -35,8 +35,6 @@ export function ProductCatalog({
       product={product}
       hpp={getRecipeHpp(inventoryItems, recipes.find((recipe) => recipe.id === product.recipeId), recipes)}
       selected={model.editing?.id === product.id}
-      isMobile={isMobile}
-      isTablet={isTablet}
       onEdit={model.openEdit}
       onDelete={setDeleteTarget}
     />

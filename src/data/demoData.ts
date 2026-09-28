@@ -29,6 +29,7 @@ export const demoProduct: Product = {
   stock: getAvailablePortions(initialRecipeItems, defaultRecipe, [defaultBaseRecipe, defaultRecipe]),
   description: "Matcha Latte botol",
   isAvailable: true,
+  isRecommended: false,
   accent: colors.cyan,
   icon: "cup-outline",
 };

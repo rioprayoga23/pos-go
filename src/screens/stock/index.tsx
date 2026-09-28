@@ -3,10 +3,11 @@ import {
   Text,
   VStack,
 } from "@gluestack-ui/themed";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIsFocused } from "expo-router/react-navigation";
 import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
+import { useAppToast } from "../../components/toast/useAppToast";
 import { LoadingScreen } from "../../components/loading-screen";
 import { QueryErrorNotice } from "../../components/query-error-notice";
 import {
@@ -91,12 +92,7 @@ export function StockScreen() {
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
   const [selectedMovement, setSelectedMovement] = useState<StockMovement | null>(null);
-  const [toast, setToast] = useState<{
-    title: string;
-    message: string;
-    kind: "success" | "error";
-  } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toast = useAppToast();
   const updateDebouncedQuery = useMemo(
     () => debounce(setDebouncedQuery, 250),
     [],
@@ -152,23 +148,6 @@ export function StockScreen() {
     isMutating;
   const itemLoadFailed = itemsQuery.isError && !itemsQuery.data;
   const historyLoadFailed = movementsQuery.isError && !movementsQuery.data;
-
-  useEffect(
-    () => () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    },
-    [],
-  );
-
-  const showToast = (
-    title: string,
-    message: string,
-    kind: "success" | "error" = "success",
-  ) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ title, message, kind });
-    toastTimer.current = setTimeout(() => setToast(null), 4200);
-  };
 
   useEffect(() => {
     updateDebouncedQuery(query.trim());
@@ -429,7 +408,7 @@ export function StockScreen() {
     setInventoryPage(1);
     setHistoryPage(1);
     setModal(null);
-    showToast(
+    toast.success(
       draft.newItem ? "Bahan baru ditambahkan" : "Stok berhasil ditambahkan",
       `${savedItem.name} · ${formatCurrency(draft.totalCost)}.`,
     );
@@ -489,14 +468,14 @@ export function StockScreen() {
     }
 
     setModal(null);
-    showToast("Bahan diperbarui", `${draft.name} berhasil diperbarui.`);
+    toast.success("Bahan diperbarui", `${draft.name} berhasil diperbarui.`);
   };
 
   const handleDeleteItem = async (item: StockItem) => {
     await mutations.deleteItem.mutateAsync(item.id);
     if (items.length === 1 && inventoryPage > 1) setInventoryPage((page) => page - 1);
     setDeleteTarget(null);
-    showToast("Bahan dihapus", `${item.name} berhasil dihapus permanen.`);
+    toast.success("Bahan dihapus", `${item.name} berhasil dihapus permanen.`);
   };
 
   return (
@@ -692,32 +671,6 @@ export function StockScreen() {
         />
       ) : null}
 
-      {toast ? (
-        <View
-          style={[styles.toast, toast.kind === "error" && styles.toastError]}
-        >
-          <AppIcon
-            name={
-              toast.kind === "success"
-                ? "check-circle-outline"
-                : "alert-circle-outline"
-            }
-            size={18}
-            color={colors.white}
-          />
-          <VStack style={styles.toastCopy}>
-            <Text style={styles.toastTitle}>{toast.title}</Text>
-            <Text style={styles.toastMessage}>{toast.message}</Text>
-          </VStack>
-          <AppPressable
-            onPress={() => setToast(null)}
-            accessibilityRole="button"
-            accessibilityLabel="Tutup notifikasi"
-          >
-            <AppIcon name="close" size={16} color="rgba(255,255,255,0.72)" />
-          </AppPressable>
-        </View>
-      ) : null}
     </AppShell>
     <LoadingScreen visible={isLoading} />
     </>

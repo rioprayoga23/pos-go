@@ -137,5 +137,4 @@ export const screenStyles = StyleSheet.create({
     textAlign: "center",
   },
   registerClosedAction: { width: "100%" },
-  paymentError: { color: colors.danger, ...typography.helper, fontWeight: "600" },
 });

@@ -73,6 +73,7 @@ export const styles = StyleSheet.create({
   availabilityRow: { alignItems: "center", justifyContent: "space-between", gap: spacing.md },
   photoRow: { alignItems: "center", flexWrap: "wrap", gap: spacing.sm },
   photoImage: { width: 80, height: 80, borderRadius: radius.md, backgroundColor: colors.surfaceContainerLow },
+  photoUnavailable: { alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.line },
   photoPickEmpty: {
     minHeight: 44,
     alignSelf: "flex-start",

@@ -230,18 +230,20 @@ export function ActionText({
   onPress,
   accessibilityLabel,
   tone = "primary",
+  compact = false,
 }: {
   icon: IconName;
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
   tone?: "primary" | "danger";
+  compact?: boolean;
 }) {
   const color = tone === "danger" ? colors.danger : colors.primaryDark;
   return (
     <AppPressable
       onPress={onPress}
-      style={styles.actionText}
+      style={[styles.actionText, compact && styles.actionTextCompact]}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -262,6 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 5,
   },
+  actionTextCompact: { minHeight: 28 },
   actionTextLabel: { ...typography.button },
   appModalCloseButton: {
     width: 44,

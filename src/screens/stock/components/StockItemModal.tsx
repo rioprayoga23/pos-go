@@ -15,6 +15,7 @@ import {
   DropdownSelect,
   type DropdownOption,
 } from "../../../components/dropdown-select";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import {
   AppIcon,
   AppInput,
@@ -71,7 +72,7 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
   const [purchaseUnitPriceEdited, setPurchaseUnitPriceEdited] = useState(false);
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const toast = useAppToast();
   const actualStock = parseDecimal(actualStockInput);
   const purchaseUnitPrice = parseWholeNumber(purchaseUnitPriceInput);
   const currentPurchaseUnitPrice = Math.round(getPurchaseUnitPrice(item));
@@ -109,7 +110,6 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
   const handleSubmit = async () => {
     if (!canSubmit || isSubmitting) return;
     setIsSubmitting(true);
-    setSubmitError("");
     try {
       await onSubmit({
         name: name.trim(),
@@ -123,9 +123,7 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
         note: note.trim(),
       });
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Bahan gagal disimpan.",
-      );
+      toast.error("Bahan gagal disimpan", error instanceof Error ? error.message : "Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -293,9 +291,6 @@ export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
                 Setara {formatPreciseCurrency(pricePreview)} / {unit}
               </Text>
             </VStack>
-            {submitError ? (
-              <Text style={styles.formError}>{submitError}</Text>
-            ) : null}
           </ScrollView>
         </ModalBody>
 

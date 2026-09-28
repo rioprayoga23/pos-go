@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { routePaths, type RouteName } from "../../navigation/routes";
 import { useTransactionStore } from "../../store/transactionStore";
 import { LoadingScreen } from "../loading-screen";
+import { useAppToast } from "../toast/useAppToast";
 import { colors } from "../../theme";
 import { AppIcon, AppPressable as Pressable } from "../ui";
 import {
@@ -18,6 +19,7 @@ import { MobileBottomNavigation } from "./components/MobileNavigation";
 import { OpenCashRegisterDialog } from "./components/OpenCashRegisterDialog";
 import { primaryNavigationItems } from "./navigationItems";
 import { styles } from "./styles";
+import { useQueueOrders } from "../../screens/queue/hooks/useQueueApi";
 
 export function AppShell({
   active,
@@ -31,13 +33,16 @@ export function AppShell({
   scrollable?: boolean;
 }) {
   const orders = useTransactionStore((state) => state.orders);
-  const queueCount = orders.filter(
+  const localQueueCount = orders.filter(
     (order) => order.status !== "completed",
   ).length;
+  const queueQuery = useQueueOrders(false);
+  const queueCount = queueQuery.data?.data.length ?? localQueueCount;
   // Screens that need register data own the automatic query; the shell only
   // refreshes it after the user explicitly presses the cashier action.
   const cashRegisterQuery = useCashRegister({ enabled: false });
   const cashMutations = useCashMutations();
+  const toast = useAppToast();
   const register = cashRegisterQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
   const cashRegisterClosedToday = register?.status === "closed_today";
@@ -51,7 +56,8 @@ export function AppShell({
     try {
       const result = await cashRegisterQuery.refetch();
       if (result.isError || !result.data?.data) {
-        setCashActionError("Status kasir gagal dimuat. Coba lagi.");
+        setCashActionError("");
+        toast.error("Status kasir gagal dimuat", "Coba lagi beberapa saat.");
         return;
       }
       const currentRegister = result.data.data;
@@ -66,10 +72,10 @@ export function AppShell({
       await cashMutations.openRegister.mutateAsync(amount);
       setShowOpenCashDialog(false);
       setCashActionError("");
+      toast.success("Kasir dibuka", "Kasir siap menerima pesanan.");
     } catch (error) {
-      setCashActionError(
-        error instanceof Error ? error.message : "Kasir gagal dibuka.",
-      );
+      setCashActionError("");
+      toast.error("Kasir gagal dibuka", error instanceof Error ? error.message : "Coba lagi.");
     }
   };
   const handleCloseRegister = async (amount: number) => {
@@ -77,10 +83,10 @@ export function AppShell({
       await cashMutations.closeRegister.mutateAsync(amount);
       setShowCloseShiftDialog(false);
       setCashActionError("");
+      toast.success("Kasir ditutup", "Rekap kas hari ini sudah dicatat.");
     } catch (error) {
-      setCashActionError(
-        error instanceof Error ? error.message : "Kasir gagal ditutup.",
-      );
+      setCashActionError("");
+      toast.error("Kasir gagal ditutup", error instanceof Error ? error.message : "Coba lagi.");
     }
   };
   const content =

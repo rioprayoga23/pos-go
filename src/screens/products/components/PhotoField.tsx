@@ -1,5 +1,6 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { Image } from "react-native";
+import { useState } from "react";
+import { Image, View } from "react-native";
 import { AppIcon, AppPressable as Pressable } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { colors } from "../../../theme";
@@ -17,6 +18,15 @@ type Props = {
 };
 
 export function PhotoField({ form, error, isPickingImage, isMobile, isTablet, onPick, onClear }: Props) {
+  const [failedPhotoUri, setFailedPhotoUri] = useState<string | null>(null);
+  const photoUri =
+    form.image && typeof form.image === "object" && !Array.isArray(form.image) && "uri" in form.image
+      ? form.image.uri
+      : undefined;
+  const photoUnavailable = photoUri
+    ? failedPhotoUri === photoUri
+    : failedPhotoUri === "unreadable-local-photo";
+
   return (
     <VStack>
       <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet]}>
@@ -24,12 +34,19 @@ export function PhotoField({ form, error, isPickingImage, isMobile, isTablet, on
       </Text>
       {form.image ? (
         <HStack style={styles.photoRow}>
-          <Image
-            source={form.image}
-            style={styles.photoImage}
-            resizeMode="cover"
-            accessibilityLabel={`Foto ${form.name || "menu"}`}
-          />
+          {photoUnavailable ? (
+            <View style={[styles.photoImage, styles.photoUnavailable]}>
+              <AppIcon name="image-outline" size={20} color={colors.inkMuted} />
+            </View>
+          ) : (
+            <Image
+              source={form.image}
+              style={styles.photoImage}
+              resizeMode="cover"
+              onError={() => setFailedPhotoUri(photoUri ?? "unreadable-local-photo")}
+              accessibilityLabel={`Foto ${form.name || "menu"}`}
+            />
+          )}
           <Pressable
             onPress={onPick}
             disabled={isPickingImage}
@@ -64,7 +81,11 @@ export function PhotoField({ form, error, isPickingImage, isMobile, isTablet, on
           <Text style={styles.photoActionText}>{isPickingImage ? "Memilih..." : "Pilih foto"}</Text>
         </Pressable>
       )}
-      {error ? <Text style={styles.photoError}>{error}</Text> : null}
+      {photoUnavailable || error ? (
+        <Text style={styles.photoError}>
+          {error || "Foto lama tidak ditemukan di server. Pilih ulang foto, lalu simpan kembali."}
+        </Text>
+      ) : null}
     </VStack>
   );
 }

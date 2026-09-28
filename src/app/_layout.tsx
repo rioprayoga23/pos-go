@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-
 import { useEffect } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppToastProvider } from '../components/toast/useAppToast';
 import { posGluestackConfig, colors } from '../theme';
 
 const queryClient = new QueryClient({
@@ -43,23 +44,25 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <GluestackUIProvider config={posGluestackConfig}>
           <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: 'fade',
-              contentStyle: { backgroundColor: colors.canvas },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="order" />
-            <Stack.Screen name="payment" />
-            <Stack.Screen name="queue" />
-            <Stack.Screen name="products" />
-            <Stack.Screen name="stock" />
-            <Stack.Screen name="cash" />
-            <Stack.Screen name="history" />
-          </Stack>
+          <AppToastProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'fade',
+                contentStyle: { backgroundColor: colors.canvas },
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="login" />
+              <Stack.Screen name="order" />
+              <Stack.Screen name="payment" />
+              <Stack.Screen name="queue" />
+              <Stack.Screen name="products" />
+              <Stack.Screen name="stock" />
+              <Stack.Screen name="cash" />
+              <Stack.Screen name="history" />
+            </Stack>
+          </AppToastProvider>
         </GluestackUIProvider>
       </SafeAreaProvider>
     </QueryClientProvider>

@@ -5,6 +5,8 @@ import { LivePulseDot } from "../../components/indicators/LivePulseDot";
 import { AppShell } from "../../components/app-shell";
 import { QueueColumn } from "./components/QueueColumn";
 import { QueueSummary } from "./components/QueueSummary";
+import { LoadingScreen } from "../../components/loading-screen";
+import { QueryErrorNotice } from "../../components/query-error-notice";
 import { styles } from "./styles";
 import { useQueueBoard } from "./hooks/useQueueBoard";
 
@@ -18,7 +20,13 @@ export function QueueScreen() {
     readyCount,
     advanceStatus,
     togglePreparedItem,
-  } = useQueueBoard();
+    activeCupCount,
+    hasData,
+    isFetching,
+    isMutating,
+    errorMessage,
+    retry,
+  } = useQueueBoard(isFocused);
   const isWide = width >= 1024;
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
@@ -26,15 +34,15 @@ export function QueueScreen() {
 
   return (
     <AppShell active="Queue" scrollable={!isWide}>
+      <LoadingScreen visible={isFetching || isMutating} />
       <VStack style={[styles.page, isWide && styles.pageFill]}>
+        {errorMessage ? <QueryErrorNotice message={errorMessage} onRetry={retry} /> : null}
+        {!hasData && errorMessage ? null : <>
         <QueueSummary
           waitingCount={waiting.length}
           preparingCount={preparing.length}
           readyCount={readyCount}
-          activeCupCount={[...waiting, ...preparing, ...ready].reduce(
-            (total, order) => total + order.items.reduce((cups, item) => cups + item.quantity, 0),
-            0,
-          )}
+          activeCupCount={activeCupCount}
           isWide={isWide}
           isMobile={isMobile}
           isTablet={isTablet}
@@ -51,7 +59,7 @@ export function QueueScreen() {
           </Text>
           <HStack style={styles.livePill}>
             <LivePulseDot active={isFocused} dotSize={7} />
-            <Text style={styles.liveText}>Live Antrean</Text>
+            <Text style={styles.liveText}>Antrean aktif</Text>
           </HStack>
         </HStack>
         <HStack
@@ -101,6 +109,7 @@ export function QueueScreen() {
             onTogglePreparedItem={togglePreparedItem}
           />
         </HStack>
+        </>}
       </VStack>
     </AppShell>
   );

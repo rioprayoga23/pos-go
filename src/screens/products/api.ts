@@ -1,5 +1,6 @@
 import type { Category, Product } from "../../types/pos";
 import type { Recipe, RecipeKind, RecipeIngredient } from "../../types/stock";
+import { Platform } from "react-native";
 import { apiClient, buildQueryString, getApiBaseUrl } from "../../services/apiClient";
 import type { ApiEnvelope } from "../../services/apiTypes";
 
@@ -19,14 +20,16 @@ export type MenuProductRecord = {
   categoryName: string;
   recipeId: string;
   price: number;
+  orderCount: number;
   isAvailable: boolean;
+  isRecommended: boolean;
   photoUrl?: string;
   createdAt: string;
 };
 
 export type MenuProductDraft = Pick<
   Product,
-  "name" | "description" | "categoryId" | "recipeId" | "price" | "isAvailable"
+  "name" | "description" | "categoryId" | "recipeId" | "price" | "isAvailable" | "isRecommended"
 >;
 
 export type MenuPhotoUpload = {
@@ -123,8 +126,16 @@ export async function deleteMenuProduct(id: string) {
 
 export async function uploadMenuProductPhoto(id: string, photo: MenuPhotoUpload) {
   const form = new FormData();
-  if (photo.webFile) {
+  if (photo.webFile && photo.webFile.size > 0) {
     form.append("file", photo.webFile, photo.name);
+  } else if (Platform.OS === "web") {
+    // ImagePicker normally provides `file` on web, but some browser/cropper
+    // combinations only return a blob URI. FormData cannot upload the URI string.
+    const response = await fetch(photo.uri);
+    if (!response.ok) throw new Error("File foto tidak dapat dibaca. Silakan pilih ulang.");
+    const blob = await response.blob();
+    if (blob.size === 0) throw new Error("Foto kosong. Silakan pilih foto lain.");
+    form.append("file", blob, photo.name);
   } else {
     form.append("file", {
       uri: photo.uri,
@@ -136,7 +147,11 @@ export async function uploadMenuProductPhoto(id: string, photo: MenuPhotoUpload)
     `/menu-products/${id}/photo`,
     form,
   );
-  return productFromApi(result.data);
+  const product = productFromApi(result.data);
+  if (!product.photoUrl) {
+    throw new Error("Foto belum tersimpan. Silakan coba simpan kembali.");
+  }
+  return product;
 }
 
 export async function deleteMenuProductPhoto(id: string) {

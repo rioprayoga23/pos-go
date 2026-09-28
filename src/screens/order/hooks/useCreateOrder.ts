@@ -5,6 +5,9 @@ import { stockQueryKeys } from "../../stock/hooks/useStockApi";
 import { menuQueryKeys } from "../../products/hooks/useMenuApi";
 import type { CashRegister } from "../../../types/cash";
 import type { ApiEnvelope } from "../../../services/apiTypes";
+import { orderRecordToQueueOrder } from "../../queue/api";
+import { queueQueryKeys } from "../../queue/hooks/useQueueApi";
+import type { QueueOrder } from "../../queue/api";
 import { createOrder, type CreateOrderDraft } from "../api";
 
 export function useCreateOrder() {
@@ -12,6 +15,18 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (draft: CreateOrderDraft) => createOrder(draft),
     onSuccess: (order) => {
+      queryClient.setQueryData<ApiEnvelope<QueueOrder[]>>(
+        queueQueryKeys.active,
+        (current) => {
+          if (!current) return current;
+          const newOrder = orderRecordToQueueOrder(order);
+          return {
+            ...current,
+            data: [...current.data.filter((entry) => entry.id !== newOrder.id), newOrder]
+              .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt)),
+          };
+        },
+      );
       if (order.paymentMethod === "cash") {
         queryClient.setQueryData<ApiEnvelope<CashRegister>>(
           cashQueryKeys.register,
@@ -31,6 +46,10 @@ export function useCreateOrder() {
       }
       void queryClient.invalidateQueries({
         queryKey: stockQueryKeys.all,
+        refetchType: "none",
+      });
+      void queryClient.invalidateQueries({
+        queryKey: menuQueryKeys.products,
         refetchType: "none",
       });
     },

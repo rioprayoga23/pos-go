@@ -22,8 +22,6 @@ export const styles = StyleSheet.create({
   pageHeading: { flex: 1, minWidth: 0, gap: spacing.xs },
   pageTitle: { color: colors.ink, ...typography.pageTitle },
   pageDescription: { color: colors.inkMuted, ...typography.description },
-  successNotice: { minHeight: 42, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: colors.successSoft, borderRadius: radius.md, backgroundColor: "#F0FDF4", alignItems: "center", gap: spacing.sm },
-  successNoticeText: { flex: 1, color: "#166534", fontSize: type.caption, lineHeight: 18, fontWeight: "600" },
   pageActions: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: spacing.sm },
   pageActionsCompact: { width: "100%", alignItems: "center", justifyContent: "space-between", flexDirection: "row", flexWrap: "wrap" },
   pageActionsPhone: { alignItems: "stretch", flexDirection: "column" },

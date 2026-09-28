@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { ApiError } from "../../../services/apiClient";
+import { useAppToast } from "../../../components/toast/useAppToast";
 import { digitsOnly, formatThousands, parseWholeNumber } from "../../../utils/format";
 import {
   AppIcon,
@@ -43,6 +44,7 @@ export function AddExpenseModal({
   const [fundingSource, setFundingSource] =
     useState<CashFundingSource>("cash_drawer");
   const [error, setError] = useState("");
+  const toast = useAppToast();
   const amountRupiah = parseWholeNumber(amountInput);
   const canSave = Boolean(description.trim() && amountRupiah > 0);
 
@@ -63,10 +65,12 @@ export function AddExpenseModal({
         fundingSource,
       });
     } catch (saveError) {
-      setError(
+      setError("");
+      toast.error(
+        "Uang keluar gagal disimpan",
         saveError instanceof ApiError
           ? saveError.message
-          : "Uang keluar gagal disimpan.",
+          : saveError instanceof Error ? saveError.message : "Coba lagi.",
       );
     }
   };

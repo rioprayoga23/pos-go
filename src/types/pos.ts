@@ -18,6 +18,8 @@ export type Product = {
   categoryId: string;
   categoryName: string;
   price: number;
+  orderCount?: number;
+  isRecommended: boolean;
   stock: number;
   description: string;
   isAvailable: boolean;
