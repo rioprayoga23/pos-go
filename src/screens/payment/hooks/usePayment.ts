@@ -23,7 +23,7 @@ export function usePayment(enabled = true) {
   const createOrderMutation = useCreateOrder();
   const register = cashRegisterQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
-  const cashRegisterClosedToday = register?.status === "closed_today";
+  const cashRegisterClosed = register?.status === "closed";
   const [paymentMethod, setSelectedPaymentMethod] = useState<"Tunai" | "QRIS">("Tunai");
   const [cash, setCashValue] = useState("");
   const [cashConfirmationKey, setCashConfirmationKey] = useState<string | null>(null);
@@ -124,7 +124,7 @@ export function usePayment(enabled = true) {
     cashReady,
     applyCash,
     cashRegisterOpen,
-    cashRegisterClosedToday,
+    cashRegisterClosed,
     showSuccess,
     setShowSuccess,
     lastOrderNumber,

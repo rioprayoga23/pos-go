@@ -21,6 +21,8 @@ import { primaryNavigationItems } from "./navigationItems";
 import { styles } from "./styles";
 import { useQueueOrders } from "../../screens/queue/hooks/useQueueApi";
 import { useAuth } from "../../auth/AuthProvider";
+import { ApiError } from "../../services/apiClient";
+import type { CashRegister } from "../../types/cash";
 
 export function AppShell({
   active,
@@ -43,20 +45,20 @@ export function AppShell({
   ).length;
   const queueQuery = useQueueOrders(false);
   const queueCount = queueQuery.data?.data.length ?? localQueueCount;
-  // Screens that need register data own the automatic query; the shell only
-  // refreshes it after the user explicitly presses the cashier action.
-  const cashRegisterQuery = useCashRegister({ enabled: false });
+  const cashRegisterQuery = useCashRegister();
   const cashMutations = useCashMutations();
   const toast = useAppToast();
   const register = cashRegisterQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
-  const cashRegisterClosedToday = register?.status === "closed_today";
+  const cashRegisterClosed = register?.status === "closed";
   const [showOpenCashDialog, setShowOpenCashDialog] = useState(false);
-  const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false);
+  const [closingRegister, setClosingRegister] = useState<CashRegister | null>(null);
   const [cashActionError, setCashActionError] = useState("");
+  const [hasActiveQueue, setHasActiveQueue] = useState(false);
   const [isCheckingCash, setIsCheckingCash] = useState(false);
   const handleCashAction = async () => {
     setCashActionError("");
+    setHasActiveQueue(false);
     setIsCheckingCash(true);
     try {
       const result = await cashRegisterQuery.refetch();
@@ -66,8 +68,8 @@ export function AppShell({
         return;
       }
       const currentRegister = result.data.data;
-      if (currentRegister.status === "open") setShowCloseShiftDialog(true);
-      else if (currentRegister.status === "not_opened") setShowOpenCashDialog(true);
+      if (currentRegister.status === "open") setClosingRegister(currentRegister);
+      else setShowOpenCashDialog(true);
     } finally {
       setIsCheckingCash(false);
     }
@@ -79,19 +81,39 @@ export function AppShell({
       setCashActionError("");
       toast.success("Kasir dibuka", "Kasir siap menerima pesanan.");
     } catch (error) {
-      setCashActionError("");
-      toast.error("Kasir gagal dibuka", error instanceof Error ? error.message : "Coba lagi.");
+      if (error instanceof ApiError && error.code === "cash_register_already_open") {
+        await cashRegisterQuery.refetch();
+        setShowOpenCashDialog(false);
+        return;
+      }
+      setCashActionError(error instanceof Error ? error.message : "Coba lagi.");
     }
   };
   const handleCloseRegister = async (amount: number) => {
+    if (!closingRegister?.id) {
+      setCashActionError("ID sesi kasir tidak tersedia. Muat ulang status kasir.");
+      return;
+    }
+    setCashActionError("");
+    setHasActiveQueue(false);
     try {
-      await cashMutations.closeRegister.mutateAsync(amount);
-      setShowCloseShiftDialog(false);
+      await cashMutations.closeRegister.mutateAsync({ sessionId: closingRegister.id, countedAmountRupiah: amount });
+      setClosingRegister(null);
       setCashActionError("");
-      toast.success("Kasir ditutup", "Rekap kas hari ini sudah dicatat.");
+      setHasActiveQueue(false);
+      toast.success("Sesi kasir ditutup", "Rekap sesi tersimpan.");
     } catch (error) {
-      setCashActionError("");
-      toast.error("Kasir gagal ditutup", error instanceof Error ? error.message : "Coba lagi.");
+      if (error instanceof ApiError && error.code === "active_orders_remaining") {
+        setHasActiveQueue(true);
+        void queueQuery.refetch();
+      }
+      if (error instanceof ApiError && error.code === "cash_register_changed") {
+        await cashRegisterQuery.refetch();
+        setClosingRegister(null);
+        toast.error("Sesi kasir berubah", "Status kasir terbaru sudah dimuat.");
+        return;
+      }
+      setCashActionError(error instanceof Error ? error.message : "Coba lagi.");
     }
   };
   const content =
@@ -159,7 +181,7 @@ export function AppShell({
           showClockInHeader={isLarge}
           isMobile={isMobile}
           cashRegisterOpen={cashRegisterOpen}
-          cashRegisterClosedToday={cashRegisterClosedToday}
+          cashRegisterClosed={cashRegisterClosed}
           username={user?.username ?? ""}
           role={user?.role ?? "pegawai"}
           onLogout={() => { void logout(); }}
@@ -248,13 +270,18 @@ export function AppShell({
           isSubmitting={cashMutations.openRegister.isPending}
         />
       ) : null}
-      {showCloseShiftDialog && cashRegisterOpen && register ? (
+      {closingRegister ? (
         <CloseShiftDialog
           isOpen
-          onClose={() => setShowCloseShiftDialog(false)}
-          register={register}
+          onClose={() => setClosingRegister(null)}
+          onViewQueue={() => {
+            setClosingRegister(null);
+            router.navigate(routePaths.Queue);
+          }}
+          register={closingRegister}
           onConfirm={handleCloseRegister}
           error={cashActionError}
+          hasActiveQueue={hasActiveQueue}
           isSubmitting={cashMutations.closeRegister.isPending}
         />
       ) : null}

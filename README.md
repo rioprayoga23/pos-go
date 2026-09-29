@@ -15,6 +15,8 @@ Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_URL` to the Go API 
 
 Run the backend migrations and create accounts as described in `../pos-be/README.md` before logging in. The `owner` role can access all menus. The `pegawai` role can access Kasir, Pembayaran, and Antrean. Native sessions use Expo SecureStore; web sessions last for the browser tab/session.
 
+The header opens and closes one cash register session at a time. Closing is blocked while any order remains in Antrean; every order must reach `completed`. After closing, staff stays signed in and may open a new register session on the same day. Checkout is available only while a register session is open.
+
 Useful checks:
 
 ```bash

@@ -25,18 +25,22 @@ import { styles } from "../styles";
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  onViewQueue: () => void;
   onConfirm: (countedCash: number) => Promise<void>;
   register: CashRegister;
   error: string;
+  hasActiveQueue: boolean;
   isSubmitting: boolean;
 };
 
 export function CloseShiftDialog({
   isOpen,
   onClose,
+  onViewQueue,
   onConfirm,
   register,
   error,
+  hasActiveQueue,
   isSubmitting,
 }: Props) {
   const [countedCash, setCountedCash] = useState("");
@@ -59,22 +63,18 @@ export function CloseShiftDialog({
           </HStack>
           <VStack style={styles.closeShiftModalHeading}>
             <Text style={styles.closeShiftModalTitle}>
-              Tutup kasir hari ini?
-            </Text>
-            <Text style={styles.closeShiftModalSubtitle}>
-              Cocokkan uang fisik dengan perkiraan kas.
+              Tutup sesi kasir?
             </Text>
           </VStack>
           <AppModalCloseButton
             onPress={handleClose}
+            style={styles.closeShiftDismissButton}
             accessibilityLabel="Tutup dialog tutup kasir"
           />
         </ModalHeader>
         <ModalBody>
           <Text style={styles.closeShiftModalCopy}>
-            Pastikan tidak ada pembayaran yang sedang diproses. Hitung seluruh
-            uang tunai fisik di laci, termasuk uang awal. Jangan masukkan
-            pembayaran QRIS atau saldo rekening.
+            Hitung tunai dan uang awal; QRIS tidak termasuk.
           </Text>
           <VStack style={styles.closeShiftCashSummary}>
             <HStack style={styles.closeShiftCashRow}>
@@ -104,9 +104,46 @@ export function CloseShiftDialog({
               </Text>
             </HStack>
           </VStack>
-          <Text style={styles.closeShiftCountLabel}>
-            UANG FISIK HASIL HITUNG
-          </Text>
+          {error ? (
+            <HStack style={[styles.closeShiftQueueNotice, hasActiveQueue && styles.closeShiftQueueNoticeActive]}>
+              <AppIcon name="alert-circle-outline" size={18} color={colors.danger} />
+              <Text style={styles.closeShiftQueueNoticeText}>
+                {hasActiveQueue ? "Selesaikan antrean." : error}
+              </Text>
+              {hasActiveQueue ? (
+                <Pressable
+                  onPress={onViewQueue}
+                  disabled={isSubmitting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Buka Antrean"
+                  accessibilityState={{ disabled: isSubmitting }}
+                  style={styles.closeShiftQueueLink}
+                >
+                  <Text style={styles.closeShiftQueueLinkText}>Buka Antrean</Text>
+                  <AppIcon name="arrow-right" size={15} color={colors.danger} />
+                </Pressable>
+              ) : null}
+            </HStack>
+          ) : null}
+          <HStack style={styles.closeShiftCountHeading}>
+            <Text style={styles.closeShiftCountLabel}>Uang fisik di laci</Text>
+            {hasCount ? (
+              <Text
+                style={[
+                  styles.closeShiftDifference,
+                  difference === 0
+                    ? styles.closeShiftDifferenceMatch
+                    : styles.closeShiftDifferenceMismatch,
+                ]}
+              >
+                {difference === 0
+                  ? "Kas sesuai"
+                  : difference > 0
+                    ? `Lebih ${formatCurrency(difference)}`
+                    : `Kurang ${formatCurrency(Math.abs(difference))}`}
+              </Text>
+            ) : null}
+          </HStack>
           <Input style={styles.closeShiftCountInput}>
             <Text style={styles.closeShiftCountPrefix}>Rp</Text>
             <InputField
@@ -119,40 +156,32 @@ export function CloseShiftDialog({
               style={styles.closeShiftCountField}
             />
           </Input>
-          {hasCount ? (
-            <Text
-              style={[
-                styles.closeShiftDifference,
-                difference === 0
-                  ? styles.closeShiftDifferenceMatch
-                  : styles.closeShiftDifferenceMismatch,
-              ]}
-            >
-              {difference === 0
-                ? "Kas sesuai"
-                : difference > 0
-                  ? `Selisih lebih ${formatCurrency(difference)}`
-                  : `Selisih kurang ${formatCurrency(Math.abs(difference))}`}
-            </Text>
-          ) : null}
-          {error ? (
-            <Text style={styles.closeShiftDifferenceMismatch}>{error}</Text>
-          ) : null}
         </ModalBody>
         <ModalFooter style={styles.closeShiftModalFooter}>
           <Pressable
             onPress={() => void onConfirm(actualCash)}
-            disabled={!hasCount || isSubmitting}
+            disabled={!hasCount || hasActiveQueue || isSubmitting}
             style={[
               styles.closeShiftConfirmButton,
-              (!hasCount || isSubmitting) && styles.closeShiftConfirmDisabled,
+              (!hasCount || hasActiveQueue || isSubmitting) && styles.closeShiftConfirmDisabled,
             ]}
             accessibilityRole="button"
             accessibilityLabel="Konfirmasi tutup kasir"
-            accessibilityState={{ disabled: !hasCount || isSubmitting }}
+            accessibilityState={{ disabled: !hasCount || hasActiveQueue || isSubmitting }}
           >
-            <AppIcon name="check" size={17} color={colors.white} />
-            <Text style={styles.closeShiftConfirmText}>Tutup Kasir</Text>
+            <AppIcon
+              name="lock-outline"
+              size={17}
+              color={!hasCount || hasActiveQueue || isSubmitting ? colors.inkMuted : colors.white}
+            />
+            <Text
+              style={[
+                styles.closeShiftConfirmText,
+                (!hasCount || hasActiveQueue || isSubmitting) && styles.closeShiftConfirmDisabledText,
+              ]}
+            >
+              Tutup Kasir
+            </Text>
           </Pressable>
         </ModalFooter>
       </ModalContent>

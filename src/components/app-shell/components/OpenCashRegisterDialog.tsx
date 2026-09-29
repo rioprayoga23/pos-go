@@ -58,7 +58,7 @@ export function OpenCashRegisterDialog({
             <AppIcon name="cash-register" size={19} color={colors.primary} />
           </HStack>
           <VStack style={dialogStyles.heading}>
-            <Text style={dialogStyles.title}>Buka kasir hari ini</Text>
+            <Text style={dialogStyles.title}>Buka sesi kasir</Text>
           </VStack>
           <AppModalCloseButton
             onPress={onClose}
@@ -67,7 +67,7 @@ export function OpenCashRegisterDialog({
         </ModalHeader>
         <ModalBody style={dialogStyles.body}>
           <VStack style={dialogStyles.form}>
-            <Text style={dialogStyles.label}>Uang awal hari ini</Text>
+            <Text style={dialogStyles.label}>Uang awal sesi ini</Text>
             <AppInput
               value={formatThousands(openingInput)}
               onChangeText={(value) => setOpeningInput(digitsOnly(value, 12))}
@@ -76,7 +76,7 @@ export function OpenCashRegisterDialog({
               leading={<Text style={dialogStyles.prefix}>Rp</Text>}
               style={dialogStyles.amountInput}
               inputStyle={dialogStyles.amountValue}
-              accessibilityLabel="Uang awal kasir hari ini"
+              accessibilityLabel="Uang awal sesi kasir"
             />
             {error ? <Text style={dialogStyles.error}>{error}</Text> : null}
           </VStack>

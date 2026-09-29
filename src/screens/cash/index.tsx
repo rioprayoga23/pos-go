@@ -29,21 +29,21 @@ import { styles } from "./styles";
 
 function CashRegisterSummary({ register }: { register: CashRegister }) {
   const isOpen = register.status === "open";
-  const isClosedToday = register.status === "closed_today";
+  const isClosed = register.status === "closed";
   const statusColor = isOpen
     ? colors.success
-    : isClosedToday
+    : isClosed
       ? colors.inkMuted
       : colors.primary;
   const title = isOpen
     ? "Kasir sedang buka"
-    : isClosedToday
-      ? "Kasir ditutup hari ini"
+    : isClosed
+      ? "Sesi kasir terakhir ditutup"
       : "Kasir belum dibuka";
   const message = isOpen
     ? "Perkiraan uang tunai di laci saat ini."
-    : isClosedToday
-      ? "Transaksi berikutnya dimulai pada hari operasional berikutnya."
+    : isClosed
+      ? "Sesi baru dapat dibuka pada hari yang sama."
       : "Buka kasir dari tombol di header sebelum menerima pembayaran.";
 
   return (
@@ -92,7 +92,7 @@ function CashRegisterSummary({ register }: { register: CashRegister }) {
           </VStack>
         </HStack>
       ) : null}
-      {!isOpen && isClosedToday && register.differenceRupiah !== undefined ? (
+      {!isOpen && isClosed && register.differenceRupiah !== undefined ? (
         <HStack style={styles.closedRegisterReport}>
           <Text style={styles.registerBreakdownLabel}>Selisih tutup kasir</Text>
           <Text

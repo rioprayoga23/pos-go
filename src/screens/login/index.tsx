@@ -1,6 +1,6 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { useState } from "react";
-import { Image, ScrollView, View } from "react-native";
+import { useRef, useState } from "react";
+import { Image, ScrollView, View, type TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, AppInput, AppPressable } from "../../components/ui";
 import { colors } from "../../theme";
@@ -9,6 +9,7 @@ import { useAuth } from "../../auth/AuthProvider";
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const passwordInputRef = useRef<TextInput>(null);
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -82,6 +83,8 @@ export function LoginScreen() {
                 accessibilityLabel="Username"
                 keyboardType="default"
                 autoCapitalize="none"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordInputRef.current?.focus()}
               />
             </VStack>
 
@@ -97,6 +100,9 @@ export function LoginScreen() {
                 accessibilityLabel="Kata sandi"
                 autoCapitalize="none"
                 secureTextEntry={!isPasswordVisible}
+                inputRef={passwordInputRef}
+                returnKeyType="done"
+                onSubmitEditing={() => void handleSubmit()}
                 trailing={
                   <AppPressable
                     onPress={() => setIsPasswordVisible((visible) => !visible)}

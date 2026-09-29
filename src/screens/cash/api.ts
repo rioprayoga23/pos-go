@@ -18,8 +18,15 @@ export function openCashRegister(openingAmountRupiah: number) {
   });
 }
 
-export function closeCashRegister(countedAmountRupiah: number) {
+export function closeCashRegister({
+  sessionId,
+  countedAmountRupiah,
+}: {
+  sessionId: string;
+  countedAmountRupiah: number;
+}) {
   return apiClient.post<ApiEnvelope<CashRegister>>("/cash-register/close", {
+    sessionId,
     countedAmountRupiah,
   });
 }

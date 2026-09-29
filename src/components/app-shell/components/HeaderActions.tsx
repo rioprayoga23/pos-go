@@ -16,7 +16,7 @@ type Props = {
   showClockInHeader: boolean;
   isMobile: boolean;
   cashRegisterOpen: boolean;
-  cashRegisterClosedToday: boolean;
+  cashRegisterClosed: boolean;
   onRequestCashAction: () => void;
   onLogout: () => void;
 };
@@ -27,7 +27,7 @@ export function HeaderActions({
   showClockInHeader,
   isMobile,
   cashRegisterOpen,
-  cashRegisterClosedToday,
+  cashRegisterClosed,
   onRequestCashAction,
   onLogout,
 }: Props) {
@@ -50,8 +50,8 @@ export function HeaderActions({
   );
   const cashActionLabel = cashRegisterOpen
     ? "Tutup Kasir"
-    : cashRegisterClosedToday
-      ? "Kasir Ditutup"
+    : cashRegisterClosed
+      ? "Buka Kasir Lagi"
       : "Buka Kasir";
   const cashActionIcon = cashRegisterOpen ? "lock-outline" : "cash-register";
   const clockLabel = now.toLocaleTimeString("id-ID", {
@@ -80,7 +80,6 @@ export function HeaderActions({
       ) : null}
       <AppPressable
         onPress={onRequestCashAction}
-        disabled={cashRegisterClosedToday}
         style={[
           showCashActionLabel
             ? isMobile
@@ -88,23 +87,20 @@ export function HeaderActions({
               : styles.headerCashAction
             : styles.headerCashActionCompact,
           cashRegisterOpen && styles.headerCashActionClose,
-          cashRegisterClosedToday && styles.headerCashActionDisabled,
         ]}
         accessibilityRole="button"
         accessibilityLabel={cashActionLabel}
-        accessibilityState={{ disabled: cashRegisterClosedToday }}
       >
         <AppIcon
           name={cashActionIcon}
           size={16}
-          color={cashRegisterOpen ? colors.danger : cashRegisterClosedToday ? colors.inkSubtle : colors.primary}
+          color={cashRegisterOpen ? colors.danger : colors.primary}
         />
         {showCashActionLabel ? (
           <Text
             style={[
               styles.headerCashActionText,
               cashRegisterOpen && styles.headerCashActionCloseText,
-              cashRegisterClosedToday && styles.headerCashActionDisabledText,
             ]}
           >
             {cashActionLabel}

@@ -41,7 +41,7 @@ export function PaymentScreen() {
     cashReady,
     applyCash,
     cashRegisterOpen,
-    cashRegisterClosedToday,
+    cashRegisterClosed,
     showSuccess,
     setShowSuccess,
     lastOrderNumber,
@@ -200,36 +200,34 @@ export function PaymentScreen() {
                       </HStack>
                       <VStack style={styles.registerClosedCopy}>
                         <Text style={styles.registerClosedTitle}>
-                          {cashRegisterClosedToday
-                            ? "Kasir sudah ditutup hari ini"
+                          {cashRegisterClosed
+                            ? "Sesi kasir sudah ditutup"
                             : "Buka kasir sebelum menerima pembayaran"}
                         </Text>
                         <Text style={styles.registerClosedDescription}>
-                          {cashRegisterClosedToday
-                            ? "Transaksi dilanjutkan pada hari operasional berikutnya. Keranjang ini tetap tersimpan."
+                          {cashRegisterClosed
+                            ? "Buka sesi kasir baru untuk melanjutkan pembayaran. Keranjang ini tetap tersimpan."
                             : "Kasir perlu dibuka sebelum pembayaran dapat diterima. Masukkan uang awal sesuai jumlah fisik di laci."}
                         </Text>
                       </VStack>
-                      {!cashRegisterClosedToday ? (
-                        <AppPressable
-                          onPress={requestCashAction}
-                          style={[
-                            styles.primaryButton,
-                            styles.registerClosedAction,
-                          ]}
-                          accessibilityRole="button"
-                          accessibilityLabel="Buka Kasir"
-                        >
-                          <AppIcon
-                            name="cash-register"
-                            size={17}
-                            color={colors.white}
-                          />
-                          <Text style={styles.primaryButtonText}>
-                            Buka Kasir
-                          </Text>
-                        </AppPressable>
-                      ) : null}
+                      <AppPressable
+                        onPress={requestCashAction}
+                        style={[
+                          styles.primaryButton,
+                          styles.registerClosedAction,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Buka Kasir"
+                      >
+                        <AppIcon
+                          name="cash-register"
+                          size={17}
+                          color={colors.white}
+                        />
+                        <Text style={styles.primaryButtonText}>
+                          Buka Kasir
+                        </Text>
+                      </AppPressable>
                     </VStack>
                   </Panel>
                 )}
@@ -273,15 +271,15 @@ export function PaymentScreen() {
                       <ButtonText style={styles.finalButtonText}>
                         {cashRegisterOpen
                           ? "Selesaikan Pesanan"
-                          : cashRegisterClosedToday
-                            ? "Kasir Ditutup Hari Ini"
+                          : cashRegisterClosed
+                            ? "Sesi Kasir Ditutup"
                             : "Buka Kasir untuk Melanjutkan"}
                       </ButtonText>
                       <Text style={styles.finalButtonHint}>
                         {cashRegisterOpen
                           ? `Antrean ${displayedOrderNumber} • Menunggu diproses`
-                          : cashRegisterClosedToday
-                            ? "Transaksi tersedia besok"
+                          : cashRegisterClosed
+                            ? "Buka sesi baru untuk melanjutkan"
                             : "Pilih Buka Kasir untuk memasukkan uang awal"}
                       </Text>
                     </VStack>

@@ -1,8 +1,9 @@
 import { Input, InputField, Text } from "@gluestack-ui/themed";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, type Ref, useState } from "react";
 import {
   StyleProp,
   StyleSheet,
+  type TextInput,
   TextStyle,
   ViewStyle,
 } from "react-native";
@@ -23,6 +24,9 @@ type AppInputProps = {
   editable?: ComponentProps<typeof InputField>["editable"];
   autoCapitalize?: ComponentProps<typeof InputField>["autoCapitalize"];
   secureTextEntry?: ComponentProps<typeof InputField>["secureTextEntry"];
+  returnKeyType?: ComponentProps<typeof InputField>["returnKeyType"];
+  onSubmitEditing?: ComponentProps<typeof InputField>["onSubmitEditing"];
+  inputRef?: Ref<TextInput>;
   accessibilityLabel?: string;
   variant?: "field" | "search";
   leading?: ReactNode;
@@ -40,6 +44,9 @@ export function AppInput({
   editable,
   autoCapitalize,
   secureTextEntry,
+  returnKeyType,
+  onSubmitEditing,
+  inputRef,
   accessibilityLabel,
   variant = "field",
   leading,
@@ -68,6 +75,9 @@ export function AppInput({
         editable={editable}
         autoCapitalize={autoCapitalize}
         secureTextEntry={secureTextEntry}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
+        ref={inputRef as ComponentProps<typeof InputField>["ref"]}
         accessibilityLabel={accessibilityLabel}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

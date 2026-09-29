@@ -12,7 +12,7 @@ export type CashTransaction = {
   fundingSource?: CashFundingSource;
 };
 
-export type CashRegisterStatus = "not_opened" | "open" | "closed_today";
+export type CashRegisterStatus = "not_opened" | "open" | "closed";
 
 export type CashRegister = {
   id?: string;

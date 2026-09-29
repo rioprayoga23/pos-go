@@ -31,9 +31,10 @@ export function useCashRegister(
     enabled,
     staleTime: 0,
     gcTime: Infinity,
-    // Kelola Kas needs current register status every time the screen mounts.
+    // The header and payment screen must also reflect changes made on another device.
     refetchOnMount: alwaysRefresh ? "always" : true,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
 }
 
