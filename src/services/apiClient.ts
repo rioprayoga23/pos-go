@@ -1,9 +1,17 @@
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+import { resolveApiBaseUrl } from "./apiBaseUrl";
+import { getAuthToken } from "./authToken";
+
 type ApiErrorBody = {
   error?: {
     code?: string;
     message?: string;
   };
 };
+
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null) { onUnauthorized = handler; }
 
 export class ApiError extends Error {
   constructor(
@@ -21,11 +29,17 @@ function getApiRoot() {
 }
 
 export function getApiBaseUrl() {
-  const baseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const baseUrl = resolveApiBaseUrl(
+    process.env.EXPO_PUBLIC_API_URL,
+    process.env.EXPO_PUBLIC_API_URL_NATIVE,
+    Platform.OS,
+    __DEV__,
+    Constants.expoConfig?.hostUri,
+  );
   if (!baseUrl) {
     throw new ApiError("URL API belum diatur.", 0, "api_url_missing");
   }
-  return baseUrl.replace(/\/+$/, "");
+  return baseUrl;
 }
 
 export function resolveApiUrl(path: string) {
@@ -56,6 +70,8 @@ async function request<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const headers = new Headers({ Accept: "application/json" });
+  const token = getAuthToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   const multipart = typeof FormData !== "undefined" && body instanceof FormData;
   if (body !== undefined && !multipart) headers.set("Content-Type", "application/json");
 
@@ -78,6 +94,7 @@ async function request<T>(
 
   const payload = await response.json().catch(() => null) as ApiErrorBody | null;
   if (!response.ok) {
+    if (response.status === 401 && token && token === getAuthToken() && path !== "/auth/login") onUnauthorized?.();
     throw new ApiError(
       payload?.error?.message ?? "Permintaan tidak dapat diproses.",
       response.status,

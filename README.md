@@ -1,6 +1,6 @@
 # YoSher Go
 
-Tablet-first POS prototype for a cafe, built with Expo, React Native, TypeScript, Gluestack UI, TanStack Query, and Zustand. Stock management connects directly to the Go API; the other POS workflows still use local demo data.
+Tablet-first POS app for a cafe, built with Expo, React Native, TypeScript, Gluestack UI, TanStack Query, and Zustand. The login, catalog, orders, stock, and cash workflows use the Go API.
 
 ## Run locally
 
@@ -11,7 +11,9 @@ npx expo start
 
 Then open the project in Expo Go, an Android emulator, or an iOS simulator.
 
-Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_URL` to the Go API address. Use `http://localhost:8080` for web or an iOS simulator, `http://10.0.2.2:8080` for the Android emulator, or the computer's LAN IP for a physical phone. The Go API must allow the Expo web origin in `CORS_ALLOWED_ORIGINS`.
+Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_URL` to the Go API address. During local development, `http://localhost:8080` works for web and iOS Simulator; Android Emulator uses `10.0.2.2:8080`, and a phone connected through Expo's LAN mode uses the computer's LAN IP automatically. The phone and computer must share a network, and the Go API must listen on that network. With Expo tunnel or a hosted native build, set `EXPO_PUBLIC_API_URL_NATIVE` to an API URL reachable from the device. To open the web app from another device on the LAN, set `EXPO_PUBLIC_API_URL` to the computer's LAN IP and add that web origin to the backend's `CORS_ALLOWED_ORIGINS`. Production native builds require a reachable HTTPS API URL; development host detection does not run in production. The Go API must allow the Expo web origin in `CORS_ALLOWED_ORIGINS`.
+
+Run the backend migrations and create accounts as described in `../pos-be/README.md` before logging in. The `owner` role can access all menus. The `pegawai` role can access Kasir, Pembayaran, and Antrean. Native sessions use Expo SecureStore; web sessions last for the browser tab/session.
 
 Useful checks:
 

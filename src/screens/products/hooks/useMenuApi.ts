@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useAuth } from "../../../auth/AuthProvider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { colors } from "../../../theme";
 import { useProductStore } from "../../../store/productStore";
@@ -14,6 +15,7 @@ import {
   deleteMenuProduct,
   deleteMenuProductPhoto,
   deleteMenuRecipe,
+  getCashierInventory,
   listMenuCategories,
   listMenuProducts,
   listMenuRecipes,
@@ -49,7 +51,7 @@ export function menuProductToProduct(
   const recipe = recipes.find((entry) => entry.id === product.recipeId);
   return {
     ...product,
-    stock: getAvailablePortions(stockItems, recipe, recipes) ?? 0,
+    stock: recipe ? getAvailablePortions(stockItems, recipe, recipes) : product.stock,
     accent: colors.cyan,
     icon: "cup-outline",
     image: product.photoUrl ? { uri: product.photoUrl } : undefined,
@@ -58,6 +60,8 @@ export function menuProductToProduct(
 }
 
 export function useMenuData(enabled = true) {
+  const { user } = useAuth();
+  const canManageMenu = user?.role === "owner";
   const categoriesQuery = useQuery({
     queryKey: menuQueryKeys.categories,
     queryFn: ({ signal }) => listMenuCategories(signal),
@@ -67,7 +71,7 @@ export function useMenuData(enabled = true) {
   const recipesQuery = useQuery({
     queryKey: menuQueryKeys.recipes,
     queryFn: ({ signal }) => listMenuRecipes(signal),
-    enabled,
+    enabled: enabled && canManageMenu,
     ...menuCacheOptions,
   });
   const productsQuery = useQuery({
@@ -79,14 +83,28 @@ export function useMenuData(enabled = true) {
   const stockQuery = useQuery({
     queryKey: stockQueryKeys.allItems,
     queryFn: ({ signal }) => listAllStockItems(signal),
-    enabled,
+    enabled: enabled && canManageMenu,
+    staleTime: 0,
+  });
+  const cashierInventoryQuery = useQuery({
+    queryKey: ["cashier", "inventory"],
+    queryFn: ({ signal }) => getCashierInventory(signal),
+    enabled: enabled && !canManageMenu,
     staleTime: 0,
   });
 
   const rawCategories = categoriesQuery.data;
-  const recipes = recipesQuery.data;
+  const recipes = useMemo(() => canManageMenu
+    ? recipesQuery.data
+    : cashierInventoryQuery.data?.recipes.map((recipe) => ({ ...recipe, name: "" })),
+  [canManageMenu, recipesQuery.data, cashierInventoryQuery.data]);
   const productRecords = productsQuery.data;
-  const stockItems = stockQuery.data;
+  const stockItems = useMemo(() => canManageMenu
+    ? stockQuery.data
+    : cashierInventoryQuery.data?.items.map((item) => ({
+        ...item, name: "", description: "", unit: "", avgPrice: 0,
+      })),
+  [canManageMenu, stockQuery.data, cashierInventoryQuery.data]);
   const categories = useMemo<Category[]>(() => {
     const counts = new Map<string, number>();
     (productRecords ?? []).forEach((product) => counts.set(product.categoryId, (counts.get(product.categoryId) ?? 0) + 1));
@@ -103,8 +121,8 @@ export function useMenuData(enabled = true) {
     () => (productRecords ?? []).map((product) => menuProductToProduct(product, categories, stockItems ?? [], recipes ?? [])),
     [productRecords, categories, stockItems, recipes],
   );
-  const hasData = rawCategories !== undefined && recipes !== undefined && productRecords !== undefined && stockItems !== undefined;
-  const hasError = categoriesQuery.isError || recipesQuery.isError || productsQuery.isError || stockQuery.isError;
+  const hasData = rawCategories !== undefined && productRecords !== undefined && recipes !== undefined && stockItems !== undefined;
+  const hasError = categoriesQuery.isError || productsQuery.isError || (canManageMenu ? (recipesQuery.isError || stockQuery.isError) : cashierInventoryQuery.isError);
 
   useEffect(() => {
     if (!hasData) {
@@ -115,8 +133,10 @@ export function useMenuData(enabled = true) {
       }
       return;
     }
-    useStockStore.getState().setItems(stockItems);
-    useStockStore.getState().replaceRecipes(recipes);
+    if (stockItems && recipes) {
+      useStockStore.getState().setItems(stockItems);
+      useStockStore.getState().replaceRecipes(recipes);
+    }
     useProductStore.getState().setCatalog(products, categories);
   }, [hasData, hasError, stockItems, recipes, products, categories]);
 
@@ -125,13 +145,14 @@ export function useMenuData(enabled = true) {
     recipes: recipes ?? [],
     products,
     stockItems: stockItems ?? [],
-    isLoading: categoriesQuery.isFetching || recipesQuery.isFetching || productsQuery.isFetching || stockQuery.isFetching,
+    isLoading: categoriesQuery.isFetching || productsQuery.isFetching || (canManageMenu ? (recipesQuery.isFetching || stockQuery.isFetching) : cashierInventoryQuery.isFetching),
     isError: !hasData && hasError,
     refetch: () => Promise.all([
       ...(categoriesQuery.isError ? [categoriesQuery.refetch()] : []),
-      ...(recipesQuery.isError ? [recipesQuery.refetch()] : []),
+      ...(canManageMenu && recipesQuery.isError ? [recipesQuery.refetch()] : []),
       ...(productsQuery.isError ? [productsQuery.refetch()] : []),
-      ...(stockQuery.isError ? [stockQuery.refetch()] : []),
+      ...(canManageMenu && stockQuery.isError ? [stockQuery.refetch()] : []),
+      ...(!canManageMenu && cashierInventoryQuery.isError ? [cashierInventoryQuery.refetch()] : []),
     ]),
   };
 }

@@ -20,7 +20,11 @@ function maxAdditionalPortions(items: CartItem[], product: Product): number {
   if (!product.isAvailable) return 0;
   const inventory = useStockStore.getState();
   const recipe = inventory.recipes.find((entry) => entry.id === product.recipeId);
-  if (recipe?.kind !== "menu" || !recipe.ingredients.length) return 0;
+  if (!recipe) {
+    const inCart = items.find((item) => item.product.id === product.id)?.quantity ?? 0;
+    return Math.max(0, product.stock - inCart);
+  }
+  if (recipe.kind !== "menu" || !recipe.ingredients.length) return 0;
   const used = items.length
     ? getRequiredStock(items.map((item) => ({ recipeId: item.product.recipeId, quantity: item.quantity })), inventory.recipes)
     : new Map<string, number>();

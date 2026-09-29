@@ -14,6 +14,8 @@ import { styles } from "../styles";
 import { PrinterStatusPill } from "./PrinterStatusPill";
 
 type Props = {
+  username: string;
+  role: "owner" | "pegawai";
   isOpen: boolean;
   isMobile: boolean;
   showClockInProfile: boolean;
@@ -25,6 +27,8 @@ type Props = {
 };
 
 export function ProfileMenu({
+  username,
+  role,
   isOpen,
   isMobile,
   showClockInProfile,
@@ -60,8 +64,8 @@ export function ProfileMenu({
             <AppIcon name="account" size={16} color={colors.white} />
           </HStack>
           <VStack style={styles.profileDropdownIdentity}>
-            <Text style={styles.profileDropdownName}>Kasir</Text>
-            <Text style={styles.profileDropdownRole}>Kasir</Text>
+            <Text style={styles.profileDropdownName}>{username}</Text>
+            <Text style={styles.profileDropdownRole}>{role === "owner" ? "Owner" : "Pegawai"}</Text>
           </VStack>
           {showClockInProfile ? (
             <VStack style={styles.profileDropdownClock}>

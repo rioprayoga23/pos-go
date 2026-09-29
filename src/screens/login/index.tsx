@@ -1,11 +1,11 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { router } from "expo-router";
 import { useState } from "react";
 import { Image, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, AppInput, AppPressable } from "../../components/ui";
 import { colors } from "../../theme";
 import { styles } from "./styles";
+import { useAuth } from "../../auth/AuthProvider";
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -13,15 +13,25 @@ export function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { login } = useAuth();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitting) return;
     if (!identity.trim() || !password) {
-      setError("Isi email atau username dan kata sandi untuk melanjutkan.");
+      setError("Isi username dan kata sandi untuk melanjutkan.");
       return;
     }
-
-    // The current local prototype has no authentication service.
-    router.replace("/order");
+    setSubmitting(true);
+    setError("");
+    try {
+      await login(identity.trim(), password);
+      setPassword("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Login gagal. Coba lagi.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -61,16 +71,16 @@ export function LoginScreen() {
 
           <VStack style={styles.form}>
             <VStack style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Email atau username</Text>
+              <Text style={styles.fieldLabel}>Username</Text>
               <AppInput
                 value={identity}
                 onChangeText={(value) => {
                   setIdentity(value);
                   setError("");
                 }}
-                placeholder="Masukkan email atau username"
-                accessibilityLabel="Email atau username"
-                keyboardType="email-address"
+                placeholder="Masukkan username"
+                accessibilityLabel="Username"
+                keyboardType="default"
                 autoCapitalize="none"
               />
             </VStack>
@@ -112,11 +122,12 @@ export function LoginScreen() {
 
             <AppPressable
               onPress={handleSubmit}
+              disabled={submitting}
               style={styles.submitButton}
               accessibilityRole="button"
               accessibilityLabel="Masuk ke aplikasi kasir"
             >
-              <Text style={styles.submitText}>Masuk</Text>
+              <Text style={styles.submitText}>{submitting ? "Memproses..." : "Masuk"}</Text>
               <AppIcon name="arrow-right" size={18} color={colors.white} />
             </AppPressable>
           </VStack>

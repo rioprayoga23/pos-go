@@ -20,6 +20,7 @@ import { OpenCashRegisterDialog } from "./components/OpenCashRegisterDialog";
 import { primaryNavigationItems } from "./navigationItems";
 import { styles } from "./styles";
 import { useQueueOrders } from "../../screens/queue/hooks/useQueueApi";
+import { useAuth } from "../../auth/AuthProvider";
 
 export function AppShell({
   active,
@@ -32,6 +33,10 @@ export function AppShell({
   scrollRef?: RefObject<ScrollView | null>;
   scrollable?: boolean;
 }) {
+  const { user, logout } = useAuth();
+  const navigationItems = user?.role === "pegawai"
+    ? primaryNavigationItems.filter((item) => item.route === "Order" || item.route === "Queue")
+    : primaryNavigationItems;
   const orders = useTransactionStore((state) => state.orders);
   const localQueueCount = orders.filter(
     (order) => order.status !== "completed",
@@ -155,7 +160,9 @@ export function AppShell({
           isMobile={isMobile}
           cashRegisterOpen={cashRegisterOpen}
           cashRegisterClosedToday={cashRegisterClosedToday}
-          onLogout={() => router.replace("/login")}
+          username={user?.username ?? ""}
+          role={user?.role ?? "pegawai"}
+          onLogout={() => { void logout(); }}
           onRequestCashAction={handleCashAction}
         />
       </HStack>
@@ -163,7 +170,7 @@ export function AppShell({
         {!isMobile ? (
           <VStack style={[styles.sidebar, { width: sidebarWidth }]}>
             <VStack style={styles.sideNav}>
-              {primaryNavigationItems.map((item) => {
+              {navigationItems.map((item) => {
                 const isActive = item.route === activeNav;
                 return (
                   <Pressable
@@ -229,6 +236,7 @@ export function AppShell({
           bottomInset={insets.bottom}
           queueCount={queueCount}
           onNavigate={(route) => router.navigate(routePaths[route])}
+          items={navigationItems}
         />
       ) : null}
       {showOpenCashDialog ? (

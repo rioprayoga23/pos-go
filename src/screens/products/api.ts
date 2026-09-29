@@ -20,6 +20,7 @@ export type MenuProductRecord = {
   categoryName: string;
   recipeId: string;
   price: number;
+  stock: number;
   orderCount: number;
   isAvailable: boolean;
   isRecommended: boolean;
@@ -38,6 +39,16 @@ export type MenuPhotoUpload = {
   type: string;
   webFile?: Blob;
 };
+
+export type CashierInventoryRecord = {
+  items: { id: string; stock: number }[];
+  recipes: { id: string; kind: RecipeKind; ingredients: RecipeIngredient[] }[];
+};
+
+export async function getCashierInventory(signal?: AbortSignal) {
+  const result = await apiClient.get<ApiEnvelope<CashierInventoryRecord>>("/cashier/inventory", signal);
+  return result.data;
+}
 
 function apiPhotoUrl(path?: string) {
   if (!path) return undefined;

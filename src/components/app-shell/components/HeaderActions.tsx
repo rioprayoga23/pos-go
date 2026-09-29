@@ -11,6 +11,8 @@ import { ProfileMenu } from "./ProfileMenu";
 import { PrinterStatusPill } from "./PrinterStatusPill";
 
 type Props = {
+  username: string;
+  role: "owner" | "pegawai";
   showClockInHeader: boolean;
   isMobile: boolean;
   cashRegisterOpen: boolean;
@@ -20,6 +22,8 @@ type Props = {
 };
 
 export function HeaderActions({
+  username,
+  role,
   showClockInHeader,
   isMobile,
   cashRegisterOpen,
@@ -108,7 +112,7 @@ export function HeaderActions({
         ) : null}
       </AppPressable>
       {!isMobile ? <PrinterStatusPill /> : null}
-      <NotificationsMenu
+      {role === "owner" ? <NotificationsMenu
         isOpen={showNotifications}
         notifications={notifications}
         unreadCount={unreadNotificationCount}
@@ -123,8 +127,10 @@ export function HeaderActions({
         onClose={() => setShowNotifications(false)}
         onMarkRead={markNotificationRead}
         onMarkAllRead={markAllNotificationsRead}
-      />
+      /> : null}
       <ProfileMenu
+        username={username}
+        role={role}
         isOpen={showProfileMenu}
         isMobile={isMobile}
         showClockInProfile={!showClockInHeader}

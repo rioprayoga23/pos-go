@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppToastProvider } from '../components/toast/useAppToast';
+import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { posGluestackConfig, colors } from '../theme';
 
 const queryClient = new QueryClient({
@@ -45,26 +46,37 @@ export default function RootLayout() {
         <GluestackUIProvider config={posGluestackConfig}>
           <StatusBar style="dark" />
           <AppToastProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: 'fade',
-                contentStyle: { backgroundColor: colors.canvas },
-              }}
-            >
-              <Stack.Screen name="index" />
-              <Stack.Screen name="login" />
-              <Stack.Screen name="order" />
-              <Stack.Screen name="payment" />
-              <Stack.Screen name="queue" />
-              <Stack.Screen name="products" />
-              <Stack.Screen name="stock" />
-              <Stack.Screen name="cash" />
-              <Stack.Screen name="history" />
-            </Stack>
+            <AuthProvider><ProtectedStack /></AuthProvider>
           </AppToastProvider>
         </GluestackUIProvider>
       </SafeAreaProvider>
     </QueryClientProvider>
+  );
+}
+
+function ProtectedStack() {
+  const { user } = useAuth();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        contentStyle: { backgroundColor: colors.canvas },
+      }}
+    >
+      <Stack.Screen name="index" />
+      <Stack.Protected guard={!user}><Stack.Screen name="login" /></Stack.Protected>
+      <Stack.Protected guard={Boolean(user)}>
+        <Stack.Screen name="order" />
+        <Stack.Screen name="payment" />
+        <Stack.Screen name="queue" />
+      </Stack.Protected>
+      <Stack.Protected guard={user?.role === "owner"}>
+        <Stack.Screen name="products" />
+        <Stack.Screen name="stock" />
+        <Stack.Screen name="cash" />
+        <Stack.Screen name="history" />
+      </Stack.Protected>
+    </Stack>
   );
 }

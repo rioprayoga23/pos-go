@@ -11,6 +11,7 @@ type Props = {
   bottomInset: number;
   queueCount: number;
   onNavigate: (route: PrimaryNavigationRoute) => void;
+  items?: typeof primaryNavigationItems;
 };
 
 export function MobileBottomNavigation({
@@ -18,6 +19,7 @@ export function MobileBottomNavigation({
   bottomInset,
   queueCount,
   onNavigate,
+  items = primaryNavigationItems,
 }: Props) {
   return (
     <HStack
@@ -26,7 +28,7 @@ export function MobileBottomNavigation({
         { paddingBottom: Math.max(bottomInset, spacing.xs) },
       ]}
     >
-      {primaryNavigationItems.map((item) => {
+      {items.map((item) => {
         const isActive = item.route === active;
 
         return (
