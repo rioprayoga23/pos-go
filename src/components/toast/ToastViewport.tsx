@@ -20,11 +20,14 @@ const exitDuration = 400;
 const enterEasing = Easing.bezier(0.21, 1.02, 0.73, 1);
 const exitEasing = Easing.bezier(0.06, 0.71, 0.55, 1);
 
-const statusStyles: Record<ToastKind, {
-  icon: IconName;
-  color: string;
-  borderColor: string;
-}> = {
+const statusStyles: Record<
+  ToastKind,
+  {
+    icon: IconName;
+    color: string;
+    borderColor: string;
+  }
+> = {
   success: {
     icon: "check",
     color: colors.success,
@@ -46,7 +49,11 @@ function useReducedMotion() {
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === "web" && typeof window !== "undefined" && window.matchMedia) {
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      window.matchMedia
+    ) {
       const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
       const update = (event?: MediaQueryListEvent) => {
         setReducedMotion(event?.matches ?? mediaQuery.matches);
@@ -57,7 +64,9 @@ function useReducedMotion() {
       return () => mediaQuery.removeEventListener?.("change", update);
     }
 
-    AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion).catch(() => {});
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReducedMotion)
+      .catch(() => {});
     const subscription = AccessibilityInfo.addEventListener(
       "reduceMotionChanged",
       setReducedMotion,
@@ -131,7 +140,9 @@ function ToastCard({
       accessible
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      accessibilityLabel={item.description ? `${item.title}. ${item.description}` : item.title}
+      accessibilityLabel={
+        item.description ? `${item.title}. ${item.description}` : item.title
+      }
       onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
       style={[
         styles.toast,
@@ -146,9 +157,13 @@ function ToastCard({
         <AppIcon name={visual.icon} size={14} color={colors.white} />
       </View>
       <View style={styles.copy}>
-        <Text numberOfLines={2} style={styles.title}>{item.title}</Text>
+        <Text numberOfLines={2} style={styles.title}>
+          {item.title}
+        </Text>
         {item.description ? (
-          <Text numberOfLines={2} style={styles.description}>{item.description}</Text>
+          <Text numberOfLines={2} style={styles.description}>
+            {item.description}
+          </Text>
         ) : null}
       </View>
     </Animated.View>
@@ -174,7 +189,8 @@ export function ToastViewport({
       style={[
         styles.viewport,
         {
-          top: Math.max(insets.top, Platform.OS === "web" ? 12 : insets.top) + 12,
+          top:
+            Math.max(insets.top, Platform.OS === "web" ? 12 : insets.top) + 12,
           right: Math.max(insets.right, Platform.OS === "web" ? 16 : 12),
           width: viewportWidth,
           pointerEvents: "box-none",
@@ -182,7 +198,12 @@ export function ToastViewport({
       ]}
     >
       {items.map((item) => (
-        <ToastCard key={item.id} item={item} duration={duration} onDismiss={onDismiss} />
+        <ToastCard
+          key={item.id}
+          item={item}
+          duration={duration}
+          onDismiss={onDismiss}
+        />
       ))}
     </View>
   );

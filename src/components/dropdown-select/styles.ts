@@ -3,6 +3,7 @@ import {
   colors,
   elevation,
   fieldHeight,
+  inputHorizontalPadding,
   radius,
   spacing,
   typography,
@@ -12,7 +13,7 @@ export const styles = StyleSheet.create({
   trigger: {
     minWidth: 190,
     minHeight: fieldHeight,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: inputHorizontalPadding,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     borderRadius: radius.md,
@@ -50,7 +51,7 @@ export const styles = StyleSheet.create({
     width: "100%",
     height: 40,
     minHeight: 40,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: inputHorizontalPadding,
     marginBottom: spacing.sm,
     backgroundColor: colors.surfaceContainerLow,
     borderColor: colors.line,
@@ -77,7 +78,11 @@ export const styles = StyleSheet.create({
     fontWeight: "500",
   },
   optionLabelSelected: { color: colors.primary, fontWeight: "600" },
-  optionDetail: { color: colors.inkMuted, ...typography.helper, fontWeight: "600" },
+  optionDetail: {
+    color: colors.inkMuted,
+    ...typography.helper,
+    fontWeight: "600",
+  },
   emptyResult: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.lg,

@@ -52,7 +52,10 @@ export function PaymentSuccessModal({
           </VStack>
         </ModalBody>
         <ModalFooter style={styles.successFooter}>
-          <Button onPress={onViewQueue} style={[styles.primaryButton, styles.successButton]}>
+          <Button
+            onPress={onViewQueue}
+            style={[styles.primaryButton, styles.successButton]}
+          >
             <ButtonText style={styles.primaryButtonText}>
               Lihat antrean pesanan
             </ButtonText>

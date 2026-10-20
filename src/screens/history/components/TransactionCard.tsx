@@ -2,7 +2,11 @@ import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { memo, useState } from "react";
 import { ReceiptPrintModal } from "../../../components/receipt/ReceiptPrintModal";
 import type { ReceiptData } from "../../../components/receipt/types";
-import { AppIcon, AppPressable as Pressable, StatusBadge } from "../../../components/ui";
+import {
+  AppIcon,
+  AppPressable as Pressable,
+  StatusBadge,
+} from "../../../components/ui";
 import { colors } from "../../../theme";
 import { formatCurrency } from "../../../utils/format";
 import type { HistoryOrder } from "../types";
@@ -19,8 +23,14 @@ export const TransactionCard = memo(function TransactionCard({
 }) {
   const compact = density !== "desktop";
   const tablet = density === "tablet";
-  const { orderNumber, time, paymentMethod, amount, cupCount: cups, details } =
-    getHistoryTransactionDisplay(order);
+  const {
+    orderNumber,
+    time,
+    paymentMethod,
+    amount,
+    cupCount: cups,
+    details,
+  } = getHistoryTransactionDisplay(order);
   const isQris = paymentMethod === "QRIS";
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
@@ -41,18 +51,21 @@ export const TransactionCard = memo(function TransactionCard({
         <HStack style={styles.transactionTopActions}>
           <StatusBadge status={order.status} />
           <Pressable
-            onPress={() =>
-              setReceiptData(
-                createHistoryReceiptData(order),
-              )
-            }
+            onPress={() => setReceiptData(createHistoryReceiptData(order))}
             style={styles.smallAction}
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={`Lihat dan cetak ulang struk ${orderNumber}`}
           >
             <AppIcon name="printer-outline" size={13} color={colors.ink} />
-            <Text style={[styles.smallActionText, compact && styles.readableTextAdaptive]}>Struk</Text>
+            <Text
+              style={[
+                styles.smallActionText,
+                compact && styles.readableTextAdaptive,
+              ]}
+            >
+              Struk
+            </Text>
           </Pressable>
         </HStack>
       </HStack>
@@ -61,7 +74,10 @@ export const TransactionCard = memo(function TransactionCard({
           <AppIcon name="cup-outline" size={17} color={colors.primary} />
         </HStack>
         <VStack style={styles.transactionDetails}>
-          <Text style={[styles.cupTitle, compact && styles.cupTitleAdaptive]} numberOfLines={1}>
+          <Text
+            style={[styles.cupTitle, compact && styles.cupTitleAdaptive]}
+            numberOfLines={1}
+          >
             {`Pesanan (${cups} Cup)`}
           </Text>
           <Text
@@ -76,7 +92,10 @@ export const TransactionCard = memo(function TransactionCard({
         </VStack>
         <VStack style={styles.transactionRight}>
           <Text
-            style={[styles.transactionAmount, tablet && styles.transactionAmountTablet]}
+            style={[
+              styles.transactionAmount,
+              tablet && styles.transactionAmountTablet,
+            ]}
             numberOfLines={1}
           >
             {formatCurrency(amount)}

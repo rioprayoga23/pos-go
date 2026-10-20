@@ -13,12 +13,18 @@ import { useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { ApiError } from "../../../services/apiClient";
 import { useAppToast } from "../../../components/toast/useAppToast";
-import { digitsOnly, formatThousands, parseWholeNumber } from "../../../utils/format";
+import {
+  digitsOnly,
+  formatThousands,
+  parseWholeNumber,
+} from "../../../utils/format";
 import {
   AppIcon,
   AppInput,
   AppModalCloseButton,
   AppPressable,
+  FieldLabel,
+  ModalFormActions,
 } from "../../../components/ui";
 import { colors } from "../../../theme";
 import type { CashExpenseDraft, CashFundingSource } from "../../../types/cash";
@@ -70,7 +76,9 @@ export function AddExpenseModal({
         "Uang keluar gagal disimpan",
         saveError instanceof ApiError
           ? saveError.message
-          : saveError instanceof Error ? saveError.message : "Coba lagi.",
+          : saveError instanceof Error
+            ? saveError.message
+            : "Coba lagi.",
       );
     }
   };
@@ -101,32 +109,44 @@ export function AddExpenseModal({
         <ModalBody style={styles.modalBody}>
           <VStack style={styles.modalForm}>
             <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Keterangan</Text>
+              <FieldLabel
+                required
+                style={[styles.formLabel, { marginBottom: 0 }]}
+              >
+                Keterangan
+              </FieldLabel>
               <AppInput
                 value={description}
                 onChangeText={(value) => {
                   setDescription(value);
                   setError("");
                 }}
-                placeholder="Contoh: Es batu"
+                placeholder="Contoh: Iuran Keamanan"
                 accessibilityLabel="Keterangan uang keluar"
               />
             </VStack>
             <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Sumber dana</Text>
+              <FieldLabel
+                required
+                style={[styles.formLabel, { marginBottom: 0 }]}
+              >
+                Sumber dana
+              </FieldLabel>
               <HStack style={styles.fundingRow}>
-                {([
-                  {
-                    value: "cash_drawer",
-                    label: "Uang laci",
-                    icon: "cash-register",
-                  },
-                  {
-                    value: "external_transfer",
-                    label: "Transfer dari dana luar",
-                    icon: "bank-transfer",
-                  },
-                ] as const).map((option) => {
+                {(
+                  [
+                    {
+                      value: "cash_drawer",
+                      label: "Uang laci",
+                      icon: "cash-register",
+                    },
+                    {
+                      value: "external_transfer",
+                      label: "Transfer dari dana luar",
+                      icon: "bank-transfer",
+                    },
+                  ] as const
+                ).map((option) => {
                   const selected = fundingSource === option.value;
                   return (
                     <AppPressable
@@ -162,7 +182,12 @@ export function AddExpenseModal({
               </HStack>
             </VStack>
             <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Nominal</Text>
+              <FieldLabel
+                required
+                style={[styles.formLabel, { marginBottom: 0 }]}
+              >
+                Nominal
+              </FieldLabel>
               <AppInput
                 value={formatThousands(amountInput)}
                 onChangeText={(value) => {
@@ -176,7 +201,9 @@ export function AddExpenseModal({
               />
             </VStack>
             <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Catatan (opsional)</Text>
+              <FieldLabel style={[styles.formLabel, { marginBottom: 0 }]}>
+                Catatan
+              </FieldLabel>
               <AppInput
                 value={detail}
                 onChangeText={setDetail}
@@ -188,26 +215,15 @@ export function AddExpenseModal({
           </VStack>
         </ModalBody>
         <ModalFooter style={styles.modalFooter}>
-          <AppPressable
-            onPress={handleSave}
-            disabled={!canSave || isSaving}
-            style={[
-              styles.saveButton,
-              (!canSave || isSaving) && styles.saveButtonDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Simpan uang keluar"
-            accessibilityState={{ disabled: !canSave || isSaving }}
-          >
-            <Text style={styles.saveButtonText}>Simpan</Text>
-          </AppPressable>
-          <AppPressable
-            onPress={onClose}
-            style={styles.cancelButton}
-            accessibilityRole="button"
-          >
-            <Text style={styles.cancelButtonText}>Batal</Text>
-          </AppPressable>
+          <ModalFormActions
+            primaryLabel="Simpan"
+            onPrimary={handleSave}
+            primaryBusy={isSaving}
+            primaryDisabled={!canSave}
+            primaryBusyLabel="Menyimpan..."
+            onSecondary={onClose}
+            secondaryDisabled={isSaving}
+          />
         </ModalFooter>
       </ModalContent>
     </Modal>

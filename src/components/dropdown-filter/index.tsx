@@ -23,9 +23,10 @@ export function DropdownFilter<Value extends string>({
     <DropdownSelect
       options={options.map((option) => ({
         value: option.key,
-        label: option.count === undefined
-          ? option.label
-          : `${option.label} (${option.count})`,
+        label:
+          option.count === undefined
+            ? option.label
+            : `${option.label} (${option.count})`,
       }))}
       value={value}
       onChange={onChange}

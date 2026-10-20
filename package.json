@@ -24,8 +24,11 @@
     "react": "19.2.3",
     "react-dom": "^19.2.3",
     "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "react-native-sortables": "^1.10.1",
     "react-native-svg": "^15.15.4",
     "react-native-web": "^0.21.2",
     "zustand": "^5.0.15"
@@ -34,6 +37,7 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "prettier": "^3.9.10",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -41,8 +45,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "test": "node --experimental-strip-types --test",
+    "typecheck": "tsc --noEmit",
     "test:auth-url": "node --experimental-strip-types --test src/services/apiBaseUrl.test.mjs",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
   "private": true
 }

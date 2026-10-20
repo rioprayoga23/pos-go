@@ -13,6 +13,8 @@ export type StockItem = {
   stockUnitsPerPurchaseUnit?: number;
   /** Weighted-average cost per stock unit. Fractional rupiah is retained for HPP. */
   avgPrice: number;
+  /** Total cost of the first recorded purchase, when one exists. */
+  initialPurchaseTotalCostRupiah?: number | null;
 };
 
 export type RecipeKind = "base" | "menu";

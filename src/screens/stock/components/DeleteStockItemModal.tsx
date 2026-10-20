@@ -9,10 +9,14 @@ import {
   Text,
   VStack,
 } from "@gluestack-ui/themed";
-import { useState } from "react";
 import { StyleSheet } from "react-native";
-import { AppIcon, AppModalCloseButton, AppPressable } from "../../../components/ui";
+import {
+  AppIcon,
+  AppModalCloseButton,
+  ModalFormActions,
+} from "../../../components/ui";
 import { useAppToast } from "../../../components/toast/useAppToast";
+import { useFormSubmit } from "../../../hooks/useFormSubmit";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { StockItem } from "../../../types/stock";
 import { formatQuantity } from "../../../utils/format";
@@ -36,7 +40,11 @@ const deleteStyles = StyleSheet.create({
   },
   stockCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   stockLabel: { color: colors.inkMuted, ...typography.helper },
-  stockValue: { color: colors.ink, ...typography.label, fontVariant: ["tabular-nums"] },
+  stockValue: {
+    color: colors.ink,
+    ...typography.label,
+    fontVariant: ["tabular-nums"],
+  },
   stockStatus: {
     overflow: "hidden",
     paddingHorizontal: spacing.sm,
@@ -49,35 +57,6 @@ const deleteStyles = StyleSheet.create({
   stockStatusBlocked: { backgroundColor: colors.warningSoft },
   stockStatusReady: { backgroundColor: colors.successSoft },
   stockHint: { color: colors.inkMuted, ...typography.helper },
-  footer: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-  },
-  cancelButton: {
-    flex: 1,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  cancelText: { color: colors.ink, ...typography.button },
-  deleteButton: {
-    flex: 1,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.danger,
-  },
-  deleteButtonDisabled: { backgroundColor: colors.line },
-  deleteText: { color: colors.white, ...typography.button },
-  deleteTextDisabled: { color: colors.inkSubtle },
 });
 
 export function DeleteStockItemModal({
@@ -91,26 +70,32 @@ export function DeleteStockItemModal({
   onClose: () => void;
   onDelete: () => Promise<void>;
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useAppToast();
+  const form = useFormSubmit((error) =>
+    toast.error(
+      "Bahan gagal dihapus",
+      error instanceof Error ? error.message : "Coba lagi.",
+    ),
+  );
   const canDelete = item.stock === 0;
+  const close = () => {
+    if (!form.busy) onClose();
+  };
 
   const handleDelete = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await onDelete();
-    } catch (error) {
-      toast.error("Bahan gagal dihapus", error instanceof Error ? error.message : "Coba lagi.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (canDelete) await form.submit(onDelete);
   };
 
   return (
-    <Modal isOpen onClose={onClose} size="md">
+    <Modal isOpen onClose={close} size="md">
       <ModalBackdrop />
-      <ModalContent style={[styles.modal, deleteStyles.modal, { maxHeight: Math.max(360, height - 28) }]}>
+      <ModalContent
+        style={[
+          styles.modal,
+          deleteStyles.modal,
+          { maxHeight: Math.max(360, height - 28) },
+        ]}
+      >
         <ModalHeader style={[styles.modalHeader, deleteStyles.header]}>
           <HStack style={[styles.modalIcon, deleteStyles.icon]}>
             <AppIcon name="delete-outline" size={18} color={colors.danger} />
@@ -118,7 +103,10 @@ export function DeleteStockItemModal({
           <VStack style={styles.modalHeading}>
             <Text style={styles.modalTitle}>Hapus Bahan</Text>
           </VStack>
-          <AppModalCloseButton onPress={onClose} accessibilityLabel="Tutup konfirmasi" />
+          <AppModalCloseButton
+            onPress={close}
+            accessibilityLabel="Tutup konfirmasi"
+          />
         </ModalHeader>
         <ModalBody style={styles.modalBody}>
           <VStack style={deleteStyles.content}>
@@ -132,10 +120,14 @@ export function DeleteStockItemModal({
                   {formatQuantity(item.stock)} {item.unit}
                 </Text>
               </VStack>
-              <Text style={[
-                deleteStyles.stockStatus,
-                canDelete ? deleteStyles.stockStatusReady : deleteStyles.stockStatusBlocked,
-              ]}>
+              <Text
+                style={[
+                  deleteStyles.stockStatus,
+                  canDelete
+                    ? deleteStyles.stockStatusReady
+                    : deleteStyles.stockStatusBlocked,
+                ]}
+              >
                 {canDelete ? "Siap dihapus" : "Stok harus 0"}
               </Text>
             </HStack>
@@ -146,31 +138,18 @@ export function DeleteStockItemModal({
             ) : null}
           </VStack>
         </ModalBody>
-        <ModalFooter style={[styles.modalFooter, deleteStyles.footer]}>
-          <AppPressable
-            onPress={onClose}
-            style={deleteStyles.cancelButton}
-            accessibilityRole="button"
-            accessibilityLabel="Batal menghapus bahan"
-          >
-            <Text style={deleteStyles.cancelText}>Batal</Text>
-          </AppPressable>
-          <AppPressable
-            onPress={handleDelete}
-            disabled={isSubmitting || !canDelete}
-            style={[
-              deleteStyles.deleteButton,
-              !canDelete && deleteStyles.deleteButtonDisabled,
-              isSubmitting && styles.saveButtonDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`Hapus bahan ${item.name}`}
-            accessibilityState={{ disabled: isSubmitting || !canDelete }}
-          >
-            <Text style={[deleteStyles.deleteText, !canDelete && deleteStyles.deleteTextDisabled]}>
-              Hapus bahan
-            </Text>
-          </AppPressable>
+        <ModalFooter style={styles.modalFooter}>
+          <ModalFormActions
+            primaryLabel="Hapus bahan"
+            onPrimary={() => void handleDelete()}
+            primaryDisabled={!canDelete}
+            primaryBusy={form.busy}
+            primaryBusyLabel="Menghapus..."
+            primaryTone="danger"
+            primaryIcon="delete-outline"
+            onSecondary={close}
+            secondaryDisabled={form.busy}
+          />
         </ModalFooter>
       </ModalContent>
     </Modal>

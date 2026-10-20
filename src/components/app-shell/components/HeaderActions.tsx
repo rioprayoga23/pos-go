@@ -3,9 +3,8 @@ import { useEffect, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNotificationStore } from "../../../store/notificationStore";
-import { colors } from "../../../theme";
-import { AppIcon, AppPressable } from "../../ui";
 import { styles } from "../styles";
+import { HeaderStatusPill } from "./HeaderStatusPill";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { ProfileMenu } from "./ProfileMenu";
 import { PrinterStatusPill } from "./PrinterStatusPill";
@@ -48,11 +47,7 @@ export function HeaderActions({
     (count, notification) => count + Number(notification.unread),
     0,
   );
-  const cashActionLabel = cashRegisterOpen
-    ? "Tutup Kasir"
-    : cashRegisterClosed
-      ? "Buka Kasir Lagi"
-      : "Buka Kasir";
+  const cashActionLabel = cashRegisterOpen ? "Tutup Kasir" : "Buka Kasir";
   const cashActionIcon = cashRegisterOpen ? "lock-outline" : "cash-register";
   const clockLabel = now.toLocaleTimeString("id-ID", {
     hour: "2-digit",
@@ -78,52 +73,33 @@ export function HeaderActions({
           <Text style={styles.date}>{dateLabel}</Text>
         </VStack>
       ) : null}
-      <AppPressable
+      <HeaderStatusPill
+        icon={cashActionIcon}
+        label={cashActionLabel}
+        tone={cashRegisterOpen ? "danger" : "primary"}
+        compact={!showCashActionLabel}
+        mobile={isMobile}
         onPress={onRequestCashAction}
-        style={[
-          showCashActionLabel
-            ? isMobile
-              ? styles.headerCashActionMobileLabeled
-              : styles.headerCashAction
-            : styles.headerCashActionCompact,
-          cashRegisterOpen && styles.headerCashActionClose,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={cashActionLabel}
-      >
-        <AppIcon
-          name={cashActionIcon}
-          size={16}
-          color={cashRegisterOpen ? colors.danger : colors.primary}
-        />
-        {showCashActionLabel ? (
-          <Text
-            style={[
-              styles.headerCashActionText,
-              cashRegisterOpen && styles.headerCashActionCloseText,
-            ]}
-          >
-            {cashActionLabel}
-          </Text>
-        ) : null}
-      </AppPressable>
+      />
       {!isMobile ? <PrinterStatusPill /> : null}
-      {role === "owner" ? <NotificationsMenu
-        isOpen={showNotifications}
-        notifications={notifications}
-        unreadCount={unreadNotificationCount}
-        width={width}
-        height={height}
-        topInset={insets.top}
-        bottomInset={insets.bottom}
-        onOpen={() => {
-          setShowProfileMenu(false);
-          setShowNotifications(true);
-        }}
-        onClose={() => setShowNotifications(false)}
-        onMarkRead={markNotificationRead}
-        onMarkAllRead={markAllNotificationsRead}
-      /> : null}
+      {role === "owner" ? (
+        <NotificationsMenu
+          isOpen={showNotifications}
+          notifications={notifications}
+          unreadCount={unreadNotificationCount}
+          width={width}
+          height={height}
+          topInset={insets.top}
+          bottomInset={insets.bottom}
+          onOpen={() => {
+            setShowProfileMenu(false);
+            setShowNotifications(true);
+          }}
+          onClose={() => setShowNotifications(false)}
+          onMarkRead={markNotificationRead}
+          onMarkAllRead={markAllNotificationsRead}
+        />
+      ) : null}
       <ProfileMenu
         username={username}
         role={role}

@@ -1,5 +1,9 @@
 import type { ApiEnvelope } from "../../services/apiTypes";
-import { apiClient, buildQueryString, resolveApiUrl } from "../../services/apiClient";
+import {
+  apiClient,
+  buildQueryString,
+  resolveApiUrl,
+} from "../../services/apiClient";
 import type { OrderStatus, OrderType, PaymentMethod } from "../../types/pos";
 import type { DateRange } from "../../types/dateRange";
 
@@ -74,10 +78,7 @@ export async function listOrderHistory(
   return apiClient.get<HistoryOrderPage>(`/orders/history${query}`, signal);
 }
 
-export async function getSalesSummary(
-  range: DateRange,
-  signal?: AbortSignal,
-) {
+export async function getSalesSummary(range: DateRange, signal?: AbortSignal) {
   const query = buildQueryString({ from: range.startDate, to: range.endDate });
   const response = await apiClient.get<ApiEnvelope<SalesSummary>>(
     `/orders/summary${query}`,
@@ -92,10 +93,14 @@ export async function getSalesSummary(
   };
 }
 
-export function historyOrderType(type: HistoryOrderRecord["orderType"]): OrderType {
+export function historyOrderType(
+  type: HistoryOrderRecord["orderType"],
+): OrderType {
   return type === "dine_in" ? "Dine in" : "Take away";
 }
 
-export function historyPaymentLabel(method: HistoryOrderRecord["paymentMethod"]): PaymentMethod {
+export function historyPaymentLabel(
+  method: HistoryOrderRecord["paymentMethod"],
+): PaymentMethod {
   return method === "cash" ? "Tunai" : "QRIS";
 }

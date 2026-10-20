@@ -26,7 +26,11 @@ export const receiptStyles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.7,
   },
-  readyPrint: { color: colors.inkMuted, fontSize: type.micro, fontWeight: "600" },
+  readyPrint: {
+    color: colors.inkMuted,
+    fontSize: type.micro,
+    fontWeight: "600",
+  },
   finalButton: {
     minHeight: 64,
     paddingHorizontal: 14,

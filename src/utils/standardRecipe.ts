@@ -38,25 +38,67 @@ export const defaultRecipe: Recipe = {
 };
 
 const initialStockCatalog = [
-  { id: "recipe-powder-matcha", name: "Bubuk Matcha", unit: "sachet", stock: 10, avgPrice: 6500 },
-  { id: "recipe-powder-taro", name: "Bubuk Taro", unit: "sachet", stock: 17, avgPrice: 5500 },
-  { id: "recipe-water", name: "Air", unit: "ml", purchaseUnit: "galon", stockUnitsPerPurchaseUnit: 19000, stock: 6000, avgPrice: 23000 / 19000 },
+  {
+    id: "recipe-powder-matcha",
+    name: "Bubuk Matcha",
+    unit: "sachet",
+    stock: 10,
+    avgPrice: 6500,
+  },
+  {
+    id: "recipe-powder-taro",
+    name: "Bubuk Taro",
+    unit: "sachet",
+    stock: 17,
+    avgPrice: 5500,
+  },
+  {
+    id: "recipe-water",
+    name: "Air",
+    unit: "ml",
+    purchaseUnit: "galon",
+    stockUnitsPerPurchaseUnit: 19000,
+    stock: 6000,
+    avgPrice: 23000 / 19000,
+  },
   { id: "recipe-ice", name: "Es Batu", unit: "ml", stock: 6000, avgPrice: 2 },
-  { id: "recipe-container", name: "Botol & Tutup", unit: "pcs", stock: 30, avgPrice: 1200 },
-  { id: "recipe-straw", name: "Sedotan", unit: "pcs", stock: 30, avgPrice: 150 },
-  { id: "recipe-bag", name: "Kantong Plastik", unit: "pcs", stock: 30, avgPrice: 200 },
+  {
+    id: "recipe-container",
+    name: "Botol & Tutup",
+    unit: "pcs",
+    stock: 30,
+    avgPrice: 1200,
+  },
+  {
+    id: "recipe-straw",
+    name: "Sedotan",
+    unit: "pcs",
+    stock: 30,
+    avgPrice: 150,
+  },
+  {
+    id: "recipe-bag",
+    name: "Kantong Plastik",
+    unit: "pcs",
+    stock: 30,
+    avgPrice: 200,
+  },
 ] as const;
 
-export const initialRecipeItems: StockItem[] = initialStockCatalog.map((item) => ({
-  id: item.id,
-  name: item.name,
-  description: "",
-  stock: item.stock,
-  unit: item.unit,
-  ...("purchaseUnit" in item ? { purchaseUnit: item.purchaseUnit } : {}),
-  ...("stockUnitsPerPurchaseUnit" in item ? { stockUnitsPerPurchaseUnit: item.stockUnitsPerPurchaseUnit } : {}),
-  avgPrice: item.avgPrice,
-}));
+export const initialRecipeItems: StockItem[] = initialStockCatalog.map(
+  (item) => ({
+    id: item.id,
+    name: item.name,
+    description: "",
+    stock: item.stock,
+    unit: item.unit,
+    ...("purchaseUnit" in item ? { purchaseUnit: item.purchaseUnit } : {}),
+    ...("stockUnitsPerPurchaseUnit" in item
+      ? { stockUnitsPerPurchaseUnit: item.stockUnitsPerPurchaseUnit }
+      : {}),
+    avgPrice: item.avgPrice,
+  }),
+);
 
 /** Expand menu/base formulas into the raw stock items that are actually consumed. */
 export function getRecipeStockRequirements(
@@ -64,28 +106,46 @@ export function getRecipeStockRequirements(
   recipes: Recipe[],
   multiplier = 1,
 ): Map<string, number> | null {
-  if (!recipe || !recipe.ingredients.length || !Number.isSafeInteger(multiplier) || multiplier <= 0) return null;
+  if (
+    !recipe ||
+    !recipe.ingredients.length ||
+    !Number.isSafeInteger(multiplier) ||
+    multiplier <= 0
+  )
+    return null;
 
   const recipesById = new Map(recipes.map((entry) => [entry.id, entry]));
   const required = new Map<string, number>();
-  const expand = (current: Recipe, factor: number, ancestors: Set<string>): boolean => {
+  const expand = (
+    current: Recipe,
+    factor: number,
+    ancestors: Set<string>,
+  ): boolean => {
     if (!current.ingredients.length || ancestors.has(current.id)) return false;
     const nextAncestors = new Set(ancestors).add(current.id);
     for (const part of current.ingredients) {
       if (!Number.isFinite(part.quantity) || part.quantity <= 0) return false;
       if (part.type === "stock") {
-        required.set(part.itemId, roundQuantity((required.get(part.itemId) ?? 0) + part.quantity * factor));
+        required.set(
+          part.itemId,
+          roundQuantity(
+            (required.get(part.itemId) ?? 0) + part.quantity * factor,
+          ),
+        );
       } else {
         if (!Number.isSafeInteger(part.quantity)) return false;
         const base = recipesById.get(part.recipeId);
-        if (!base || base.kind !== "base" || current.kind !== "menu") return false;
+        if (!base || base.kind !== "base" || current.kind !== "menu")
+          return false;
         if (!expand(base, part.quantity * factor, nextAncestors)) return false;
       }
     }
     return true;
   };
 
-  return expand(recipe, multiplier, new Set()) && required.size ? required : null;
+  return expand(recipe, multiplier, new Set()) && required.size
+    ? required
+    : null;
 }
 
 export function getAvailablePortions(
@@ -96,9 +156,14 @@ export function getAvailablePortions(
   const required = getRecipeStockRequirements(recipe, recipes);
   if (!required) return 0;
   const byId = new Map(items.map((item) => [item.id, item.stock]));
-  return Math.max(0, Math.min(...[...required].map(([itemId, quantity]) =>
-    Math.floor((byId.get(itemId) ?? 0) / quantity + 1e-9),
-  )));
+  return Math.max(
+    0,
+    Math.min(
+      ...[...required].map(([itemId, quantity]) =>
+        Math.floor((byId.get(itemId) ?? 0) / quantity + 1e-9),
+      ),
+    ),
+  );
 }
 
 export function getRecipeHpp(
@@ -121,7 +186,8 @@ export function getRecipeCostBreakdown(
   const lines: RecipeCostLine[] = [];
   for (const [itemId, quantity] of required) {
     const item = byId.get(itemId);
-    if (!item || !Number.isFinite(item.avgPrice) || item.avgPrice <= 0) return null;
+    if (!item || !Number.isFinite(item.avgPrice) || item.avgPrice <= 0)
+      return null;
     lines.push({
       itemId: item.id,
       name: item.name,
@@ -143,11 +209,23 @@ export function getRequiredStock(
   if (!selections.length) return null;
   for (const selection of selections) {
     const recipe = byId.get(selection.recipeId);
-    if (recipe?.kind !== "menu" || !Number.isSafeInteger(selection.quantity) || selection.quantity <= 0) return null;
-    const recipeStock = getRecipeStockRequirements(recipe, recipes, selection.quantity);
+    if (
+      recipe?.kind !== "menu" ||
+      !Number.isSafeInteger(selection.quantity) ||
+      selection.quantity <= 0
+    )
+      return null;
+    const recipeStock = getRecipeStockRequirements(
+      recipe,
+      recipes,
+      selection.quantity,
+    );
     if (!recipeStock) return null;
     for (const [itemId, quantity] of recipeStock) {
-      required.set(itemId, roundQuantity((required.get(itemId) ?? 0) + quantity));
+      required.set(
+        itemId,
+        roundQuantity((required.get(itemId) ?? 0) + quantity),
+      );
     }
   }
   return required;
@@ -165,5 +243,7 @@ export function canFulfillRecipes(
   const required = getRequiredStock(selections, recipes);
   if (!required) return false;
   const byId = new Map(items.map((item) => [item.id, item.stock]));
-  return [...required].every(([itemId, quantity]) => (byId.get(itemId) ?? 0) >= quantity);
+  return [...required].every(
+    ([itemId, quantity]) => (byId.get(itemId) ?? 0) >= quantity,
+  );
 }

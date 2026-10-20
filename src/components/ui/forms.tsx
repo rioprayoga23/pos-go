@@ -10,6 +10,7 @@ import {
 import {
   colors,
   fieldHeight,
+  inputHorizontalPadding,
   radius,
   spacing,
   typography,
@@ -22,6 +23,8 @@ type AppInputProps = {
   placeholderTextColor?: string;
   keyboardType?: ComponentProps<typeof InputField>["keyboardType"];
   editable?: ComponentProps<typeof InputField>["editable"];
+  multiline?: ComponentProps<typeof InputField>["multiline"];
+  numberOfLines?: ComponentProps<typeof InputField>["numberOfLines"];
   autoCapitalize?: ComponentProps<typeof InputField>["autoCapitalize"];
   secureTextEntry?: ComponentProps<typeof InputField>["secureTextEntry"];
   returnKeyType?: ComponentProps<typeof InputField>["returnKeyType"];
@@ -42,6 +45,8 @@ export function AppInput({
   placeholderTextColor = colors.inkSubtle,
   keyboardType,
   editable,
+  multiline,
+  numberOfLines,
   autoCapitalize,
   secureTextEntry,
   returnKeyType,
@@ -60,6 +65,7 @@ export function AppInput({
       style={[
         styles.appInput,
         variant === "search" && styles.appSearchInput,
+        multiline && styles.appInputMultiline,
         style,
         editable === false && styles.appInputDisabled,
         focused && editable !== false && styles.appInputFocused,
@@ -73,16 +79,20 @@ export function AppInput({
         placeholderTextColor={placeholderTextColor}
         keyboardType={keyboardType}
         editable={editable}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
         autoCapitalize={autoCapitalize}
         secureTextEntry={secureTextEntry}
         returnKeyType={returnKeyType}
         onSubmitEditing={onSubmitEditing}
         ref={inputRef as ComponentProps<typeof InputField>["ref"]}
         accessibilityLabel={accessibilityLabel}
+        aria-label={accessibilityLabel}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[
           styles.appInputField,
+          multiline && styles.appInputFieldMultiline,
           inputStyle,
           editable === false && styles.appInputFieldDisabled,
         ]}
@@ -92,15 +102,28 @@ export function AppInput({
   );
 }
 
-export function FieldLabel({ children }: { children: ReactNode }) {
-  return <Text style={styles.fieldLabel}>{children}</Text>;
+export function FieldLabel({
+  children,
+  required = false,
+  style,
+}: {
+  children: ReactNode;
+  required?: boolean;
+  style?: StyleProp<TextStyle>;
+}) {
+  return (
+    <Text style={[styles.fieldLabel, style]}>
+      {children}
+      {required ? <Text style={styles.required}> *</Text> : null}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({
   appInput: {
     height: fieldHeight,
     minHeight: fieldHeight,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: inputHorizontalPadding,
     borderWidth: 1,
     borderColor: colors.lineStrong,
     borderRadius: radius.md,
@@ -115,6 +138,12 @@ const styles = StyleSheet.create({
     borderColor: colors.lineStrong,
     backgroundColor: colors.canvas,
   },
+  appInputMultiline: {
+    height: 96,
+    minHeight: 96,
+    alignItems: "stretch",
+    paddingVertical: spacing.sm,
+  },
   appInputDisabled: {
     borderColor: colors.line,
     backgroundColor: colors.surfaceContainerLow,
@@ -127,8 +156,14 @@ const styles = StyleSheet.create({
     ...typography.input,
     flex: 1,
     minWidth: 0,
+    paddingHorizontal: 0,
     paddingVertical: 0,
     color: colors.ink,
+  },
+  appInputFieldMultiline: {
+    alignSelf: "stretch",
+    textAlignVertical: "top",
+    paddingVertical: spacing.xs,
   },
   appInputFieldDisabled: { color: colors.inkSubtle },
   fieldLabel: {
@@ -136,4 +171,5 @@ const styles = StyleSheet.create({
     ...typography.label,
     marginBottom: spacing.sm,
   },
+  required: { color: colors.danger },
 });

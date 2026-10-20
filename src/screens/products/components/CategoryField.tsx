@@ -1,6 +1,6 @@
-import { HStack, Text, VStack } from "@gluestack-ui/themed";
+import { HStack, VStack } from "@gluestack-ui/themed";
 import { DropdownSelect } from "../../../components/dropdown-select";
-import { ActionText } from "../../../components/ui";
+import { ActionText, FieldLabel } from "../../../components/ui";
 import { productFormStyles } from "../../../components/products/styles/form";
 import { Category } from "../../../types/pos";
 import { styles } from "../styles";
@@ -14,7 +14,14 @@ type Props = {
   onAdd: () => void;
 };
 
-export function CategoryField({ categories, selectedId, isMobile, isTablet, onSelect, onAdd }: Props) {
+export function CategoryField({
+  categories,
+  selectedId,
+  isMobile,
+  isTablet,
+  onSelect,
+  onAdd,
+}: Props) {
   const options = categories
     .filter((category) => category.id !== "all")
     .map((category) => ({
@@ -26,9 +33,18 @@ export function CategoryField({ categories, selectedId, isMobile, isTablet, onSe
   return (
     <VStack style={styles.categoryGroup}>
       <HStack style={styles.labelRow}>
-        <Text style={[productFormStyles.fieldLabel, isMobile && productFormStyles.fieldLabelMobile, isTablet && productFormStyles.fieldLabelTablet, styles.categoryLabel]}>
+        <FieldLabel
+          required
+          style={[
+            productFormStyles.fieldLabel,
+            isMobile && productFormStyles.fieldLabelMobile,
+            isTablet && productFormStyles.fieldLabelTablet,
+            styles.categoryLabel,
+            { marginBottom: 0 },
+          ]}
+        >
           Kategori Menu Minuman
-        </Text>
+        </FieldLabel>
         <ActionText
           icon="plus"
           label="Kategori Baru"

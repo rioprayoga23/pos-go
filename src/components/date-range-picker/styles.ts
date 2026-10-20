@@ -37,10 +37,24 @@ export const dateRangePickerStyles = StyleSheet.create({
     backgroundColor: colors.surfaceTint,
     gap: 3,
   },
-  selectedLabel: { color: colors.inkSubtle, fontSize: type.micro, fontWeight: "600" },
-  selectedText: { color: colors.primary, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
+  selectedLabel: {
+    color: colors.inkSubtle,
+    fontSize: type.micro,
+    fontWeight: "600",
+  },
+  selectedText: {
+    color: colors.primary,
+    fontSize: type.micro,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
   monthHeader: { alignItems: "center", justifyContent: "space-between" },
-  monthTitle: { color: colors.ink, fontSize: type.caption, lineHeight: 18, fontWeight: "600" },
+  monthTitle: {
+    color: colors.ink,
+    fontSize: type.caption,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
   monthTitleButton: {
     minHeight: fieldHeight,
     flexDirection: "row",
@@ -70,7 +84,12 @@ export const dateRangePickerStyles = StyleSheet.create({
     justifyContent: "center",
   },
   selectorOptionSelected: { backgroundColor: colors.primary },
-  selectorOptionText: { color: colors.ink, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
+  selectorOptionText: {
+    color: colors.ink,
+    fontSize: type.micro,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
   selectorOptionTextSelected: { color: colors.white, fontWeight: "600" },
   weekdayRow: { flexDirection: "row", width: "100%" },
   weekday: {
@@ -96,7 +115,12 @@ export const dateRangePickerStyles = StyleSheet.create({
   },
   dayButtonInRange: { backgroundColor: colors.surfaceTint },
   dayButtonSelected: { backgroundColor: colors.primary },
-  dayText: { color: colors.ink, fontSize: type.micro, lineHeight: 17, fontWeight: "600" },
+  dayText: {
+    color: colors.ink,
+    fontSize: type.micro,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
   dayTextSelected: { color: colors.white, fontWeight: "600" },
   footer: {
     width: "100%",
@@ -106,15 +130,4 @@ export const dateRangePickerStyles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
   },
-  applyButton: {
-    width: "100%",
-    minHeight: fieldHeight,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  applyButtonDisabled: { opacity: 0.5 },
-  applyText: { color: colors.white, ...typography.button },
 });

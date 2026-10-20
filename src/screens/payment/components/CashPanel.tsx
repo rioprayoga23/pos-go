@@ -1,6 +1,11 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useWindowDimensions, View } from "react-native";
-import { AppInput, AppPressable as Pressable, Panel } from "../../../components/ui";
+import {
+  AppInput,
+  AppPressable as Pressable,
+  FieldLabel,
+  Panel,
+} from "../../../components/ui";
 import { colors, spacing } from "../../../theme";
 import { formatCurrency, formatThousands } from "../../../utils/format";
 import { quickTenderAmounts } from "../constants";
@@ -49,13 +54,31 @@ export function CashPanel({
   };
 
   return (
-    <Panel style={[styles.cashPanel, isStacked && styles.cashPanelStacked]} padding={spacing.md}>
-      <VStack style={[styles.cashContent, isStacked && styles.cashContentStacked]}>
+    <Panel
+      style={[styles.cashPanel, isStacked && styles.cashPanelStacked]}
+      padding={spacing.md}
+    >
+      <VStack
+        style={[styles.cashContent, isStacked && styles.cashContentStacked]}
+      >
         <VStack style={styles.tenderSection}>
           <HStack style={styles.tenderHeading}>
-            <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>PEMBAYARAN TUNAI</Text>
+            <Text
+              style={[
+                styles.microLabel,
+                styles.microLabelAdaptive,
+                isTablet && styles.microLabelTablet,
+              ]}
+            >
+              PEMBAYARAN TUNAI
+            </Text>
           </HStack>
-          <View style={[styles.quickGrid, compactWideGrid && styles.quickGridCompact]}>
+          <View
+            style={[
+              styles.quickGrid,
+              compactWideGrid && styles.quickGridCompact,
+            ]}
+          >
             <Pressable
               onPress={() => setCash(String(subtotal))}
               hitSlop={3}
@@ -66,13 +89,17 @@ export function CashPanel({
               ]}
               accessibilityRole="button"
               accessibilityLabel={`Uang pas ${formatCurrency(subtotal)}`}
-              accessibilityState={{ selected: hasCash && received === subtotal }}
+              accessibilityState={{
+                selected: hasCash && received === subtotal,
+              }}
             >
               <Text
                 style={[
                   styles.quickButtonText,
                   isTablet && styles.quickButtonTextTablet,
-                  hasCash && received === subtotal && styles.quickButtonTextActive,
+                  hasCash &&
+                    received === subtotal &&
+                    styles.quickButtonTextActive,
                 ]}
               >
                 PAS
@@ -92,15 +119,36 @@ export function CashPanel({
                 accessibilityLabel={`Uang diterima ${formatCurrency(amount)}`}
                 accessibilityState={{ selected: received === amount }}
               >
-                <Text style={[styles.quickButtonText, isTablet && styles.quickButtonTextTablet, received === amount && styles.quickButtonTextActive]}>
+                <Text
+                  style={[
+                    styles.quickButtonText,
+                    isTablet && styles.quickButtonTextTablet,
+                    received === amount && styles.quickButtonTextActive,
+                  ]}
+                >
                   {amount / 1000}k
                 </Text>
               </Pressable>
             ))}
           </View>
-          <HStack style={[styles.tenderAmounts, stackTenderFields && styles.tenderAmountsStacked]}>
+          <HStack
+            style={[
+              styles.tenderAmounts,
+              stackTenderFields && styles.tenderAmountsStacked,
+            ]}
+          >
             <VStack style={styles.amountBox}>
-              <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>UANG DITERIMA</Text>
+              <FieldLabel
+                required
+                style={[
+                  styles.microLabel,
+                  styles.microLabelAdaptive,
+                  isTablet && styles.microLabelTablet,
+                  { marginBottom: 0 },
+                ]}
+              >
+                UANG DITERIMA
+              </FieldLabel>
               <AppInput
                 value={formatThousands(cash)}
                 onChangeText={setCash}
@@ -114,43 +162,76 @@ export function CashPanel({
               />
             </VStack>
             <VStack style={styles.amountBox}>
-              <Text style={[styles.microLabel, styles.microLabelAdaptive, isTablet && styles.microLabelTablet]}>{!hasCash || isPaid ? "KEMBALIAN" : "KURANG BAYAR"}</Text>
-              <HStack style={[styles.changeBox, isPaid && styles.changeBoxReady]}>
-                <Text style={[styles.moneyInputText, styles.changeValue, hasCash && !isPaid && styles.shortageValue]}>
+              <Text
+                style={[
+                  styles.microLabel,
+                  styles.microLabelAdaptive,
+                  isTablet && styles.microLabelTablet,
+                ]}
+              >
+                {!hasCash || isPaid ? "KEMBALIAN" : "KURANG BAYAR"}
+              </Text>
+              <HStack
+                style={[styles.changeBox, isPaid && styles.changeBoxReady]}
+              >
+                <Text
+                  style={[
+                    styles.moneyInputText,
+                    styles.changeValue,
+                    hasCash && !isPaid && styles.shortageValue,
+                  ]}
+                >
                   {formatCurrency(hasCash ? Math.abs(change) : 0)}
                 </Text>
               </HStack>
             </VStack>
           </HStack>
         </VStack>
-        <VStack style={[styles.keypadGrid, isStacked && styles.keypadGridStacked]}>
+        <VStack
+          style={[styles.keypadGrid, isStacked && styles.keypadGridStacked]}
+        >
           {keypadRows.map((row, rowIndex) => (
             <View
               key={`keypad-row-${rowIndex}`}
-              style={[styles.keypadRow, isStacked && styles.keypadRowStacked, isMobile && styles.keypadRowMobile]}
+              style={[
+                styles.keypadRow,
+                isStacked && styles.keypadRowStacked,
+                isMobile && styles.keypadRowMobile,
+              ]}
             >
-              {row.map((key, cellIndex) => key === null ? (
-                <View key={`empty-${cellIndex}`} style={styles.keypadCell} />
-              ) : (
-                <View key={key} style={styles.keypadCell}>
-                  <Pressable
-                    onPress={() => handleKey(key)}
-                    style={[styles.keypadButton, key === "C" && styles.keypadClear]}
-                    accessibilityRole="button"
-                    accessibilityLabel={key === "C" ? "Kosongkan uang diterima" : key === "Backspace" ? "Hapus satu digit uang diterima" : `Ketik ${key}`}
-                  >
-                    <Text
+              {row.map((key, cellIndex) =>
+                key === null ? (
+                  <View key={`empty-${cellIndex}`} style={styles.keypadCell} />
+                ) : (
+                  <View key={key} style={styles.keypadCell}>
+                    <Pressable
+                      onPress={() => handleKey(key)}
                       style={[
-                        styles.keypadText,
-                        isMobile && styles.keypadTextMobile,
-                        key === "C" && styles.keypadClearText,
+                        styles.keypadButton,
+                        key === "C" && styles.keypadClear,
                       ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        key === "C"
+                          ? "Kosongkan uang diterima"
+                          : key === "Backspace"
+                            ? "Hapus satu digit uang diterima"
+                            : `Ketik ${key}`
+                      }
                     >
-                      {key === "Backspace" ? "⌫" : key}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
+                      <Text
+                        style={[
+                          styles.keypadText,
+                          isMobile && styles.keypadTextMobile,
+                          key === "C" && styles.keypadClearText,
+                        ]}
+                      >
+                        {key === "Backspace" ? "⌫" : key}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ),
+              )}
               {rowIndex === keypadRows.length - 1 ? (
                 <Pressable
                   onPress={onApply}
@@ -160,7 +241,14 @@ export function CashPanel({
                   accessibilityLabel="Terapkan uang diterima"
                   accessibilityState={{ disabled: !isPaid }}
                 >
-                  <Text style={[styles.applyButtonText, isTablet && styles.applyButtonTextTablet]}>{cashReady ? "Uang Diterapkan" : "Terapkan Uang"}</Text>
+                  <Text
+                    style={[
+                      styles.applyButtonText,
+                      isTablet && styles.applyButtonTextTablet,
+                    ]}
+                  >
+                    {cashReady ? "Uang Diterapkan" : "Terapkan Uang"}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>

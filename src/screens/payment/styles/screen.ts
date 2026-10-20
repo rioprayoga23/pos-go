@@ -45,7 +45,11 @@ export const screenStyles = StyleSheet.create({
   },
   billOrderCountLabelAdaptive: { fontSize: type.micro },
   billOrderCountLabelTablet: { fontSize: type.micro },
-  billOrderCountValue: { color: colors.ink, fontSize: type.micro, fontWeight: "600" },
+  billOrderCountValue: {
+    color: colors.ink,
+    fontSize: type.micro,
+    fontWeight: "600",
+  },
   microLabel: {
     color: colors.inkSubtle,
     fontSize: type.micro,

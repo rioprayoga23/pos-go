@@ -1,18 +1,23 @@
-import { GluestackUIProvider } from '@gluestack-ui/themed';
-import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
-import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
-import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
-import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
-import { Stack } from 'expo-router';
-import { useFonts } from 'expo-font';
-import { StatusBar } from 'expo-status-bar';
-import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { AppState, Platform, type AppStateStatus } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppToastProvider } from '../components/toast/useAppToast';
-import { AuthProvider, useAuth } from '../auth/AuthProvider';
-import { posGluestackConfig, colors } from '../theme';
+import { GluestackUIProvider } from "@gluestack-ui/themed";
+import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
+import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
+import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
+import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
+import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
+import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  QueryClient,
+  QueryClientProvider,
+  focusManager,
+} from "@tanstack/react-query";
+import { useEffect } from "react";
+import { AppState, Platform, type AppStateStatus } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AppToastProvider } from "../components/toast/useAppToast";
+import { AuthProvider, useAuth } from "../auth/AuthProvider";
+import { posGluestackConfig, colors } from "../theme";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,31 +31,40 @@ const queryClient = new QueryClient({
 });
 
 function updateQueryFocus(status: AppStateStatus) {
-  if (Platform.OS !== 'web') focusManager.setFocused(status === 'active');
+  if (Platform.OS !== "web") focusManager.setFocused(status === "active");
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    const subscription = AppState.addEventListener('change', updateQueryFocus);
+    if (Platform.OS === "web") return;
+    const subscription = AppState.addEventListener("change", updateQueryFocus);
     return () => subscription.remove();
   }, []);
 
   if (!fontsLoaded) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <GluestackUIProvider config={posGluestackConfig}>
-          <StatusBar style="dark" />
-          <AppToastProvider>
-            <AuthProvider><ProtectedStack /></AuthProvider>
-          </AppToastProvider>
-        </GluestackUIProvider>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <GluestackUIProvider config={posGluestackConfig}>
+            <StatusBar style="dark" />
+            <AppToastProvider>
+              <AuthProvider>
+                <ProtectedStack />
+              </AuthProvider>
+            </AppToastProvider>
+          </GluestackUIProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -60,12 +74,14 @@ function ProtectedStack() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'fade',
+        animation: "fade",
         contentStyle: { backgroundColor: colors.canvas },
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Protected guard={!user}><Stack.Screen name="login" /></Stack.Protected>
+      <Stack.Protected guard={!user}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
       <Stack.Protected guard={Boolean(user)}>
         <Stack.Screen name="order" />
         <Stack.Screen name="payment" />

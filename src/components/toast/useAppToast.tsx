@@ -28,10 +28,13 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
     setItems((current) => current.filter((item) => item.id !== id));
   }, []);
 
-  const show = useCallback((kind: ToastKind, title: string, description?: string) => {
-    const item = { id: ++nextId.current, kind, title, description };
-    setItems((current) => [item, ...current].slice(0, maximumVisibleToasts));
-  }, []);
+  const show = useCallback(
+    (kind: ToastKind, title: string, description?: string) => {
+      const item = { id: ++nextId.current, kind, title, description };
+      setItems((current) => [item, ...current].slice(0, maximumVisibleToasts));
+    },
+    [],
+  );
 
   const value = useMemo<AppToastContextValue>(
     () => ({
@@ -46,7 +49,11 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
     <AppToastContext.Provider value={value}>
       <>
         {children}
-        <ToastViewport items={items} onDismiss={dismiss} duration={toastDuration} />
+        <ToastViewport
+          items={items}
+          onDismiss={dismiss}
+          duration={toastDuration}
+        />
       </>
     </AppToastContext.Provider>
   );

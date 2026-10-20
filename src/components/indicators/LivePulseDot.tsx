@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, Platform, StyleSheet, View } from 'react-native';
-import { colors } from '../../theme';
+import { useEffect, useState } from "react";
+import {
+  AccessibilityInfo,
+  Animated,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
+import { colors } from "../../theme";
 
 type Props = {
   active: boolean;
@@ -14,7 +20,7 @@ export function LivePulseDot({ active, dotSize = 8 }: Props) {
   useEffect(() => {
     let isMounted = true;
     const subscription = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
+      "reduceMotionChanged",
       setReduceMotionEnabled,
     );
 
@@ -41,11 +47,21 @@ export function LivePulseDot({ active, dotSize = 8 }: Props) {
       return;
     }
 
-    const useNativeDriver = Platform.OS !== 'web';
+    const useNativeDriver = Platform.OS !== "web";
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 900, isInteraction: false, useNativeDriver }),
-        Animated.timing(pulse, { toValue: 0, duration: 900, isInteraction: false, useNativeDriver }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          isInteraction: false,
+          useNativeDriver,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 900,
+          isInteraction: false,
+          useNativeDriver,
+        }),
       ]),
     );
 
@@ -63,19 +79,39 @@ export function LivePulseDot({ active, dotSize = 8 }: Props) {
               width: dotSize,
               height: dotSize,
               borderRadius: dotSize,
-              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.38, 0] }),
-              transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.15] }) }],
+              opacity: pulse.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.38, 0],
+              }),
+              transform: [
+                {
+                  scale: pulse.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 2.15],
+                  }),
+                },
+              ],
             },
           ]}
         />
       )}
-      <View style={[styles.core, { width: dotSize, height: dotSize, borderRadius: dotSize }]} />
+      <View
+        style={[
+          styles.core,
+          { width: dotSize, height: dotSize, borderRadius: dotSize },
+        ]}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
-  halo: { position: 'absolute', backgroundColor: colors.success },
+  wrap: {
+    width: 12,
+    height: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  halo: { position: "absolute", backgroundColor: colors.success },
   core: { backgroundColor: colors.success },
 });

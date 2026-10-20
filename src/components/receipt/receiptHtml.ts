@@ -24,10 +24,11 @@ export function createReceiptHtml(data: ReceiptData) {
         </div>`,
     )
     .join("");
-  const cashLines = data.paymentMethod === "Tunai" && data.cashReceivedRupiah !== undefined
-    ? `<div class="row"><span>Uang diterima</span><strong>${escapeHtml(formatCurrency(data.cashReceivedRupiah))}</strong></div>
+  const cashLines =
+    data.paymentMethod === "Tunai" && data.cashReceivedRupiah !== undefined
+      ? `<div class="row"><span>Uang diterima</span><strong>${escapeHtml(formatCurrency(data.cashReceivedRupiah))}</strong></div>
        <div class="row"><span>Kembalian</span><strong>${escapeHtml(formatCurrency(data.changeRupiah ?? 0))}</strong></div>`
-    : "";
+      : "";
   return `<!doctype html>
     <html lang="id">
       <head>

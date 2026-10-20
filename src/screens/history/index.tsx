@@ -42,11 +42,16 @@ export function HistoryScreen() {
         {isError ? (
           <QueryErrorNotice
             message="Data riwayat atau ringkasan gagal dimuat."
-            onRetry={() => { void refetch(); }}
+            onRetry={() => {
+              void refetch();
+            }}
           />
         ) : null}
         <HStack
-          style={[styles.layout, isWide ? styles.layoutFill : styles.layoutStack]}
+          style={[
+            styles.layout,
+            isWide ? styles.layoutFill : styles.layoutStack,
+          ]}
         >
           <TransactionsPanel
             isWide={isWide}

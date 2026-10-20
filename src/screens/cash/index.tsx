@@ -1,17 +1,13 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { useIsFocused } from "expo-router/react-navigation";
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
+import { LivePulseDot } from "../../components/indicators/LivePulseDot";
 import { useAppToast } from "../../components/toast/useAppToast";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
-import { LoadingScreen } from "../../components/loading-screen";
 import { QueryErrorNotice } from "../../components/query-error-notice";
-import {
-  AppIcon,
-  AppPressable,
-  Panel,
-} from "../../components/ui";
+import { AppIcon, AppPressable, Panel } from "../../components/ui";
 import { colors } from "../../theme";
 import type {
   CashExpenseDraft,
@@ -51,12 +47,16 @@ function CashRegisterSummary({ register }: { register: CashRegister }) {
       <HStack style={styles.registerSummaryHeader}>
         <VStack style={styles.registerSummaryCopy}>
           <HStack style={styles.registerStatusLine}>
-            <HStack
-              style={[
-                styles.registerStatusDot,
-                { backgroundColor: statusColor },
-              ]}
-            />
+            {isOpen ? (
+              <LivePulseDot active />
+            ) : (
+              <View
+                style={[
+                  styles.registerStatusDot,
+                  { backgroundColor: statusColor },
+                ]}
+              />
+            )}
             <Text style={styles.registerSummaryTitle}>{title}</Text>
           </HStack>
           <Text style={styles.registerSummaryDescription}>{message}</Text>
@@ -80,13 +80,20 @@ function CashRegisterSummary({ register }: { register: CashRegister }) {
           </VStack>
           <VStack style={styles.registerBreakdownItem}>
             <Text style={styles.registerBreakdownLabel}>Penjualan tunai</Text>
-            <Text style={styles.registerBreakdownValue}>
+            <Text
+              style={[styles.registerBreakdownValue, styles.registerSalesValue]}
+            >
               + {formatCurrency(register.cashSalesRupiah)}
             </Text>
           </VStack>
           <VStack style={styles.registerBreakdownItem}>
             <Text style={styles.registerBreakdownLabel}>Uang keluar</Text>
-            <Text style={styles.registerBreakdownValue}>
+            <Text
+              style={[
+                styles.registerBreakdownValue,
+                styles.registerOutflowValue,
+              ]}
+            >
               − {formatCurrency(register.cashOutflowsRupiah)}
             </Text>
           </VStack>
@@ -120,14 +127,13 @@ export function CashScreen() {
     useState<CashTransaction | null>(null);
   const toast = useAppToast();
   const ledger = useCashLedger(isFocused);
-  const registerQuery = useCashRegister({ alwaysRefresh: true, enabled: isFocused });
+  const registerQuery = useCashRegister({
+    alwaysRefresh: true,
+    enabled: isFocused,
+  });
   const mutations = useCashMutations();
   const register = registerQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
-  const isMutating = Object.values(mutations).some(
-    (mutation) => mutation.isPending,
-  );
-  const isLoading = registerQuery.isFetching || ledger.isFetching || isMutating;
   const { width } = useWindowDimensions();
   const isCompact = width < 1180;
   const isPhone = width < 620;
@@ -136,12 +142,14 @@ export function CashScreen() {
   const saveExpense = async (expense: CashExpenseDraft) => {
     await mutations.createExpense.mutateAsync(expense);
     setExpenseModalOpen(false);
-    toast.success("Uang keluar dicatat", "Transaksi sudah masuk ke riwayat kas.");
+    toast.success(
+      "Uang keluar dicatat",
+      "Transaksi sudah masuk ke riwayat kas.",
+    );
   };
 
   return (
     <AppShell active="Cash" scrollable>
-      <LoadingScreen visible={isLoading} />
       <VStack style={styles.page}>
         <HStack
           style={[styles.pageHeader, isCompact && styles.pageHeaderCompact]}
@@ -200,8 +208,8 @@ export function CashScreen() {
 
         <CashLedgerPanel
           transactions={ledger.transactions}
-          summary={ledger.summary}
           total={ledger.total}
+          loading={ledger.isFetching}
           period={ledger.period}
           dateRange={ledger.dateRange}
           filter={ledger.filter}

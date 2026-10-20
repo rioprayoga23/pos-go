@@ -5,7 +5,7 @@ import type { Order } from "../../../types/pos";
 import { getCartLineTotal } from "../../../utils/cartPricing";
 
 export function createHistoryReceiptData(
-	order: HistoryOrder | Order,
+  order: HistoryOrder | Order,
 ): ReceiptData {
   const isHistoryOrder = "businessDate" in order;
   const items = isHistoryOrder

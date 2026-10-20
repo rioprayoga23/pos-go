@@ -1,11 +1,5 @@
 import { StyleSheet } from "react-native";
-import {
-  colors,
-  elevation,
-  radius,
-  spacing,
-  typography,
-} from "../../../theme";
+import { colors, elevation, radius, spacing, typography } from "../../../theme";
 
 export const styles = StyleSheet.create({
   screen: {

@@ -14,11 +14,18 @@ import {
 import { useState } from "react";
 import type { CashRegister } from "../../../types/cash";
 import { colors } from "../../../theme";
-import { digitsOnly, formatCurrency, formatThousands, parseWholeNumber } from "../../../utils/format";
+import {
+  digitsOnly,
+  formatCurrency,
+  formatThousands,
+  parseWholeNumber,
+} from "../../../utils/format";
 import {
   AppIcon,
   AppModalCloseButton,
   AppPressable as Pressable,
+  FieldLabel,
+  ModalFormActions,
 } from "../../ui";
 import { styles } from "../styles";
 
@@ -62,9 +69,7 @@ export function CloseShiftDialog({
             <AppIcon name="cash-register" size={21} color={colors.danger} />
           </HStack>
           <VStack style={styles.closeShiftModalHeading}>
-            <Text style={styles.closeShiftModalTitle}>
-              Tutup sesi kasir?
-            </Text>
+            <Text style={styles.closeShiftModalTitle}>Tutup sesi kasir?</Text>
           </VStack>
           <AppModalCloseButton
             onPress={handleClose}
@@ -85,13 +90,23 @@ export function CloseShiftDialog({
             </HStack>
             <HStack style={styles.closeShiftCashRow}>
               <Text style={styles.closeShiftCashLabel}>Penjualan tunai</Text>
-              <Text style={styles.closeShiftCashValue}>
+              <Text
+                style={[
+                  styles.closeShiftCashValue,
+                  styles.closeShiftSalesValue,
+                ]}
+              >
                 {formatCurrency(register.cashSalesRupiah)}
               </Text>
             </HStack>
             <HStack style={styles.closeShiftCashRow}>
               <Text style={styles.closeShiftCashLabel}>Pengeluaran kas</Text>
-              <Text style={styles.closeShiftCashValue}>
+              <Text
+                style={[
+                  styles.closeShiftCashValue,
+                  styles.closeShiftOutflowValue,
+                ]}
+              >
                 − {formatCurrency(register.cashOutflowsRupiah)}
               </Text>
             </HStack>
@@ -105,8 +120,17 @@ export function CloseShiftDialog({
             </HStack>
           </VStack>
           {error ? (
-            <HStack style={[styles.closeShiftQueueNotice, hasActiveQueue && styles.closeShiftQueueNoticeActive]}>
-              <AppIcon name="alert-circle-outline" size={18} color={colors.danger} />
+            <HStack
+              style={[
+                styles.closeShiftQueueNotice,
+                hasActiveQueue && styles.closeShiftQueueNoticeActive,
+              ]}
+            >
+              <AppIcon
+                name="alert-circle-outline"
+                size={18}
+                color={colors.danger}
+              />
               <Text style={styles.closeShiftQueueNoticeText}>
                 {hasActiveQueue ? "Selesaikan antrean." : error}
               </Text>
@@ -119,14 +143,21 @@ export function CloseShiftDialog({
                   accessibilityState={{ disabled: isSubmitting }}
                   style={styles.closeShiftQueueLink}
                 >
-                  <Text style={styles.closeShiftQueueLinkText}>Buka Antrean</Text>
+                  <Text style={styles.closeShiftQueueLinkText}>
+                    Buka Antrean
+                  </Text>
                   <AppIcon name="arrow-right" size={15} color={colors.danger} />
                 </Pressable>
               ) : null}
             </HStack>
           ) : null}
           <HStack style={styles.closeShiftCountHeading}>
-            <Text style={styles.closeShiftCountLabel}>Uang fisik di laci</Text>
+            <FieldLabel
+              required
+              style={[styles.closeShiftCountLabel, { marginBottom: 0 }]}
+            >
+              Uang fisik di laci
+            </FieldLabel>
             {hasCount ? (
               <Text
                 style={[
@@ -158,31 +189,17 @@ export function CloseShiftDialog({
           </Input>
         </ModalBody>
         <ModalFooter style={styles.closeShiftModalFooter}>
-          <Pressable
-            onPress={() => void onConfirm(actualCash)}
-            disabled={!hasCount || hasActiveQueue || isSubmitting}
-            style={[
-              styles.closeShiftConfirmButton,
-              (!hasCount || hasActiveQueue || isSubmitting) && styles.closeShiftConfirmDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Konfirmasi tutup kasir"
-            accessibilityState={{ disabled: !hasCount || hasActiveQueue || isSubmitting }}
-          >
-            <AppIcon
-              name="lock-outline"
-              size={17}
-              color={!hasCount || hasActiveQueue || isSubmitting ? colors.inkMuted : colors.white}
-            />
-            <Text
-              style={[
-                styles.closeShiftConfirmText,
-                (!hasCount || hasActiveQueue || isSubmitting) && styles.closeShiftConfirmDisabledText,
-              ]}
-            >
-              Tutup Kasir
-            </Text>
-          </Pressable>
+          <ModalFormActions
+            primaryLabel="Tutup Kasir"
+            onPrimary={() => void onConfirm(actualCash)}
+            primaryDisabled={!hasCount || hasActiveQueue}
+            primaryBusy={isSubmitting}
+            primaryBusyLabel="Menutup kasir..."
+            primaryTone="danger"
+            primaryIcon="lock-outline"
+            onSecondary={handleClose}
+            secondaryDisabled={isSubmitting}
+          />
         </ModalFooter>
       </ModalContent>
     </Modal>

@@ -1,10 +1,17 @@
 import { HStack, Text, VStack } from "@gluestack-ui/themed";
-import { Children, useState } from "react";
+import { Children, Fragment, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { AppIcon, AppPressable, Panel } from "../ui";
 import { colors, radius, spacing, type, typography } from "../../theme";
+import { getPaginationState } from "./pagination";
 
 export { DataTableActionButton, DataTableActions } from "./actions";
 
@@ -26,45 +33,61 @@ export type DataTablePagination = {
   totalItems?: number;
 };
 
+/** Shared density used by management tables so their rows stay visually consistent. */
+export const dataTableLayout = {
+  headerHeight: 36,
+  rowHeight: 48,
+  horizontalPadding: spacing.md,
+  verticalPadding: spacing.xs,
+  columnGap: spacing.sm,
+} as const;
+
 export function DataTableSection({
   title,
   description,
   action,
   children,
 }: {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 620;
+  const hasHeading = Boolean(title || description || action);
 
   return (
     <VStack style={styles.section}>
-      <HStack
-        style={[
-          styles.sectionHeading,
-          isCompact && styles.sectionHeadingCompact,
-        ]}
-      >
-        <VStack style={styles.sectionHeadingCopy}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          <Text style={styles.sectionDescription}>{description}</Text>
-        </VStack>
-        {action ? (
-          <View
-            style={[
-              styles.sectionHeadingAction,
-              isCompact && styles.sectionHeadingActionCompact,
-            ]}
-          >
-            {action}
-          </View>
-        ) : null}
-      </HStack>
+      {hasHeading ? (
+        <HStack
+          style={[
+            styles.sectionHeading,
+            isCompact && styles.sectionHeadingCompact,
+          ]}
+        >
+          {title || description ? (
+            <VStack style={styles.sectionHeadingCopy}>
+              {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
+              {description ? (
+                <Text style={styles.sectionDescription}>{description}</Text>
+              ) : null}
+            </VStack>
+          ) : null}
+          {action ? (
+            <View
+              style={[
+                styles.sectionHeadingAction,
+                isCompact && styles.sectionHeadingActionCompact,
+              ]}
+            >
+              {action}
+            </View>
+          ) : null}
+        </HStack>
+      ) : null}
       <Panel style={styles.sectionPanel} padding={0}>
-        {children}
+        <View style={styles.sectionContent}>{children}</View>
       </Panel>
     </VStack>
   );
@@ -120,16 +143,19 @@ export function DataTable<Row>({
   keyExtractor,
   minWidth,
   width,
-  headerHeight = 40,
-  rowHeight = 55,
-  horizontalPadding = spacing.md,
-  verticalPadding = spacing.xs,
-  columnGap = spacing.sm,
+  headerHeight = dataTableLayout.headerHeight,
+  rowHeight = dataTableLayout.rowHeight,
+  horizontalPadding = dataTableLayout.horizontalPadding,
+  verticalPadding = dataTableLayout.verticalPadding,
+  columnGap = dataTableLayout.columnGap,
   headerStyle,
   rowStyle,
   getRowStyle,
   emptyState,
   pagination,
+  loading = false,
+  renderCompactRow,
+  renderRowDetail,
 }: {
   rows: Row[];
   columns: DataTableColumn<Row>[];
@@ -146,30 +172,48 @@ export function DataTable<Row>({
   getRowStyle?: (row: Row) => StyleProp<ViewStyle>;
   emptyState?: ReactNode;
   pagination?: DataTablePagination;
+  /** Shows a centered loader inside the table while keeping its shell visible. */
+  loading?: boolean;
+  /** Stacked row for narrow screens, using the same table shell and pagination. */
+  renderCompactRow?: (row: Row) => ReactNode;
+  /** Optional content directly below a row in both table and stacked layouts. */
+  renderRowDetail?: (row: Row) => ReactNode;
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(0);
   const isCompact = screenWidth < 620;
-  const tableWidth = Math.max(minWidth, width ?? containerWidth);
+  const compactRows =
+    Boolean(renderCompactRow) && (containerWidth || screenWidth) < minWidth;
+  // Keep the table width tied to its viewport from the first render. The
+  // minWidth handles narrow screens; using the measured width here causes a
+  // visible narrow-to-full-width jump after onLayout.
+  const tableWidth: ViewStyle["width"] = width ?? "100%";
   const pageSize = Math.max(1, pagination?.pageSize ?? 1);
   const itemCount = pagination?.totalItems ?? rows.length;
   const serverPaginated = pagination?.totalItems !== undefined;
-  const pageCount = Math.max(1, Math.ceil(itemCount / pageSize));
-  const activePage = Math.min(Math.max(1, pagination?.page ?? 1), pageCount);
-  const startIndex = (activePage - 1) * pageSize;
-  const visibleRows = pagination && !serverPaginated
-    ? rows.slice(startIndex, startIndex + pageSize)
-    : rows;
-  const startItem = itemCount ? startIndex + 1 : 0;
-  const endItem = Math.min(startIndex + pageSize, itemCount);
-  const pageNumbers = Array.from({ length: pageCount }, (_, index) => index + 1)
-    .filter(
-      (number) =>
-        number === 1 ||
-        number === pageCount ||
-        Math.abs(number - activePage) <= 1,
-    )
-    .slice(0, 5);
+  const requestedPage = pagination?.page ?? 1;
+  const { pageCount, activePage, startIndex, startItem, endItem, pageNumbers } =
+    getPaginationState(requestedPage, pageSize, itemCount);
+  const onPageChange = pagination?.onPageChange;
+  useEffect(() => {
+    if (!loading && requestedPage !== activePage) onPageChange?.(activePage);
+  }, [activePage, loading, onPageChange, requestedPage]);
+  const visibleRows =
+    pagination && !serverPaginated
+      ? rows.slice(startIndex, startIndex + pageSize)
+      : rows;
+  const loadingState = (
+    <View
+      style={[styles.loadingState, compactRows && styles.loadingStateCompact]}
+    >
+      <ActivityIndicator
+        size="small"
+        color={colors.primary}
+        accessibilityLabel="Memuat data tabel"
+      />
+      <Text style={styles.loadingText}>Memuat data…</Text>
+    </View>
+  );
 
   return (
     <VStack
@@ -181,75 +225,108 @@ export function DataTable<Row>({
         );
       }}
     >
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.viewport}
-      >
-        <VStack style={[styles.table, { minWidth, width: tableWidth }]}>
-          <HStack
-            style={[
-              styles.header,
-              {
-                minHeight: headerHeight,
-                paddingHorizontal: horizontalPadding,
-                columnGap,
-              },
-              headerStyle,
-            ]}
-          >
-            {columns.map((column) => (
-              <Text
-                key={column.key}
-                numberOfLines={1}
-                style={[
-                  styles.headerText,
-                  getColumnLayout(column),
-                  column.align === "right" && styles.headerTextRight,
-                  column.align === "center" && styles.headerTextCenter,
-                ]}
-              >
-                {column.title}
-              </Text>
-            ))}
-          </HStack>
-          {visibleRows.length ? (
-            visibleRows.map((row) => (
-              <HStack
-                key={keyExtractor(row)}
-                style={[
-                  styles.row,
-                  {
-                    minHeight: rowHeight,
-                    paddingHorizontal: horizontalPadding,
-                    paddingVertical: verticalPadding,
-                    columnGap,
-                  },
-                  rowStyle,
-                  getRowStyle?.(row),
-                ]}
-              >
-                {columns.map((column) => (
-                  <View
-                    key={column.key}
-                    style={[
-                      styles.cell,
-                      getColumnLayout(column),
-                      column.align === "center" && styles.cellCenter,
-                      column.align === "right" && styles.cellRight,
-                    ]}
-                  >
-                    {column.render(row)}
-                  </View>
-                ))}
-              </HStack>
-            ))
-          ) : (
-            emptyState
-          )}
-        </VStack>
-      </ScrollView>
-      {pagination ? (
+      {compactRows && renderCompactRow ? (
+        loading ? (
+          loadingState
+        ) : (
+          <View>
+            {visibleRows.length
+              ? visibleRows.map((row) => (
+                  <Fragment key={keyExtractor(row)}>
+                    <View
+                      style={[
+                        styles.row,
+                        {
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: spacing.xs,
+                          alignItems: "stretch",
+                        },
+                        rowStyle,
+                        getRowStyle?.(row),
+                      ]}
+                    >
+                      {renderCompactRow(row)}
+                    </View>
+                    {renderRowDetail?.(row)}
+                  </Fragment>
+                ))
+              : emptyState}
+          </View>
+        )
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.viewport}
+          contentContainerStyle={styles.viewportContent}
+        >
+          <VStack style={[styles.table, { minWidth, width: tableWidth }]}>
+            <HStack
+              style={[
+                styles.header,
+                {
+                  minHeight: headerHeight,
+                  paddingHorizontal: horizontalPadding,
+                  columnGap,
+                },
+                headerStyle,
+              ]}
+            >
+              {columns.map((column) => (
+                <Text
+                  key={column.key}
+                  numberOfLines={1}
+                  style={[
+                    styles.headerText,
+                    getColumnLayout(column),
+                    column.align === "right" && styles.headerTextRight,
+                    column.align === "center" && styles.headerTextCenter,
+                  ]}
+                >
+                  {column.title}
+                </Text>
+              ))}
+            </HStack>
+            {loading
+              ? loadingState
+              : visibleRows.length
+                ? visibleRows.map((row) => (
+                    <Fragment key={keyExtractor(row)}>
+                      <HStack
+                        style={[
+                          styles.row,
+                          {
+                            minHeight: rowHeight,
+                            paddingHorizontal: horizontalPadding,
+                            paddingVertical: verticalPadding,
+                            columnGap,
+                          },
+                          rowStyle,
+                          getRowStyle?.(row),
+                        ]}
+                      >
+                        {columns.map((column) => (
+                          <View
+                            key={column.key}
+                            style={[
+                              styles.cell,
+                              getColumnLayout(column),
+                              column.align === "center" && styles.cellCenter,
+                              column.align === "right" && styles.cellRight,
+                            ]}
+                          >
+                            {column.render(row)}
+                          </View>
+                        ))}
+                      </HStack>
+                      {renderRowDetail?.(row)}
+                    </Fragment>
+                  ))
+                : emptyState}
+          </VStack>
+        </ScrollView>
+      )}
+      {pagination && (!loading || itemCount > 0) ? (
         <HStack
           style={[
             styles.paginationFooter,
@@ -272,6 +349,8 @@ export function DataTable<Row>({
                 activePage <= 1 && styles.paginationButtonDisabled,
               ]}
               accessibilityRole="button"
+              hitSlop={4}
+              preserveTouchSize
               accessibilityLabel="Halaman sebelumnya"
             >
               <AppIcon name="chevron-left" size={16} color={colors.inkMuted} />
@@ -288,6 +367,8 @@ export function DataTable<Row>({
                   ]}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
+                  hitSlop={4}
+                  preserveTouchSize
                   accessibilityLabel={`Halaman ${number}`}
                 >
                   <Text
@@ -309,6 +390,8 @@ export function DataTable<Row>({
                 activePage >= pageCount && styles.paginationButtonDisabled,
               ]}
               accessibilityRole="button"
+              hitSlop={4}
+              preserveTouchSize
               accessibilityLabel="Halaman berikutnya"
             >
               <AppIcon name="chevron-right" size={16} color={colors.inkMuted} />
@@ -335,7 +418,12 @@ function getColumnLayout<Row>(column: DataTableColumn<Row>): ViewStyle {
 }
 
 const styles = StyleSheet.create({
-  section: { width: "100%", gap: spacing.md },
+  section: {
+    width: "100%",
+    minWidth: 0,
+    alignSelf: "stretch",
+    gap: spacing.md,
+  },
   sectionHeading: {
     width: "100%",
     alignItems: "center",
@@ -348,7 +436,13 @@ const styles = StyleSheet.create({
   sectionDescription: { color: colors.inkMuted, ...typography.description },
   sectionHeadingAction: { flexShrink: 0 },
   sectionHeadingActionCompact: { width: "100%" },
-  sectionPanel: { width: "100%", overflow: "hidden" },
+  sectionPanel: {
+    width: "100%",
+    minWidth: 0,
+    alignSelf: "stretch",
+    overflow: "hidden",
+  },
+  sectionContent: { width: "100%", minWidth: 0, alignSelf: "stretch" },
   filterBar: {
     padding: spacing.lg,
     borderBottomWidth: 1,
@@ -358,25 +452,45 @@ const styles = StyleSheet.create({
   filterGrid: { width: "100%", gap: spacing.sm },
   filterGridRow: { width: "100%", flexDirection: "row", gap: spacing.sm },
   filterGridCell: { flex: 1, minWidth: 0 },
-  container: { width: "100%" },
-  viewport: { width: "100%" as const },
-  table: { flexGrow: 1 },
+  container: { width: "100%", minWidth: 0, alignSelf: "stretch" },
+  viewport: {
+    width: "100%" as const,
+    minWidth: 0,
+    alignSelf: "stretch" as const,
+  },
+  viewportContent: { flexGrow: 1, alignItems: "stretch" as const },
+  table: { flexGrow: 1, alignSelf: "stretch" as const },
   header: {
     alignItems: "center" as const,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.surfaceContainerLow,
     borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    borderBottomColor: colors.lineStrong,
   },
   headerText: {
-    color: colors.inkSubtle,
-    fontSize: type.micro,
+    color: colors.inkMuted,
+    fontSize: type.caption,
     fontWeight: "600" as const,
-    letterSpacing: 0.4,
+    letterSpacing: 0.2,
   },
   headerTextRight: { textAlign: "right" as const },
   headerTextCenter: { textAlign: "center" as const },
+  loadingState: {
+    width: "100%",
+    minHeight: 168,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.white,
+  },
+  loadingStateCompact: {
+    minHeight: 136,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  loadingText: { color: colors.inkMuted, fontSize: type.caption },
   row: {
     alignItems: "center" as const,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
@@ -410,10 +524,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   paginationSummary: { color: colors.inkMuted, fontSize: type.caption },
-  paginationControls: { alignItems: "center", flexDirection: "row", gap: spacing.xs },
+  paginationControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
   paginationButton: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
@@ -422,8 +540,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   paginationButtonDisabled: { opacity: 0.42 },
-  paginationButtonSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
-  paginationText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "600" },
+  paginationButtonSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  paginationText: {
+    color: colors.inkMuted,
+    fontSize: type.caption,
+    fontWeight: "600",
+  },
   paginationTextSelected: { color: colors.white },
-  pageSizeText: { color: colors.inkMuted, fontSize: type.caption, fontWeight: "600" },
+  pageSizeText: {
+    color: colors.inkMuted,
+    fontSize: type.caption,
+    fontWeight: "600",
+  },
 });

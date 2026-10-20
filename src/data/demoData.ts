@@ -26,7 +26,10 @@ export const demoProduct: Product = {
   categoryId: "minuman",
   categoryName: "Minuman",
   price: 22000,
-  stock: getAvailablePortions(initialRecipeItems, defaultRecipe, [defaultBaseRecipe, defaultRecipe]),
+  stock: getAvailablePortions(initialRecipeItems, defaultRecipe, [
+    defaultBaseRecipe,
+    defaultRecipe,
+  ]),
   description: "Matcha Latte botol",
   isAvailable: true,
   isRecommended: false,
@@ -45,11 +48,16 @@ export const demoOrder: Order = {
   createdAt: demoTime,
   createdOn: demoDateKey,
   customer: "Pelanggan Demo",
-  items: [{
-    product: demoProduct,
-    quantity: 1,
-    hppPerPortion: getRecipeHpp(initialRecipeItems, defaultRecipe, [defaultBaseRecipe, defaultRecipe]),
-  }],
+  items: [
+    {
+      product: demoProduct,
+      quantity: 1,
+      hppPerPortion: getRecipeHpp(initialRecipeItems, defaultRecipe, [
+        defaultBaseRecipe,
+        defaultRecipe,
+      ]),
+    },
+  ],
   preparedItemIds: [],
   status: "waiting",
   paymentMethod: "QRIS",

@@ -1,8 +1,15 @@
 import { Text } from "@gluestack-ui/themed";
 import { useWindowDimensions } from "react-native";
-import type { DatePeriod, DatePeriodPreset, DateRange } from "../../types/dateRange";
+import type {
+  DatePeriod,
+  DatePeriodPreset,
+  DateRange,
+} from "../../types/dateRange";
 import { formatDateKey } from "../../utils/date";
-import { SegmentedFilterGroup, type SegmentedFilterOption } from "../segmented-filter";
+import {
+  SegmentedFilterGroup,
+  type SegmentedFilterOption,
+} from "../segmented-filter";
 import { AppIcon, AppPressable } from "../ui";
 import { colors } from "../../theme";
 import { styles } from "./styles";

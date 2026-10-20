@@ -18,7 +18,9 @@ export function ReceiptPreview({
       <HStack style={styles.receiptStageHeader}>
         <HStack style={{ alignItems: "center", gap: 6 }}>
           <AppIcon name="printer-outline" size={17} color={colors.primary} />
-          <Text style={styles.receiptStageTitle}>PREVIEW KERTAS TERMAL 80MM</Text>
+          <Text style={styles.receiptStageTitle}>
+            PREVIEW KERTAS TERMAL 80MM
+          </Text>
         </HStack>
         <Text style={styles.readyPrint}>Pratinjau struk</Text>
       </HStack>

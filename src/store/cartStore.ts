@@ -19,22 +19,43 @@ type CartState = {
 function maxAdditionalPortions(items: CartItem[], product: Product): number {
   if (!product.isAvailable) return 0;
   const inventory = useStockStore.getState();
-  const recipe = inventory.recipes.find((entry) => entry.id === product.recipeId);
+  const recipe = inventory.recipes.find(
+    (entry) => entry.id === product.recipeId,
+  );
   if (!recipe) {
-    const inCart = items.find((item) => item.product.id === product.id)?.quantity ?? 0;
+    const inCart =
+      items.find((item) => item.product.id === product.id)?.quantity ?? 0;
     return Math.max(0, product.stock - inCart);
   }
   if (recipe.kind !== "menu" || !recipe.ingredients.length) return 0;
   const used = items.length
-    ? getRequiredStock(items.map((item) => ({ recipeId: item.product.recipeId, quantity: item.quantity })), inventory.recipes)
+    ? getRequiredStock(
+        items.map((item) => ({
+          recipeId: item.product.recipeId,
+          quantity: item.quantity,
+        })),
+        inventory.recipes,
+      )
     : new Map<string, number>();
   if (!used) return 0;
-  const stockById = new Map(inventory.items.map((item) => [item.id, item.stock]));
-  const onePortion = getRequiredStock([{ recipeId: recipe.id, quantity: 1 }], inventory.recipes);
+  const stockById = new Map(
+    inventory.items.map((item) => [item.id, item.stock]),
+  );
+  const onePortion = getRequiredStock(
+    [{ recipeId: recipe.id, quantity: 1 }],
+    inventory.recipes,
+  );
   if (!onePortion) return 0;
-  return Math.max(0, Math.min(...[...onePortion].map(([itemId, quantity]) =>
-    Math.floor(((stockById.get(itemId) ?? 0) - (used.get(itemId) ?? 0)) / quantity),
-  )));
+  return Math.max(
+    0,
+    Math.min(
+      ...[...onePortion].map(([itemId, quantity]) =>
+        Math.floor(
+          ((stockById.get(itemId) ?? 0) - (used.get(itemId) ?? 0)) / quantity,
+        ),
+      ),
+    ),
+  );
 }
 
 export function canAddToCart(items: CartItem[], product: Product): boolean {
@@ -63,7 +84,13 @@ export const useCartStore = create<CartState>((set) => ({
       items: state.items.flatMap((item) => {
         if (item.product.id !== product.id) return [item];
         if (!product.isAvailable || product.stock <= 0) return [];
-        return [{ ...item, product, quantity: Math.min(item.quantity, product.stock) }];
+        return [
+          {
+            ...item,
+            product,
+            quantity: Math.min(item.quantity, product.stock),
+          },
+        ];
       }),
     })),
   reconcileInventory: (products) =>
@@ -73,7 +100,10 @@ export const useCartStore = create<CartState>((set) => ({
       for (const item of state.items) {
         const product = byId.get(item.product.id);
         if (!product?.isAvailable) continue;
-        const quantity = Math.min(item.quantity, maxAdditionalPortions(items, product));
+        const quantity = Math.min(
+          item.quantity,
+          maxAdditionalPortions(items, product),
+        );
         if (quantity > 0) items.push({ product, quantity });
       }
       return {
@@ -85,11 +115,23 @@ export const useCartStore = create<CartState>((set) => ({
       if (!Number.isFinite(quantity)) return state;
       const current = state.items.find((item) => item.product.id === productId);
       if (!current) return state;
-      const others = state.items.filter((item) => item.product.id !== productId);
-      const nextQuantity = Math.min(Math.floor(quantity), maxAdditionalPortions(others, current.product));
-      return { items: nextQuantity > 0
-        ? state.items.map((item) => item.product.id === productId ? { ...item, quantity: nextQuantity } : item)
-        : others };
+      const others = state.items.filter(
+        (item) => item.product.id !== productId,
+      );
+      const nextQuantity = Math.min(
+        Math.floor(quantity),
+        maxAdditionalPortions(others, current.product),
+      );
+      return {
+        items:
+          nextQuantity > 0
+            ? state.items.map((item) =>
+                item.product.id === productId
+                  ? { ...item, quantity: nextQuantity }
+                  : item,
+              )
+            : others,
+      };
     }),
   removeItem: (productId) =>
     set((state) => ({

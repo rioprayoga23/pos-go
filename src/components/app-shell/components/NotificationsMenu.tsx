@@ -73,14 +73,19 @@ export function NotificationsMenu({
     >
       <PopoverBackdrop />
       <PopoverContent
-        style={[styles.notificationDropdown, { width: Math.min(320, width - 24) }]}
+        style={[
+          styles.notificationDropdown,
+          { width: Math.min(320, width - 24) },
+        ]}
       >
         <PopoverHeader style={styles.notificationHeader}>
           <Text style={styles.notificationHeading}>Notifikasi</Text>
         </PopoverHeader>
         <HStack style={styles.notificationMetaRow}>
           <Text style={styles.notificationUnreadCount}>
-            {unreadCount > 0 ? `${unreadCount} belum dibaca` : "Semua sudah dibaca"}
+            {unreadCount > 0
+              ? `${unreadCount} belum dibaca`
+              : "Semua sudah dibaca"}
           </Text>
           {unreadCount > 0 ? (
             <Pressable
@@ -90,7 +95,9 @@ export function NotificationsMenu({
               accessibilityRole="button"
               accessibilityLabel="Tandai semua notifikasi sebagai sudah dibaca"
             >
-              <Text style={styles.notificationMarkAllText}>Tandai baca semua</Text>
+              <Text style={styles.notificationMarkAllText}>
+                Tandai baca semua
+              </Text>
             </Pressable>
           ) : null}
         </HStack>
@@ -138,7 +145,9 @@ export function NotificationsMenu({
                     <Text style={styles.notificationMessage} numberOfLines={2}>
                       {notification.message}
                     </Text>
-                    <Text style={styles.notificationTime}>{notification.time}</Text>
+                    <Text style={styles.notificationTime}>
+                      {notification.time}
+                    </Text>
                   </VStack>
                 </Pressable>
               ))}

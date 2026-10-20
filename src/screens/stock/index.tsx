@@ -1,678 +1,303 @@
-import {
-  HStack,
-  Text,
-  VStack,
-} from "@gluestack-ui/themed";
-import { useEffect, useMemo, useState } from "react";
+import { Text, HStack, VStack } from "@gluestack-ui/themed";
+import { useEffect, useRef, useState } from "react";
+import { ScrollView, useWindowDimensions } from "react-native";
 import { useIsFocused } from "expo-router/react-navigation";
-import { useWindowDimensions, View } from "react-native";
 import { AppShell } from "../../components/app-shell";
-import { useAppToast } from "../../components/toast/useAppToast";
-import { LoadingScreen } from "../../components/loading-screen";
-import { QueryErrorNotice } from "../../components/query-error-notice";
+import { Tabs } from "../../components/tabs";
+import { DataTableSection } from "../../components/data-table";
 import {
-  DataTable,
-  DataTableActionButton,
-  DataTableActions,
-  DataTableFilterBar,
-  DataTableFilterGrid,
-  DataTableSection,
-  type DataTableColumn,
-} from "../../components/data-table";
-import { DropdownFilter } from "../../components/dropdown-filter";
-import { DateRangeButton } from "../../components/date-period-filter";
-import {
-  AppIcon,
-  AppInput,
-  AppPressable,
-  EmptyState,
-} from "../../components/ui";
+  ActionButton,
+  SectionState,
+  SummaryRow,
+  ui,
+} from "../../components/management";
 import { DateRangePickerModal } from "../../components/date-range-picker/DateRangePickerModal";
-import type { DatePeriod, DateRange } from "../../types/dateRange";
-import { getLocalDateKey, getPresetDateRange } from "../../utils/date";
-import { colors, spacing } from "../../theme";
+import { useAppToast } from "../../components/toast/useAppToast";
+import { spacing } from "../../theme";
+import type { DateRange } from "../../types/dateRange";
 import { formatCurrency, formatQuantity } from "../../utils/format";
-import { debounce } from "../../utils/debounce";
+import {
+  formatDateKey,
+  getLocalDateKey,
+  getPresetDateRange,
+} from "../../utils/date";
+import { StockItemModal } from "./components/StockItemModal";
 import { StockPurchaseModal } from "./components/StockPurchaseModal";
-import { StockItemModal, type StockItemFormDraft } from "./components/StockItemModal";
-import { DeleteStockItemModal } from "./components/DeleteStockItemModal";
-import { StockMovementDetailModal } from "./components/StockMovementDetailModal";
-import { useStockItem, useStockItemChoices, useStockItems, useStockMovements, useStockMutations } from "./hooks/useStockApi";
-import type { StockAdjustmentDraft, StockPurchaseDraft } from "./api";
-import type { HistoryFilter, ModalMode, PurchaseDraft, StockItem, StockMovement } from "./types";
-import { getPurchaseUnit, getPurchaseUnitPrice, getStockUnitsPerPurchaseUnit, isLowStock } from "./utils/stock";
-import { styles } from "./styles";
-
-
-const historyFilters: { key: HistoryFilter; label: string }[] = [
-  { key: "all", label: "Semua" },
-  { key: "purchase", label: "Masuk / Beli" },
-  { key: "sale", label: "Penjualan" },
-  { key: "correction", label: "Koreksi / Waste" },
-];
-
-const stockTablePageSize = 10;
-const emptyStockItems: StockItem[] = [];
-
-function getStockMovementTime(dateKey: string, time: string) {
-  const dateLabel = dateKey === getLocalDateKey()
-    ? "Hari ini"
-    : new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(
-        new Date(dateKey + "T12:00:00"),
-      );
-  return dateLabel + ", " + time + " WIB";
+import {
+  StockInventoryTable,
+  StockHistoryTable,
+  movementLabels,
+} from "./components/StockTables";
+import {
+  useStockItems,
+  useStockMovements,
+  useStockMutations,
+} from "./hooks/useStockApi";
+import type { HistoryFilter, StockItem, StockMovement } from "./types";
+const pageSize = 10;
+type StockDialog =
+  | { kind: "new" }
+  | { kind: "purchase"; item: StockItem }
+  | { kind: "edit"; item: StockItem };
+function useDebounced(value: string) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [value]);
+  return debounced;
 }
-
-function RetryButton({ onRetry }: { onRetry: () => void }) {
-  return (
-    <AppPressable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Coba muat ulang">
-      <Text style={{ color: colors.primary, fontWeight: "600" }}>Coba lagi</Text>
-    </AppPressable>
-  );
-}
-
 export function StockScreen() {
-  const { height, width } = useWindowDimensions();
-  const isFocused = useIsFocused();
-  const [inventoryPage, setInventoryPage] = useState(1);
+  const focused = useIsFocused();
+  const compact = useWindowDimensions().width < 768;
+  const [tab, setTab] = useState("items");
+  const [search, setSearch] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const query = useDebounced(search);
+  const historyQuery = useDebounced(historySearch);
+  const [page, setPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [historyQuery, setHistoryQuery] = useState("");
-  const [debouncedHistoryQuery, setDebouncedHistoryQuery] = useState("");
-  const [historyPeriod, setHistoryPeriod] = useState<DatePeriod>("today");
-  const [historyDateRange, setHistoryDateRange] = useState<DateRange>(() =>
-    getPresetDateRange(getLocalDateKey(), "today"),
+  const [historyType, setHistoryType] = useState<HistoryFilter>("all");
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    getPresetDateRange(getLocalDateKey(), "month"),
   );
-  const [historyDatePickerOpen, setHistoryDatePickerOpen] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
-  const [modal, setModal] = useState<{
-    mode: ModalMode | "edit-item";
-    itemId?: string;
-  } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
-  const [selectedMovement, setSelectedMovement] = useState<StockMovement | null>(null);
+  const [datePicker, setDatePicker] = useState(false);
+  const [dialog, setDialog] = useState<StockDialog | null>(null);
+  const [movement, setMovement] = useState<StockMovement | null>(null);
+  const scroll = useRef<ScrollView>(null);
+  const scrollPositions = useRef<Record<string, number>>({
+    items: 0,
+    history: 0,
+  });
+  const itemsQuery = useStockItems(
+    { search: query, page, limit: pageSize },
+    focused && tab === "items",
+  );
+  const movements = useStockMovements(
+    {
+      search: historyQuery,
+      type: historyType,
+      from: dateRange.startDate,
+      to: dateRange.endDate,
+      page: historyPage,
+      limit: pageSize,
+    },
+    focused && tab === "history",
+  );
+  const mutations = useStockMutations();
   const toast = useAppToast();
-  const updateDebouncedQuery = useMemo(
-    () => debounce(setDebouncedQuery, 250),
-    [],
-  );
-  const updateDebouncedHistoryQuery = useMemo(
-    () => debounce(setDebouncedHistoryQuery, 250),
-    [],
-  );
-  const isToolbarCompact = width < 920;
-  const inventoryWidth = Math.max(900, width - (isToolbarCompact ? 32 : 176));
-  const historyWidth = Math.max(960, width - (isToolbarCompact ? 32 : 176));
-
-  const itemsQuery = useStockItems({
-    search: debouncedQuery,
-    page: inventoryPage,
-    limit: stockTablePageSize,
-  }, isFocused);
-  const movementsQuery = useStockMovements({
-    search: debouncedHistoryQuery,
-    type: historyFilter,
-    from: historyDateRange.startDate,
-    to: historyDateRange.endDate,
-    page: historyPage,
-    limit: stockTablePageSize,
-  }, isFocused);
-  const pickerOpen = modal?.mode === "purchase";
-  const itemChoicesQuery = useStockItemChoices(Boolean(pickerOpen) && isFocused);
-  const editingItemQuery = useStockItem(
-    modal?.mode === "edit-item" ? modal.itemId ?? "" : "",
-    modal?.mode === "edit-item" && isFocused,
-  );
-  const { refreshStock, ...mutations } = useStockMutations();
-  const items = itemsQuery.data?.data ?? emptyStockItems;
-  const movements = movementsQuery.data?.data ?? [];
-  const editingItem = modal?.mode === "edit-item"
-    ? editingItemQuery.data ?? items.find((item) => item.id === modal.itemId)
-    : undefined;
-  const pickerItems = useMemo(() => {
-    const combined = [...(itemChoicesQuery.data ?? []), ...items];
-    const seen = new Set<string>();
-    return combined.filter((item) => {
-      if (seen.has(item.id)) return false;
-      seen.add(item.id);
-      return true;
-    });
-  }, [itemChoicesQuery.data, items]);
-  const isMutating = Object.values(mutations).some((mutation) => mutation.isPending);
-  const isLoading =
-    itemsQuery.isFetching ||
-    movementsQuery.isFetching ||
-    itemChoicesQuery.isFetching ||
-    editingItemQuery.isFetching ||
-    isMutating;
-  const itemLoadFailed = itemsQuery.isError && !itemsQuery.data;
-  const historyLoadFailed = movementsQuery.isError && !movementsQuery.data;
-
-  useEffect(() => {
-    updateDebouncedQuery(query.trim());
-    return () => updateDebouncedQuery.cancel();
-  }, [query, updateDebouncedQuery]);
-
-  useEffect(() => {
-    updateDebouncedHistoryQuery(historyQuery.trim());
-    return () => updateDebouncedHistoryQuery.cancel();
-  }, [historyQuery, updateDebouncedHistoryQuery]);
-
-  const changeInventoryQuery = (nextQuery: string) => {
-    setQuery(nextQuery);
-    setInventoryPage(1);
+  const close = () => setDialog(null);
+  const done = (title: string) => {
+    close();
+    toast.success(title);
   };
-
-  const changeHistoryQuery = (nextQuery: string) => {
-    setHistoryQuery(nextQuery);
-    setHistoryPage(1);
-  };
-
-  const changeHistoryFilter = (nextFilter: HistoryFilter) => {
-    setHistoryFilter(nextFilter);
-    setHistoryPage(1);
-  };
-
-  const inventoryColumns: DataTableColumn<StockItem>[] = [
-    {
-      key: "item",
-      title: "BAHAN / ITEM",
-      flex: 2.4,
-      minWidth: 180,
-      render: (item) => {
-        const low = isLowStock(item);
-        return (
-          <VStack style={styles.inventoryItemColumn}>
-            <HStack style={styles.inventoryItemNameRow}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              {low ? <View style={styles.lowStockMark} /> : null}
-            </HStack>
-            <Text style={styles.itemDescription}>{item.description}</Text>
-          </VStack>
-        );
-      },
-    },
-    {
-      key: "stock",
-      title: "STOK SAAT INI",
-      flex: 1.6,
-      minWidth: 110,
-      render: (item) => (
-        <Text
-          style={[
-            styles.cellValue,
-            isLowStock(item) && styles.cellWarning,
-          ]}
-        >
-          {formatQuantity(item.stock)}
-        </Text>
-      ),
-    },
-    {
-      key: "unit",
-      title: "SATUAN",
-      flex: 1,
-      minWidth: 75,
-      render: (item) => (
-        <Text
-          style={[
-            styles.cellMuted,
-            isLowStock(item) && styles.cellWarning,
-          ]}
-        >
-          {item.unit}
-        </Text>
-      ),
-    },
-    {
-      key: "price",
-      title: "HARGA MODAL",
-      flex: 2,
-      minWidth: 175,
-      render: (item) => (
-        <Text style={styles.cellPrice}>
-          {formatCurrency(getPurchaseUnitPrice(item))} / {getPurchaseUnit(item)}
-        </Text>
-      ),
-    },
-    {
-      key: "status",
-      title: "STATUS",
-      flex: 1.5,
-      minWidth: 88,
-      align: "center",
-      render: (item) => {
-        const low = isLowStock(item);
-        const empty = item.stock <= 0;
-        return (
-          <HStack
-            style={[
-              styles.statusBadge,
-              low ? styles.statusBadgeLow : styles.statusBadgeSafe,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                { color: low ? colors.warning : colors.success },
-              ]}
-            >
-              {empty ? "Habis" : low ? "Menipis" : "Aman"}
-            </Text>
-          </HStack>
-        );
-      },
-    },
-    {
-      key: "action",
-      title: "AKSI",
-      flex: 1,
-      minWidth: 108,
-      align: "center",
-      render: (item) => (
-        <DataTableActions>
-          <DataTableActionButton
-            action="edit"
-            label={`Ubah bahan ${item.name}`}
-            onPress={() => setModal({ mode: "edit-item", itemId: item.id })}
-          />
-          <DataTableActionButton
-            action="delete"
-            label={`Hapus bahan ${item.name}`}
-            onPress={() => setDeleteTarget(item)}
-          />
-        </DataTableActions>
-      ),
-    },
-  ];
-
-  const historyColumns: DataTableColumn<StockMovement>[] = [
-    {
-      key: "time",
-      title: "WAKTU",
-      flex: 2,
-      minWidth: 145,
-      render: (movement) => (
-        <Text style={styles.cellMuted}>{getStockMovementTime(movement.dateKey, movement.time)}</Text>
-      ),
-    },
-    {
-      key: "item",
-      title: "BAHAN / ITEM",
-      flex: 2.2,
-      minWidth: 195,
-      render: (movement) => (
-        <VStack style={styles.historyItemCell}>
-          <Text style={styles.itemName}>{movement.item}</Text>
-        </VStack>
-      ),
-    },
-    {
-      key: "type",
-      title: "JENIS MUTASI",
-      flex: 1.8,
-      minWidth: 132,
-      render: (movement) => {
-        const typeLabel = movement.type === "purchase" ? "Pembelian" : movement.type === "sale" ? "Penjualan" : "Koreksi";
-        const typeColor = movement.type === "purchase" ? colors.success : movement.type === "sale" ? colors.danger : colors.warning;
-        return (
-          <HStack
-            style={[
-              styles.typeBadge,
-              movement.type === "correction"
-                ? styles.typeBadgeCorrection
-                : styles.typeBadgePurchase,
-            ]}
-          >
-            <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-              {typeLabel}
-            </Text>
-          </HStack>
-        );
-      },
-    },
-    {
-      key: "quantity",
-      title: "JUMLAH",
-      width: 75,
-      align: "right",
-      render: (movement) => {
-        const quantityColor =
-          movement.type === "purchase"
-            ? colors.success
-            : movement.type === "correction"
-              ? colors.warning
-              : colors.danger;
-        return (
-          <Text style={[styles.cellValue, { color: quantityColor }]}>
-            {movement.quantity > 0 ? "+" : movement.quantity < 0 ? "−" : ""}
-            {formatQuantity(Math.abs(movement.quantity))}
-          </Text>
-        );
-      },
-    },
-    {
-      key: "unit",
-      title: "SATUAN",
-      width: 75,
-      render: (movement) => (
-        <Text
-          style={[
-            styles.cellMuted,
-          ]}
-        >
-          {movement.unit}
-        </Text>
-      ),
-    },
-    {
-      key: "purchaseTotal",
-      title: "TOTAL BELI",
-      width: 125,
-      align: "right",
-      render: (movement) => (
-        <Text style={styles.cellValue}>
-          {movement.purchase
-            ? formatCurrency(movement.purchase.totalCostRupiah)
-            : "—"}
-        </Text>
-      ),
-    },
-    {
-      key: "action",
-      title: "AKSI",
-      width: 88,
-      align: "center",
-      render: (movement) => (
-        <DataTableActionButton
-          action="detail"
-          label={`Lihat detail mutasi ${movement.item}`}
-          onPress={() => setSelectedMovement(movement)}
-        />
-      ),
-    },
-  ];
-
-  const handleSaveStock = async (draft: PurchaseDraft) => {
-    const requestDraft: StockPurchaseDraft = {
-      ...(draft.newItem
-        ? {
-            newItem: draft.newItem,
-          }
-        : { stockItemId: draft.itemId }),
-      quantity: draft.quantity,
-      totalCostRupiah: draft.totalCost,
-    };
-    const savedItem = await mutations.purchase.mutateAsync(requestDraft);
-    setInventoryPage(1);
-    setHistoryPage(1);
-    setModal(null);
-    toast.success(
-      draft.newItem ? "Bahan baru ditambahkan" : "Stok berhasil ditambahkan",
-      `${savedItem.name} · ${formatCurrency(draft.totalCost)}.`,
+  const changeTab = (value: string) => {
+    setTab(value);
+    requestAnimationFrame(() =>
+      scroll.current?.scrollTo({
+        y: scrollPositions.current[value] ?? 0,
+        animated: false,
+      }),
     );
   };
-
-  const handleUpdateItem = async (draft: StockItemFormDraft) => {
-    if (modal?.mode !== "edit-item" || !modal.itemId || !editingItem) {
-      throw new Error("Bahan yang akan diubah tidak ditemukan.");
-    }
-    const metadataChanged =
-      draft.name !== editingItem.name ||
-      draft.description !== editingItem.description ||
-      draft.unit !== editingItem.unit ||
-      draft.purchaseUnit !== (editingItem.purchaseUnit ?? editingItem.unit) ||
-      draft.stockUnitsPerPurchaseUnit !== getStockUnitsPerPurchaseUnit(editingItem);
-    const stockChanged = draft.actualStock !== editingItem.stock;
-    const nextAveragePrice =
-      draft.purchaseUnitPriceRupiah / draft.stockUnitsPerPurchaseUnit;
-    const priceChanged = draft.purchaseUnitPriceEdited &&
-      Math.abs(nextAveragePrice - editingItem.avgPrice) > 0.000000000001;
-
-    let savedChanges = false;
-    let movementChanged = false;
-    try {
-      if (metadataChanged) {
-        savedChanges = true;
-        await mutations.updateItem.mutateAsync({
-          id: modal.itemId,
-          refresh: false,
-          draft: {
-            name: draft.name,
-            description: draft.description,
-            unit: draft.unit,
-            purchaseUnit: draft.purchaseUnit,
-            stockUnitsPerPurchaseUnit: draft.stockUnitsPerPurchaseUnit,
-          },
-        });
-      }
-      if (stockChanged || priceChanged) {
-        const adjustment: StockAdjustmentDraft = {};
-        if (stockChanged) {
-          adjustment.actualStock = draft.actualStock;
-          adjustment.note = draft.note;
-        }
-        if (priceChanged) {
-          adjustment.purchaseUnitPriceRupiah = draft.purchaseUnitPriceRupiah;
-        }
-        savedChanges = true;
-        movementChanged = true;
-        await mutations.adjust.mutateAsync({ id: modal.itemId, draft: adjustment, refresh: false });
-        setHistoryPage(1);
-      }
-    } finally {
-      if (savedChanges) {
-        await refreshStock({ itemId: modal.itemId, includeMovements: movementChanged });
-      }
-    }
-
-    setModal(null);
-    toast.success("Bahan diperbarui", `${draft.name} berhasil diperbarui.`);
-  };
-
-  const handleDeleteItem = async (item: StockItem) => {
-    await mutations.deleteItem.mutateAsync(item.id);
-    if (items.length === 1 && inventoryPage > 1) setInventoryPage((page) => page - 1);
-    setDeleteTarget(null);
-    toast.success("Bahan dihapus", `${item.name} berhasil dihapus permanen.`);
-  };
+  const items = itemsQuery.data?.data ?? [];
 
   return (
-    <>
-    <AppShell active="Stock" scrollable>
-      <VStack style={styles.page}>
-        <DataTableSection
-          title="Daftar Bahan"
-          description="Stok dan harga modal bahan yang tersedia di outlet."
-          action={
-            <AppPressable
-              onPress={() => setModal({ mode: "purchase", itemId: items[0]?.id })}
-              style={styles.primaryAction}
-              accessibilityRole="button"
-              accessibilityLabel="Tambah stok"
-            >
-              <AppIcon name="plus" size={15} color={colors.white} />
-              <Text style={styles.primaryActionText}>Tambah Stok</Text>
-            </AppPressable>
-          }
+    <AppShell active="Stock" scrollable={false}>
+      <VStack style={{ flex: 1, gap: spacing.lg }}>
+        <HStack
+          style={[
+            ui.header,
+            compact && { alignItems: "stretch", flexDirection: "column" },
+          ]}
         >
-          <VStack>
-            <DataTableFilterBar>
-              <DataTableFilterGrid>
-                <AppInput
-                  value={query}
-                  onChangeText={changeInventoryQuery}
-                  placeholder="Cari bahan"
-                  variant="search"
-                  style={styles.searchInputFilter}
-                  leading={
-                    <AppIcon
-                      name="magnify"
-                      size={17}
-                      color={colors.inkSubtle}
-                    />
-                  }
-                  accessibilityLabel="Cari bahan"
-                />
-              </DataTableFilterGrid>
-            </DataTableFilterBar>
-
-            {itemsQuery.isError && itemsQuery.data ? (
-              <QueryErrorNotice onRetry={() => { void itemsQuery.refetch(); }} />
-            ) : null}
-            <DataTable
-              rows={items}
-              columns={inventoryColumns}
-              keyExtractor={(item) => item.id}
-              width={inventoryWidth}
-              minWidth={900}
-              rowHeight={55}
-              horizontalPadding={spacing.md}
-              columnGap={spacing.sm}
-              pagination={{
-                page: inventoryPage,
-                pageSize: stockTablePageSize,
-                totalItems: itemsQuery.data?.total ?? 0,
-                onPageChange: setInventoryPage,
-                itemLabel: "bahan",
-              }}
-              emptyState={
-                <EmptyState
-                  icon={itemLoadFailed ? "alert-circle-outline" : items.length === 0 && !query ? "package-variant-closed" : "magnify-close"}
-                  title={itemLoadFailed ? "Bahan gagal dimuat" : items.length === 0 && !query ? "Belum ada stok" : "Stok tidak ditemukan"}
-                  description={itemLoadFailed ? "Periksa koneksi lalu coba lagi." : undefined}
-                  action={itemLoadFailed ? <RetryButton onRetry={() => { void itemsQuery.refetch(); }} /> : undefined}
-                  compact
-                />
-              }
-            />
+          <VStack style={{ gap: spacing.xs, flex: 1 }}>
+            <Text style={ui.title}>Kelola Stok</Text>
+            <Text style={ui.muted}>
+              Lihat persediaan bahan dan catat stok yang masuk.
+            </Text>
           </VStack>
-        </DataTableSection>
-
-        <DataTableSection
-          title="Riwayat Mutasi Stok Terbaru"
-          description="Pembelian dan koreksi stok bahan."
-        >
-          <VStack>
-            <DataTableFilterBar>
-              <DataTableFilterGrid>
-                <AppInput
-                  value={historyQuery}
-                  onChangeText={changeHistoryQuery}
-                  placeholder="Cari mutasi"
-                  variant="search"
-                  style={styles.searchInputFilter}
-                  leading={
-                    <AppIcon
-                      name="magnify"
-                      size={17}
-                      color={colors.inkSubtle}
-                    />
+          <ActionButton
+            label="Bahan Baru"
+            icon="plus"
+            tone="primary"
+            onPress={() => setDialog({ kind: "new" })}
+          />
+        </HStack>
+        <Tabs.Root value={tab} onValueChange={changeTab}>
+          <Tabs.List label="Kelola stok">
+            <Tabs.Trigger value="items">Bahan</Tabs.Trigger>
+            <Tabs.Trigger value="history">Riwayat</Tabs.Trigger>
+          </Tabs.List>
+          <ScrollView
+            ref={scroll}
+            keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={100}
+            onScroll={(event) => {
+              scrollPositions.current[tab] = event.nativeEvent.contentOffset.y;
+            }}
+            contentContainerStyle={{ paddingBottom: spacing.xl }}
+          >
+            <Tabs.Content value="items">
+              <DataTableSection
+                title="Daftar Bahan"
+                description="Jumlah tersedia dan harga modal per satuan stok."
+              >
+                <SectionState
+                  error={
+                    itemsQuery.isError ? "Daftar stok gagal dimuat." : undefined
                   }
-                  accessibilityLabel="Cari riwayat mutasi"
-                />
-                <DateRangeButton
-                  dateRange={historyDateRange}
-                  onPress={() => setHistoryDatePickerOpen(true)}
-                  selected={historyPeriod === "custom"}
-                  fullWidth
-                />
-                <DropdownFilter
-                  options={historyFilters}
-                  value={historyFilter}
-                  onChange={changeHistoryFilter}
-                  accessibilityLabel="Filter jenis mutasi stok"
-                  fullWidth
-                />
-              </DataTableFilterGrid>
-            </DataTableFilterBar>
-            {movementsQuery.isError && movementsQuery.data ? (
-              <QueryErrorNotice onRetry={() => { void movementsQuery.refetch(); }} />
-            ) : null}
-            <DataTable
-              rows={movements}
-              columns={historyColumns}
-              keyExtractor={(movement) => movement.id}
-              width={historyWidth}
-              minWidth={960}
-              rowHeight={48}
-              horizontalPadding={spacing.md}
-              verticalPadding={spacing.xs}
-              columnGap={spacing.sm}
-              pagination={{
-                page: historyPage,
-                pageSize: stockTablePageSize,
-                totalItems: movementsQuery.data?.total ?? 0,
-                onPageChange: setHistoryPage,
-                itemLabel: "mutasi",
-              }}
-              emptyState={
-                <EmptyState
-                  icon="clipboard-text-outline"
-                  title={historyLoadFailed ? "Riwayat gagal dimuat" : "Belum ada mutasi"}
-                  description={historyLoadFailed ? "Periksa koneksi lalu coba lagi." : undefined}
-                  action={historyLoadFailed ? <RetryButton onRetry={() => { void movementsQuery.refetch(); }} /> : undefined}
-                  compact
-                />
-              }
-            />
-          </VStack>
-        </DataTableSection>
+                  onRetry={() => void itemsQuery.refetch()}
+                >
+                  <StockInventoryTable
+                    items={items}
+                    loading={itemsQuery.isFetching}
+                    query={search}
+                    onQueryChange={(value) => {
+                      setSearch(value);
+                      setPage(1);
+                    }}
+                    page={page}
+                    total={itemsQuery.data?.total ?? 0}
+                    onPageChange={setPage}
+                    onDelete={async (item) => {
+                      await mutations.deleteItem.mutateAsync(item.id);
+                      toast.success("Bahan dihapus");
+                    }}
+                    onPurchase={(item) => setDialog({ kind: "purchase", item })}
+                    onDetail={(item) => setDialog({ kind: "edit", item })}
+                  />
+                </SectionState>
+              </DataTableSection>
+            </Tabs.Content>
+            <Tabs.Content value="history">
+              <DataTableSection
+                title="Riwayat Stok"
+                description="Pembelian, pemakaian menu, dan koreksi yang tercatat."
+              >
+                <SectionState
+                  error={
+                    movements.isError ? "Riwayat gagal dimuat." : undefined
+                  }
+                  onRetry={() => void movements.refetch()}
+                >
+                  <StockHistoryTable
+                    movements={movements.data?.data ?? []}
+                    loading={movements.isFetching}
+                    query={historySearch}
+                    onQueryChange={(value) => {
+                      setHistorySearch(value);
+                      setHistoryPage(1);
+                    }}
+                    type={historyType}
+                    onTypeChange={(value) => {
+                      setHistoryType(value);
+                      setHistoryPage(1);
+                    }}
+                    dateRange={dateRange}
+                    onOpenDatePicker={() => setDatePicker(true)}
+                    page={historyPage}
+                    total={movements.data?.total ?? 0}
+                    onPageChange={setHistoryPage}
+                    onDetail={(entry) => {
+                      setMovement(entry);
+                      requestAnimationFrame(() =>
+                        scroll.current?.scrollToEnd({ animated: true }),
+                      );
+                    }}
+                  />
+                </SectionState>
+              </DataTableSection>
+              {movement ? (
+                <VStack style={{ gap: spacing.md, paddingTop: spacing.lg }}>
+                  <HStack style={ui.header}>
+                    <Text style={ui.heading}>Detail Mutasi Stok</Text>
+                    <ActionButton
+                      label="Tutup detail"
+                      tone="quiet"
+                      onPress={() => setMovement(null)}
+                    />
+                  </HStack>
+                  <Text style={ui.heading}>{movement.item}</Text>
+                  <SummaryRow
+                    label="Jenis"
+                    value={movementLabels[movement.type]}
+                  />
+                  <SummaryRow
+                    label="Waktu"
+                    value={`${formatDateKey(movement.dateKey)}, ${movement.time}`}
+                  />
+                  <SummaryRow
+                    label="Perubahan stok"
+                    value={`${movement.quantity > 0 ? "+" : ""}${formatQuantity(movement.quantity)} ${movement.unit}`}
+                  />
+                  {movement.purchase ? (
+                    <>
+                      <SummaryRow
+                        label="Jumlah pembelian"
+                        value={`${formatQuantity(movement.purchase.quantity)} ${movement.purchase.unit}`}
+                      />
+                      <SummaryRow
+                        label="Total biaya"
+                        value={formatCurrency(
+                          movement.purchase.totalCostRupiah,
+                        )}
+                      />
+                    </>
+                  ) : null}
+                  <Text style={ui.muted}>
+                    {movement.note || "Tidak ada catatan."}
+                  </Text>
+                </VStack>
+              ) : null}
+            </Tabs.Content>
+          </ScrollView>
+        </Tabs.Root>
       </VStack>
-
-      {modal?.mode === "purchase" ? (
-        <StockPurchaseModal
-          key={`${modal.mode}-${modal.itemId ?? "default"}`}
-          items={pickerItems}
-          initialItemId={modal.itemId}
-          height={height}
-          itemsError={itemChoicesQuery.isError}
-          onRetryItems={() => { void itemChoicesQuery.refetch(); }}
-          onClose={() => setModal(null)}
-          onSubmit={handleSaveStock}
-        />
-      ) : null}
-      {modal?.mode === "edit-item" && editingItem ? (
+      {dialog?.kind === "new" || dialog?.kind === "edit" ? (
         <StockItemModal
-          key={`edit-item-${modal.itemId}`}
-          item={editingItem}
-          height={height}
-          onClose={() => setModal(null)}
-          onSubmit={handleUpdateItem}
-        />
-      ) : null}
-      {deleteTarget ? (
-        <DeleteStockItemModal
-          item={deleteTarget}
-          height={height}
-          onClose={() => setDeleteTarget(null)}
-          onDelete={() => handleDeleteItem(deleteTarget)}
-        />
-      ) : null}
-      {selectedMovement ? (
-        <StockMovementDetailModal
-          movement={selectedMovement}
-          timeLabel={getStockMovementTime(selectedMovement.dateKey, selectedMovement.time)}
-          height={height}
-          onClose={() => setSelectedMovement(null)}
-        />
-      ) : null}
-      {historyDatePickerOpen ? (
-        <DateRangePickerModal
-          isOpen
-          initialRange={historyDateRange}
-          onClose={() => setHistoryDatePickerOpen(false)}
-          onApply={(range) => {
-            setHistoryPeriod("custom");
-            setHistoryDateRange(range);
-            setHistoryPage(1);
+          key={dialog.kind === "edit" ? dialog.item.id : "new"}
+          item={dialog.kind === "edit" ? dialog.item : undefined}
+          onClose={close}
+          onSubmit={async (draft, opening) => {
+            if (dialog.kind === "edit")
+              await mutations.updateItem.mutateAsync({
+                id: dialog.item.id,
+                draft,
+              });
+            else if (opening)
+              await mutations.purchase.mutateAsync({
+                newItem: draft,
+                quantity: opening.quantity,
+                totalCostRupiah: opening.totalCost,
+              });
+            else await mutations.createItem.mutateAsync(draft);
+            done("Bahan disimpan");
           }}
         />
       ) : null}
-
+      {dialog?.kind === "purchase" ? (
+        <StockPurchaseModal
+          item={dialog.item}
+          onClose={close}
+          onSubmit={async (draft) => {
+            await mutations.purchase.mutateAsync(draft);
+            done("Stok ditambahkan");
+          }}
+        />
+      ) : null}
+      {datePicker ? (
+        <DateRangePickerModal
+          isOpen
+          initialRange={dateRange}
+          onClose={() => setDatePicker(false)}
+          onApply={(range) => {
+            setDateRange(range);
+            setHistoryPage(1);
+            setDatePicker(false);
+          }}
+        />
+      ) : null}
     </AppShell>
-    <LoadingScreen visible={isLoading} />
-    </>
   );
 }

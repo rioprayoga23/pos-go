@@ -19,12 +19,10 @@ export const cashQueryKeys = {
     ["cash", "summary", filters] as const,
 };
 
-export function useCashRegister(
-  {
-    alwaysRefresh = false,
-    enabled = true,
-  }: { alwaysRefresh?: boolean; enabled?: boolean } = {},
-) {
+export function useCashRegister({
+  alwaysRefresh = false,
+  enabled = true,
+}: { alwaysRefresh?: boolean; enabled?: boolean } = {}) {
   return useQuery({
     queryKey: cashQueryKeys.register,
     queryFn: ({ signal }) => getCashRegister(signal),
@@ -83,7 +81,9 @@ export function useCashMutations() {
       mutationFn: createCashExpense,
       onSuccess: async (_, expense) => {
         if (expense.fundingSource === "cash_drawer") {
-          await queryClient.invalidateQueries({ queryKey: cashQueryKeys.register });
+          await queryClient.invalidateQueries({
+            queryKey: cashQueryKeys.register,
+          });
         }
         await refreshCashHistory();
       },

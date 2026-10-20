@@ -224,9 +224,7 @@ export function PaymentScreen() {
                           size={17}
                           color={colors.white}
                         />
-                        <Text style={styles.primaryButtonText}>
-                          Buka Kasir
-                        </Text>
+                        <Text style={styles.primaryButtonText}>Buka Kasir</Text>
                       </AppPressable>
                     </VStack>
                   </Panel>

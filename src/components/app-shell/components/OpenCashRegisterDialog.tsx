@@ -21,7 +21,13 @@ import {
   type,
   typography,
 } from "../../../theme";
-import { AppIcon, AppInput, AppModalCloseButton, AppPressable } from "../../ui";
+import {
+  AppIcon,
+  AppInput,
+  AppModalCloseButton,
+  FieldLabel,
+  ModalFormActions,
+} from "../../ui";
 
 export function OpenCashRegisterDialog({
   isOpen,
@@ -67,7 +73,12 @@ export function OpenCashRegisterDialog({
         </ModalHeader>
         <ModalBody style={dialogStyles.body}>
           <VStack style={dialogStyles.form}>
-            <Text style={dialogStyles.label}>Uang awal sesi ini</Text>
+            <FieldLabel
+              required
+              style={[dialogStyles.label, { marginBottom: 0 }]}
+            >
+              Uang awal sesi ini
+            </FieldLabel>
             <AppInput
               value={formatThousands(openingInput)}
               onChangeText={(value) => setOpeningInput(digitsOnly(value, 12))}
@@ -82,24 +93,18 @@ export function OpenCashRegisterDialog({
           </VStack>
         </ModalBody>
         <ModalFooter style={dialogStyles.footer}>
-          <AppPressable
-            onPress={() =>
-              openingAmount !== null && void onConfirm(openingAmount)
-            }
-            disabled={openingAmount === null || isSubmitting}
-            style={[
-              dialogStyles.confirmButton,
-              (openingAmount === null || isSubmitting) && dialogStyles.disabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Konfirmasi buka kasir"
-            accessibilityState={{
-              disabled: openingAmount === null || isSubmitting,
+          <ModalFormActions
+            primaryLabel="Buka Kasir"
+            onPrimary={() => {
+              if (openingAmount !== null) void onConfirm(openingAmount);
             }}
-          >
-            <AppIcon name="check" size={17} color={colors.white} />
-            <Text style={dialogStyles.confirmText}>Buka Kasir</Text>
-          </AppPressable>
+            primaryDisabled={openingAmount === null}
+            primaryBusy={isSubmitting}
+            primaryBusyLabel="Membuka kasir..."
+            primaryIcon="check"
+            onSecondary={onClose}
+            secondaryDisabled={isSubmitting}
+          />
         </ModalFooter>
       </ModalContent>
     </Modal>
@@ -151,17 +156,4 @@ const dialogStyles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
   },
-  confirmButton: {
-    width: "100%",
-    minHeight: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
-    ...elevation.button,
-  },
-  confirmText: { color: colors.white, ...typography.button },
-  disabled: { opacity: 0.45 },
 });

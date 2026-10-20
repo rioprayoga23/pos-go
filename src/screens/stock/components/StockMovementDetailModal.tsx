@@ -10,10 +10,18 @@ import {
   VStack,
 } from "@gluestack-ui/themed";
 import { StyleSheet } from "react-native";
-import { AppIcon, AppModalCloseButton, AppPressable } from "../../../components/ui";
+import {
+  AppIcon,
+  AppModalCloseButton,
+  AppPressable,
+} from "../../../components/ui";
 import { colors, radius, spacing, type, typography } from "../../../theme";
 import type { StockMovement } from "../../../types/stock";
-import { formatCurrency, formatQuantity, formatThousands } from "../../../utils/format";
+import {
+  formatCurrency,
+  formatQuantity,
+  formatThousands,
+} from "../../../utils/format";
 import { styles } from "../styles";
 
 const detailStyles = StyleSheet.create({
@@ -21,7 +29,11 @@ const detailStyles = StyleSheet.create({
   header: { padding: spacing.md, paddingBottom: spacing.md },
   icon: { width: 34, height: 34 },
   itemName: { color: colors.inkMuted, ...typography.helper },
-  content: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.sm },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
   summary: {
     minHeight: 58,
     paddingHorizontal: spacing.md,
@@ -33,9 +45,23 @@ const detailStyles = StyleSheet.create({
     gap: spacing.md,
   },
   summaryCopy: { flex: 1, minWidth: 0, gap: 2 },
-  summaryLabel: { color: colors.inkMuted, fontSize: type.caption, lineHeight: 18 },
-  summaryText: { color: colors.ink, fontSize: type.caption, lineHeight: 18, fontWeight: "600" },
-  summaryValue: { color: colors.ink, ...typography.input, fontWeight: "600", textAlign: "right" },
+  summaryLabel: {
+    color: colors.inkMuted,
+    fontSize: type.caption,
+    lineHeight: 18,
+  },
+  summaryText: {
+    color: colors.ink,
+    fontSize: type.caption,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  summaryValue: {
+    color: colors.ink,
+    ...typography.input,
+    fontWeight: "600",
+    textAlign: "right",
+  },
   rows: { paddingHorizontal: spacing.xs },
   row: {
     minHeight: 36,
@@ -47,14 +73,26 @@ const detailStyles = StyleSheet.create({
   },
   rowLast: { borderBottomWidth: 0 },
   label: { color: colors.inkMuted, fontSize: type.caption, lineHeight: 18 },
-  value: { maxWidth: "65%", color: colors.ink, fontSize: type.caption, lineHeight: 18, fontWeight: "600", textAlign: "right" },
+  value: {
+    maxWidth: "65%",
+    color: colors.ink,
+    fontSize: type.caption,
+    lineHeight: 18,
+    fontWeight: "600",
+    textAlign: "right",
+  },
   note: {
     padding: spacing.md,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceContainerLow,
     gap: spacing.xs,
   },
-  noteLabel: { color: colors.inkMuted, fontSize: type.caption, lineHeight: 18, fontWeight: "600" },
+  noteLabel: {
+    color: colors.inkMuted,
+    fontSize: type.caption,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
   noteText: { color: colors.ink, fontSize: type.caption, lineHeight: 18 },
   footer: { padding: spacing.md },
   closeButton: {
@@ -104,7 +142,8 @@ export function StockMovementDetailModal({
 }) {
   const quantity = `${movement.quantity > 0 ? "+" : movement.quantity < 0 ? "−" : ""}${formatQuantity(Math.abs(movement.quantity))} ${movement.unit}`;
   const note = movement.note.trim();
-  const showNote = note && !(movement.type === "purchase" && note === "Pembelian stok");
+  const showNote =
+    note && !(movement.type === "purchase" && note === "Pembelian stok");
 
   return (
     <Modal isOpen onClose={onClose} size="md">
@@ -118,23 +157,38 @@ export function StockMovementDetailModal({
       >
         <ModalHeader style={[styles.modalHeader, detailStyles.header]}>
           <HStack style={[styles.modalIcon, detailStyles.icon]}>
-            <AppIcon name="clipboard-text-outline" size={17} color={colors.primary} />
+            <AppIcon
+              name="clipboard-text-outline"
+              size={17}
+              color={colors.primary}
+            />
           </HStack>
           <VStack style={styles.modalHeading}>
             <Text style={styles.modalTitle}>Detail Mutasi</Text>
-            <Text style={detailStyles.itemName} numberOfLines={1}>{movement.item}</Text>
+            <Text style={detailStyles.itemName} numberOfLines={1}>
+              {movement.item}
+            </Text>
           </VStack>
-          <AppModalCloseButton onPress={onClose} accessibilityLabel="Tutup detail mutasi" />
+          <AppModalCloseButton
+            onPress={onClose}
+            accessibilityLabel="Tutup detail mutasi"
+          />
         </ModalHeader>
         <ModalBody style={styles.modalBody}>
           <VStack style={detailStyles.content}>
             <HStack style={detailStyles.summary}>
               <VStack style={detailStyles.summaryCopy}>
                 <Text style={detailStyles.summaryLabel}>Jenis mutasi</Text>
-                <Text style={detailStyles.summaryText}>{movementTypeLabel(movement.type)}</Text>
+                <Text style={detailStyles.summaryText}>
+                  {movementTypeLabel(movement.type)}
+                </Text>
               </VStack>
               <VStack style={detailStyles.summaryCopy}>
-                <Text style={[detailStyles.summaryLabel, { textAlign: "right" }]}>Perubahan stok</Text>
+                <Text
+                  style={[detailStyles.summaryLabel, { textAlign: "right" }]}
+                >
+                  Perubahan stok
+                </Text>
                 <Text style={detailStyles.summaryValue}>{quantity}</Text>
               </VStack>
             </HStack>

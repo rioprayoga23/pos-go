@@ -6,12 +6,13 @@ import {
   DataTableFilterBar,
   DataTableFilterGrid,
   DataTableSection,
+  dataTableLayout,
   type DataTableColumn,
 } from "../../../components/data-table";
 import { DateRangeButton } from "../../../components/date-period-filter";
 import { DropdownFilter } from "../../../components/dropdown-filter";
-import { colors, spacing } from "../../../theme";
-import type { CashOutflowSummary, CashTransaction } from "../../../types/cash";
+import { colors } from "../../../theme";
+import type { CashTransaction } from "../../../types/cash";
 import type { DatePeriod, DateRange } from "../../../types/dateRange";
 import { formatCurrency } from "../../../utils/format";
 import type { CashTransactionFilter } from "../hooks/useCashLedger";
@@ -26,16 +27,19 @@ const filterOptions: { key: CashTransactionFilter; label: string }[] = [
 
 function CashCategoryBadge({ transaction }: { transaction: CashTransaction }) {
   const isOperational = transaction.categoryKind === "operational";
+  const isStockPurchase = transaction.categoryKind === "stock_purchase";
   return (
     <HStack
       style={[
         styles.categoryBadge,
+        isStockPurchase && styles.categoryBadgeStockPurchase,
         isOperational && styles.categoryBadgeOperational,
       ]}
     >
       <Text
         style={[
           styles.categoryText,
+          isStockPurchase && styles.categoryTextStockPurchase,
           isOperational && styles.categoryTextOperational,
         ]}
         numberOfLines={1}
@@ -112,8 +116,8 @@ function createCashColumns(
 
 export function CashLedgerPanel({
   transactions,
-  summary,
   total,
+  loading,
   period,
   dateRange,
   filter,
@@ -127,8 +131,8 @@ export function CashLedgerPanel({
   onOpenDatePicker,
 }: {
   transactions: CashTransaction[];
-  summary: CashOutflowSummary;
   total: number;
+  loading: boolean;
   period: DatePeriod;
   dateRange: DateRange;
   filter: CashTransactionFilter;
@@ -142,15 +146,6 @@ export function CashLedgerPanel({
   onOpenDatePicker: () => void;
 }) {
   const columns = createCashColumns(onOpenTransaction);
-  const filters = filterOptions.map((option) => {
-    const count =
-      option.key === "all"
-        ? summary.stockCount + summary.operationalCount
-        : option.key === "stock_purchase"
-          ? summary.stockCount
-          : summary.operationalCount;
-    return { ...option, count };
-  });
   return (
     <DataTableSection
       title="Riwayat Transaksi"
@@ -178,7 +173,7 @@ export function CashLedgerPanel({
               fullWidth
             />
             <DropdownFilter
-              options={filters}
+              options={filterOptions}
               value={filter}
               onChange={onFilterChange}
               accessibilityLabel="Filter transaksi"
@@ -191,11 +186,8 @@ export function CashLedgerPanel({
           columns={columns}
           keyExtractor={(transaction) => transaction.id}
           minWidth={900}
-          headerHeight={40}
-          rowHeight={55}
-          horizontalPadding={spacing.md}
-          verticalPadding={spacing.xs}
-          columnGap={spacing.sm}
+          loading={loading}
+          {...dataTableLayout}
           pagination={{
             page,
             pageSize,

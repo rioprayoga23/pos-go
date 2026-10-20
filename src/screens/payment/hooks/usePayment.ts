@@ -5,7 +5,10 @@ import { useTransactionStore } from "../../../store/transactionStore";
 import type { Order } from "../../../types/pos";
 import { digitsOnly, parseWholeNumber } from "../../../utils/format";
 import { useCashRegister } from "../../cash/hooks/useCashApi";
-import { orderRecordToLocalOrder, type CreateOrderDraft } from "../../order/api";
+import {
+  orderRecordToLocalOrder,
+  type CreateOrderDraft,
+} from "../../order/api";
 import { useCreateOrder } from "../../order/hooks/useCreateOrder";
 
 function createRequestKey() {
@@ -24,24 +27,32 @@ export function usePayment(enabled = true) {
   const register = cashRegisterQuery.data?.data;
   const cashRegisterOpen = register?.status === "open";
   const cashRegisterClosed = register?.status === "closed";
-  const [paymentMethod, setSelectedPaymentMethod] = useState<"Tunai" | "QRIS">("Tunai");
+  const [paymentMethod, setSelectedPaymentMethod] = useState<"Tunai" | "QRIS">(
+    "Tunai",
+  );
   const [cash, setCashValue] = useState("");
-  const [cashConfirmationKey, setCashConfirmationKey] = useState<string | null>(null);
+  const [cashConfirmationKey, setCashConfirmationKey] = useState<string | null>(
+    null,
+  );
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastOrderNumber, setLastOrderNumber] = useState("");
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
-  const [qrisConfirmationKey, setQrisConfirmationKey] = useState<string | null>(null);
+  const [qrisConfirmationKey, setQrisConfirmationKey] = useState<string | null>(
+    null,
+  );
   const pendingRequest = useRef<{ identity: string; key: string } | null>(null);
   const cartKey =
     items
-      .map(({ product, quantity }) =>
-        `${product.id}:${quantity}:${product.price}:${product.stock}:${product.isAvailable}`,
+      .map(
+        ({ product, quantity }) =>
+          `${product.id}:${quantity}:${product.price}:${product.stock}:${product.isAvailable}`,
       )
       .join("|") + `|${register?.id ?? register?.status ?? "loading"}`;
   const qrisVerified = qrisConfirmationKey === cartKey && Boolean(cartKey);
   const received = parseWholeNumber(cash);
   const change = received - subtotal;
-  const cashReady = cashConfirmationKey === cartKey && cashRegisterOpen && received >= subtotal;
+  const cashReady =
+    cashConfirmationKey === cartKey && cashRegisterOpen && received >= subtotal;
 
   const setCash = (value: string) => {
     setCashValue(digitsOnly(value, 12));
@@ -49,7 +60,8 @@ export function usePayment(enabled = true) {
   };
 
   const applyCash = () => {
-    if (cashRegisterOpen && received >= subtotal) setCashConfirmationKey(cartKey);
+    if (cashRegisterOpen && received >= subtotal)
+      setCashConfirmationKey(cartKey);
   };
 
   const setPaymentMethod = (method: "Tunai" | "QRIS") => {
@@ -68,13 +80,16 @@ export function usePayment(enabled = true) {
       !cashRegisterOpen ||
       (paymentMethod === "Tunai" && !cashReady) ||
       (paymentMethod === "QRIS" && !qrisVerified)
-    ) return;
+    )
+      return;
 
     const draft: CreateOrderDraft = {
       requestKey: "",
       orderType: orderType === "Dine in" ? "dine_in" : "take_away",
       paymentMethod: paymentMethod === "Tunai" ? "cash" : "qris",
-      ...(paymentMethod === "Tunai" ? { cashReceivedRupiah: received } : { qrisConfirmedManually: true }),
+      ...(paymentMethod === "Tunai"
+        ? { cashReceivedRupiah: received }
+        : { qrisConfirmedManually: true }),
       items: items.map(({ product, quantity }) => ({
         productId: product.id,
         quantity,

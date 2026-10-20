@@ -29,16 +29,21 @@ export function AppShell({
   children,
   scrollRef,
   scrollable = true,
+  onNavigate,
 }: {
   active: RouteName;
   children: ReactNode | ((requestCashAction: () => void) => ReactNode);
   scrollRef?: RefObject<ScrollView | null>;
   scrollable?: boolean;
+  onNavigate?: (route: RouteName) => void;
 }) {
   const { user, logout } = useAuth();
-  const navigationItems = user?.role === "pegawai"
-    ? primaryNavigationItems.filter((item) => item.route === "Order" || item.route === "Queue")
-    : primaryNavigationItems;
+  const navigationItems =
+    user?.role === "pegawai"
+      ? primaryNavigationItems.filter(
+          (item) => item.route === "Order" || item.route === "Queue",
+        )
+      : primaryNavigationItems;
   const orders = useTransactionStore((state) => state.orders);
   const localQueueCount = orders.filter(
     (order) => order.status !== "completed",
@@ -52,7 +57,9 @@ export function AppShell({
   const cashRegisterOpen = register?.status === "open";
   const cashRegisterClosed = register?.status === "closed";
   const [showOpenCashDialog, setShowOpenCashDialog] = useState(false);
-  const [closingRegister, setClosingRegister] = useState<CashRegister | null>(null);
+  const [closingRegister, setClosingRegister] = useState<CashRegister | null>(
+    null,
+  );
   const [cashActionError, setCashActionError] = useState("");
   const [hasActiveQueue, setHasActiveQueue] = useState(false);
   const [isCheckingCash, setIsCheckingCash] = useState(false);
@@ -68,7 +75,8 @@ export function AppShell({
         return;
       }
       const currentRegister = result.data.data;
-      if (currentRegister.status === "open") setClosingRegister(currentRegister);
+      if (currentRegister.status === "open")
+        setClosingRegister(currentRegister);
       else setShowOpenCashDialog(true);
     } finally {
       setIsCheckingCash(false);
@@ -81,7 +89,10 @@ export function AppShell({
       setCashActionError("");
       toast.success("Kasir dibuka", "Kasir siap menerima pesanan.");
     } catch (error) {
-      if (error instanceof ApiError && error.code === "cash_register_already_open") {
+      if (
+        error instanceof ApiError &&
+        error.code === "cash_register_already_open"
+      ) {
         await cashRegisterQuery.refetch();
         setShowOpenCashDialog(false);
         return;
@@ -91,19 +102,27 @@ export function AppShell({
   };
   const handleCloseRegister = async (amount: number) => {
     if (!closingRegister?.id) {
-      setCashActionError("ID sesi kasir tidak tersedia. Muat ulang status kasir.");
+      setCashActionError(
+        "ID sesi kasir tidak tersedia. Muat ulang status kasir.",
+      );
       return;
     }
     setCashActionError("");
     setHasActiveQueue(false);
     try {
-      await cashMutations.closeRegister.mutateAsync({ sessionId: closingRegister.id, countedAmountRupiah: amount });
+      await cashMutations.closeRegister.mutateAsync({
+        sessionId: closingRegister.id,
+        countedAmountRupiah: amount,
+      });
       setClosingRegister(null);
       setCashActionError("");
       setHasActiveQueue(false);
       toast.success("Sesi kasir ditutup", "Rekap sesi tersimpan.");
     } catch (error) {
-      if (error instanceof ApiError && error.code === "active_orders_remaining") {
+      if (
+        error instanceof ApiError &&
+        error.code === "active_orders_remaining"
+      ) {
         setHasActiveQueue(true);
         void queueQuery.refetch();
       }
@@ -184,7 +203,9 @@ export function AppShell({
           cashRegisterClosed={cashRegisterClosed}
           username={user?.username ?? ""}
           role={user?.role ?? "pegawai"}
-          onLogout={() => { void logout(); }}
+          onLogout={() => {
+            void logout();
+          }}
           onRequestCashAction={handleCashAction}
         />
       </HStack>
@@ -197,7 +218,11 @@ export function AppShell({
                 return (
                   <Pressable
                     key={item.route}
-                    onPress={() => router.navigate(routePaths[item.route])}
+                    onPress={() =>
+                      onNavigate
+                        ? onNavigate(item.route)
+                        : router.navigate(routePaths[item.route])
+                    }
                     style={[styles.navItem, isActive && styles.navItemActive]}
                     accessibilityRole="button"
                     accessibilityLabel={`Buka ${item.label}`}
@@ -257,7 +282,9 @@ export function AppShell({
           active={activeNav}
           bottomInset={insets.bottom}
           queueCount={queueCount}
-          onNavigate={(route) => router.navigate(routePaths[route])}
+          onNavigate={(route) =>
+            onNavigate ? onNavigate(route) : router.navigate(routePaths[route])
+          }
           items={navigationItems}
         />
       ) : null}

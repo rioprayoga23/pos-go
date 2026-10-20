@@ -56,14 +56,15 @@ export function SegmentedFilterGroup<Value extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
             accessibilityLabel={
-              option.accessibilityLabel ?? accessibilityLabel + " " + option.label
+              option.accessibilityLabel ??
+              accessibilityLabel + " " + option.label
             }
           >
             {option.icon ? (
               <AppIcon
                 name={option.icon}
                 size={15}
-                color={selected ? colors.primary : color ?? colors.inkSubtle}
+                color={selected ? colors.primary : (color ?? colors.inkSubtle)}
               />
             ) : null}
             <Text

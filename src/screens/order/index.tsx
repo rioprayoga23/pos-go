@@ -1,16 +1,16 @@
-import { router } from 'expo-router';
-import { useIsFocused } from 'expo-router/react-navigation';
-import { HStack, VStack } from '@gluestack-ui/themed';
-import { useCallback } from 'react';
-import { useWindowDimensions } from 'react-native';
-import { AppShell } from '../../components/app-shell';
-import { LoadingScreen } from '../../components/loading-screen';
-import { QueryErrorNotice } from '../../components/query-error-notice';
-import { useCartStore } from '../../store/cartStore';
-import { CartPanel } from './components/CartPanel';
-import { MenuCatalog } from './components/MenuCatalog';
-import { styles } from './styles';
-import { useOrderCatalog } from './hooks/useOrderCatalog';
+import { router } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
+import { HStack, VStack } from "@gluestack-ui/themed";
+import { useCallback } from "react";
+import { useWindowDimensions } from "react-native";
+import { AppShell } from "../../components/app-shell";
+import { LoadingScreen } from "../../components/loading-screen";
+import { QueryErrorNotice } from "../../components/query-error-notice";
+import { useCartStore } from "../../store/cartStore";
+import { CartPanel } from "./components/CartPanel";
+import { MenuCatalog } from "./components/MenuCatalog";
+import { styles } from "./styles";
+import { useOrderCatalog } from "./hooks/useOrderCatalog";
 
 export function OrderScreen() {
   const { width } = useWindowDimensions();
@@ -37,45 +37,48 @@ export function OrderScreen() {
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const isWide = width >= 1024;
-  const handleCheckout = useCallback(
-    () => router.navigate('/payment'),
-    [],
-  );
+  const handleCheckout = useCallback(() => router.navigate("/payment"), []);
 
   return (
     <>
-    <AppShell active="Order" scrollable={!isWide}>
-      <VStack style={[styles.page, isWide && styles.pageFixed]}>
-        {isError ? <QueryErrorNotice onRetry={() => { void retry(); }} /> : null}
-        <HStack style={[styles.workspace, !isWide && styles.workspaceStack]}>
-          <MenuCatalog
-            categories={categories}
-            cardWidth={cardWidth}
-            mobile={mobile}
-            filteredProducts={filteredProducts}
-            onAddProduct={addItem}
-            onLayout={handleCatalogLayout}
-            onQueryChange={onQueryChange}
-            onSelectCategory={onSelectCategory}
-            recommendedOnly={recommendedOnly}
-            onToggleRecommended={onToggleRecommended}
-            query={query}
-            selectedCategory={selectedCategory}
-            wide={isWide}
-          />
-          <CartPanel
-            items={items}
-            onCheckout={handleCheckout}
-            onClear={clearCart}
-            onQuantity={setQuantity}
-            onRemove={removeItem}
-            compact={!isWide}
-            isScreenFocused={isFocused}
-          />
-        </HStack>
-      </VStack>
-    </AppShell>
-    <LoadingScreen visible={isLoading} />
+      <AppShell active="Order" scrollable={!isWide}>
+        <VStack style={[styles.page, isWide && styles.pageFixed]}>
+          {isError ? (
+            <QueryErrorNotice
+              onRetry={() => {
+                void retry();
+              }}
+            />
+          ) : null}
+          <HStack style={[styles.workspace, !isWide && styles.workspaceStack]}>
+            <MenuCatalog
+              categories={categories}
+              cardWidth={cardWidth}
+              mobile={mobile}
+              filteredProducts={filteredProducts}
+              onAddProduct={addItem}
+              onLayout={handleCatalogLayout}
+              onQueryChange={onQueryChange}
+              onSelectCategory={onSelectCategory}
+              recommendedOnly={recommendedOnly}
+              onToggleRecommended={onToggleRecommended}
+              query={query}
+              selectedCategory={selectedCategory}
+              wide={isWide}
+            />
+            <CartPanel
+              items={items}
+              onCheckout={handleCheckout}
+              onClear={clearCart}
+              onQuantity={setQuantity}
+              onRemove={removeItem}
+              compact={!isWide}
+              isScreenFocused={isFocused}
+            />
+          </HStack>
+        </VStack>
+      </AppShell>
+      <LoadingScreen visible={isLoading} />
     </>
   );
 }

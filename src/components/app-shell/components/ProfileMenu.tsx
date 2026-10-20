@@ -65,7 +65,9 @@ export function ProfileMenu({
           </HStack>
           <VStack style={styles.profileDropdownIdentity}>
             <Text style={styles.profileDropdownName}>{username}</Text>
-            <Text style={styles.profileDropdownRole}>{role === "owner" ? "Owner" : "Pegawai"}</Text>
+            <Text style={styles.profileDropdownRole}>
+              {role === "owner" ? "Owner" : "Pegawai"}
+            </Text>
           </VStack>
           {showClockInProfile ? (
             <VStack style={styles.profileDropdownClock}>

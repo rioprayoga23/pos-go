@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createStockItem,
   deleteStockItem,
   createStockAdjustment,
   createStockPurchase,
@@ -9,7 +10,7 @@ import {
   listStockMovements,
   updateStockItem,
   type StockAdjustmentDraft,
-  type StockItemDraft,
+  type StockItemPatch,
   type StockMovementFilters,
   type StockPurchaseDraft,
 } from "../api";
@@ -23,7 +24,8 @@ export const stockQueryKeys = {
   item: (id: string) => ["stock", "item", id] as const,
   allItems: ["stock", "all-items"] as const,
   movementsRoot: ["stock", "movements"] as const,
-  movements: (filters: StockMovementFilters) => ["stock", "movements", filters] as const,
+  movements: (filters: StockMovementFilters) =>
+    ["stock", "movements", filters] as const,
 };
 
 export function useStockItems(
@@ -56,7 +58,10 @@ export function useStockItemChoices(enabled: boolean) {
   });
 }
 
-export function useStockMovements(filters: StockMovementFilters, enabled = true) {
+export function useStockMovements(
+  filters: StockMovementFilters,
+  enabled = true,
+) {
   return useQuery({
     queryKey: stockQueryKeys.movements(filters),
     queryFn: ({ signal }) => listStockMovements(filters, signal),
@@ -68,41 +73,99 @@ export function useStockMovements(filters: StockMovementFilters, enabled = true)
 
 export function useStockMutations() {
   const queryClient = useQueryClient();
-  const refreshStock = async ({ itemId, includeMovements = true }: { itemId?: string; includeMovements?: boolean } = {}) => {
+  const refreshStock = async ({
+    itemId,
+    includeMovements = true,
+  }: { itemId?: string; includeMovements?: boolean } = {}) => {
     const invalidations = [
       queryClient.invalidateQueries({ queryKey: stockQueryKeys.itemsRoot }),
-      queryClient.invalidateQueries({ queryKey: stockQueryKeys.allItems, exact: true, refetchType: "none" }),
+      queryClient.invalidateQueries({
+        queryKey: stockQueryKeys.allItems,
+        exact: true,
+      }),
+      queryClient.invalidateQueries({ queryKey: ["menu", "products"] }),
+      queryClient.invalidateQueries({ queryKey: ["cashier", "inventory"] }),
     ];
     if (includeMovements) {
-      invalidations.push(queryClient.invalidateQueries({ queryKey: stockQueryKeys.movementsRoot }));
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: stockQueryKeys.movementsRoot,
+        }),
+      );
     }
     if (itemId) {
-      invalidations.push(queryClient.invalidateQueries({ queryKey: stockQueryKeys.item(itemId), exact: true, refetchType: "none" }));
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: stockQueryKeys.item(itemId),
+          exact: true,
+          refetchType: "none",
+        }),
+      );
     }
     await Promise.all(invalidations);
   };
   const refreshAfterPurchase = async () => {
     await refreshStock();
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: cashQueryKeys.outflowsRoot, refetchType: "none" }),
-      queryClient.invalidateQueries({ queryKey: cashQueryKeys.summaryRoot, refetchType: "none" }),
+      queryClient.invalidateQueries({
+        queryKey: cashQueryKeys.outflowsRoot,
+        refetchType: "none",
+      }),
+      queryClient.invalidateQueries({
+        queryKey: cashQueryKeys.summaryRoot,
+        refetchType: "none",
+      }),
     ]);
   };
 
   return {
     refreshStock,
+    createItem: useMutation({
+      mutationFn: createStockItem,
+      onSuccess: (item) =>
+        refreshStock({ itemId: item.id, includeMovements: false }),
+    }),
     updateItem: useMutation({
-      mutationFn: ({ id, draft }: { id: string; draft: StockItemDraft; refresh?: boolean }) => updateStockItem(id, draft),
-      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshStock({ itemId: variables.id, includeMovements: false }),
+      mutationFn: ({
+        id,
+        draft,
+      }: {
+        id: string;
+        draft: StockItemPatch;
+        refresh?: boolean;
+      }) => updateStockItem(id, draft),
+      onSuccess: (_, variables) =>
+        variables.refresh === false
+          ? undefined
+          : refreshStock({
+              itemId: variables.id,
+              includeMovements:
+                variables.draft.actualStock !== undefined ||
+                variables.draft.purchaseUnitPriceRupiah !== undefined,
+            }),
     }),
     deleteItem: useMutation({
       mutationFn: (id: string) => deleteStockItem(id),
-      onSuccess: (_, id) => refreshStock({ itemId: id, includeMovements: false }),
+      onSuccess: (_, id) =>
+        refreshStock({ itemId: id, includeMovements: false }),
     }),
-    purchase: useMutation({ mutationFn: (draft: StockPurchaseDraft) => createStockPurchase(draft), onSuccess: refreshAfterPurchase }),
+    purchase: useMutation({
+      mutationFn: (draft: StockPurchaseDraft) => createStockPurchase(draft),
+      onSuccess: refreshAfterPurchase,
+    }),
     adjust: useMutation({
-      mutationFn: ({ id, draft }: { id: string; draft: StockAdjustmentDraft; refresh?: boolean }) => createStockAdjustment(id, draft),
-      onSuccess: (_, variables) => variables.refresh === false ? undefined : refreshStock({ itemId: variables.id }),
+      mutationFn: ({
+        id,
+        draft,
+      }: {
+        id: string;
+        draft: StockAdjustmentDraft;
+        refresh?: boolean;
+      }) => createStockAdjustment(id, draft),
+      onSuccess: (_, variables) =>
+        variables.refresh === false
+          ? undefined
+          : refreshStock({ itemId: variables.id }),
     }),
   };
 }

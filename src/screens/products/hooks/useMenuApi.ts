@@ -32,7 +32,8 @@ export const menuQueryKeys = {
   categories: ["menu", "categories"] as const,
   recipes: ["menu", "recipes"] as const,
   products: ["menu", "products"] as const,
-  searchProducts: (search: string) => ["menu", "products", "search", search] as const,
+  searchProducts: (search: string) =>
+    ["menu", "products", "search", search] as const,
 };
 
 const menuCacheOptions = {
@@ -40,7 +41,12 @@ const menuCacheOptions = {
   gcTime: Infinity,
 } as const;
 
-const allCategory: Category = { id: "all", name: "Semua", count: 0, tint: colors.surfaceTint };
+const allCategory: Category = {
+  id: "all",
+  name: "Semua",
+  count: 0,
+  tint: colors.surfaceTint,
+};
 
 export function menuProductToProduct(
   product: MenuProductRecord,
@@ -51,11 +57,15 @@ export function menuProductToProduct(
   const recipe = recipes.find((entry) => entry.id === product.recipeId);
   return {
     ...product,
-    stock: recipe ? getAvailablePortions(stockItems, recipe, recipes) : product.stock,
+    stock: recipe
+      ? getAvailablePortions(stockItems, recipe, recipes)
+      : product.stock,
     accent: colors.cyan,
     icon: "cup-outline",
     image: product.photoUrl ? { uri: product.photoUrl } : undefined,
-    categoryName: categories.find((category) => category.id === product.categoryId)?.name ?? product.categoryName,
+    categoryName:
+      categories.find((category) => category.id === product.categoryId)?.name ??
+      product.categoryName,
   };
 }
 
@@ -94,20 +104,35 @@ export function useMenuData(enabled = true) {
   });
 
   const rawCategories = categoriesQuery.data;
-  const recipes = useMemo(() => canManageMenu
-    ? recipesQuery.data
-    : cashierInventoryQuery.data?.recipes.map((recipe) => ({ ...recipe, name: "" })),
-  [canManageMenu, recipesQuery.data, cashierInventoryQuery.data]);
+  const recipes = useMemo(
+    () =>
+      canManageMenu
+        ? recipesQuery.data
+        : cashierInventoryQuery.data?.recipes.map((recipe) => ({
+            ...recipe,
+            name: "",
+          })),
+    [canManageMenu, recipesQuery.data, cashierInventoryQuery.data],
+  );
   const productRecords = productsQuery.data;
-  const stockItems = useMemo(() => canManageMenu
-    ? stockQuery.data
-    : cashierInventoryQuery.data?.items.map((item) => ({
-        ...item, name: "", description: "", unit: "", avgPrice: 0,
-      })),
-  [canManageMenu, stockQuery.data, cashierInventoryQuery.data]);
+  const stockItems = useMemo(
+    () =>
+      canManageMenu
+        ? stockQuery.data
+        : cashierInventoryQuery.data?.items.map((item) => ({
+            ...item,
+            name: "",
+            description: "",
+            unit: "",
+            avgPrice: 0,
+          })),
+    [canManageMenu, stockQuery.data, cashierInventoryQuery.data],
+  );
   const categories = useMemo<Category[]>(() => {
     const counts = new Map<string, number>();
-    (productRecords ?? []).forEach((product) => counts.set(product.categoryId, (counts.get(product.categoryId) ?? 0) + 1));
+    (productRecords ?? []).forEach((product) =>
+      counts.set(product.categoryId, (counts.get(product.categoryId) ?? 0) + 1),
+    );
     return [
       { ...allCategory, count: productRecords?.length ?? 0 },
       ...(rawCategories ?? []).map((category) => ({
@@ -118,11 +143,28 @@ export function useMenuData(enabled = true) {
     ];
   }, [rawCategories, productRecords]);
   const products = useMemo(
-    () => (productRecords ?? []).map((product) => menuProductToProduct(product, categories, stockItems ?? [], recipes ?? [])),
+    () =>
+      (productRecords ?? []).map((product) =>
+        menuProductToProduct(
+          product,
+          categories,
+          stockItems ?? [],
+          recipes ?? [],
+        ),
+      ),
     [productRecords, categories, stockItems, recipes],
   );
-  const hasData = rawCategories !== undefined && productRecords !== undefined && recipes !== undefined && stockItems !== undefined;
-  const hasError = categoriesQuery.isError || productsQuery.isError || (canManageMenu ? (recipesQuery.isError || stockQuery.isError) : cashierInventoryQuery.isError);
+  const hasData =
+    rawCategories !== undefined &&
+    productRecords !== undefined &&
+    recipes !== undefined &&
+    stockItems !== undefined;
+  const hasError =
+    categoriesQuery.isError ||
+    productsQuery.isError ||
+    (canManageMenu
+      ? recipesQuery.isError || stockQuery.isError
+      : cashierInventoryQuery.isError);
 
   useEffect(() => {
     if (!hasData) {
@@ -145,66 +187,129 @@ export function useMenuData(enabled = true) {
     recipes: recipes ?? [],
     products,
     stockItems: stockItems ?? [],
-    isLoading: categoriesQuery.isFetching || productsQuery.isFetching || (canManageMenu ? (recipesQuery.isFetching || stockQuery.isFetching) : cashierInventoryQuery.isFetching),
-    isError: !hasData && hasError,
-    refetch: () => Promise.all([
-      ...(categoriesQuery.isError ? [categoriesQuery.refetch()] : []),
-      ...(canManageMenu && recipesQuery.isError ? [recipesQuery.refetch()] : []),
-      ...(productsQuery.isError ? [productsQuery.refetch()] : []),
-      ...(canManageMenu && stockQuery.isError ? [stockQuery.refetch()] : []),
-      ...(!canManageMenu && cashierInventoryQuery.isError ? [cashierInventoryQuery.refetch()] : []),
-    ]),
+    isLoading:
+      !hasData &&
+      (categoriesQuery.isFetching ||
+        productsQuery.isFetching ||
+        (canManageMenu
+          ? recipesQuery.isFetching || stockQuery.isFetching
+          : cashierInventoryQuery.isFetching)),
+    isError: hasError,
+    refetch: () =>
+      Promise.all([
+        ...(categoriesQuery.isError ? [categoriesQuery.refetch()] : []),
+        ...(canManageMenu && recipesQuery.isError
+          ? [recipesQuery.refetch()]
+          : []),
+        ...(productsQuery.isError ? [productsQuery.refetch()] : []),
+        ...(canManageMenu && stockQuery.isError ? [stockQuery.refetch()] : []),
+        ...(!canManageMenu && cashierInventoryQuery.isError
+          ? [cashierInventoryQuery.refetch()]
+          : []),
+      ]),
   };
 }
 
 export function useMenuMutations() {
   const queryClient = useQueryClient();
-  const refreshRecipes = () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.recipes });
-  const refreshProducts = () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.products });
+  const refreshRecipes = () =>
+    queryClient.invalidateQueries({ queryKey: menuQueryKeys.recipes });
+  const refreshProducts = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: menuQueryKeys.products }),
+      queryClient.invalidateQueries({ queryKey: menuQueryKeys.recipes }),
+      queryClient.invalidateQueries({ queryKey: ["menu", "detail"] }),
+      queryClient.invalidateQueries({ queryKey: ["cashier", "inventory"] }),
+    ]);
   const updateProductCache = (product: MenuProductRecord) => {
-    queryClient.setQueryData<MenuProductRecord[]>(menuQueryKeys.products, (current) => {
-      if (!current) return current;
-      const exists = current.some((entry) => entry.id === product.id);
-      return exists
-        ? current.map((entry) => entry.id === product.id ? product : entry)
-        : [...current, product];
-    });
+    queryClient.setQueryData<MenuProductRecord[]>(
+      menuQueryKeys.products,
+      (current) => {
+        if (!current) return current;
+        const exists = current.some((entry) => entry.id === product.id);
+        return exists
+          ? current.map((entry) => (entry.id === product.id ? product : entry))
+          : [...current, product];
+      },
+    );
   };
   return {
     refreshProducts,
-    createCategory: useMutation({ mutationFn: createMenuCategory, onSuccess: () => queryClient.invalidateQueries({ queryKey: menuQueryKeys.categories }) }),
-    createRecipe: useMutation({ mutationFn: createMenuRecipe, onSuccess: refreshRecipes }),
-    updateRecipe: useMutation({ mutationFn: ({ id, draft }: { id: string; draft: Pick<MenuRecipeDraft, "name" | "ingredients"> }) => updateMenuRecipe(id, draft), onSuccess: refreshRecipes }),
-    deleteRecipe: useMutation({ mutationFn: deleteMenuRecipe, onSuccess: refreshRecipes }),
+    createCategory: useMutation({
+      mutationFn: createMenuCategory,
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: menuQueryKeys.categories }),
+    }),
+    createRecipe: useMutation({
+      mutationFn: createMenuRecipe,
+      onSuccess: refreshRecipes,
+    }),
+    updateRecipe: useMutation({
+      mutationFn: ({
+        id,
+        draft,
+      }: {
+        id: string;
+        draft: Pick<MenuRecipeDraft, "name" | "ingredients">;
+      }) => updateMenuRecipe(id, draft),
+      onSuccess: refreshRecipes,
+    }),
+    deleteRecipe: useMutation({
+      mutationFn: deleteMenuRecipe,
+      onSuccess: refreshRecipes,
+    }),
     createProduct: useMutation({
-      mutationFn: ({ draft }: { draft: MenuProductDraft; refresh?: boolean }) => createMenuProduct(draft),
+      mutationFn: ({ draft }: { draft: MenuProductDraft; refresh?: boolean }) =>
+        createMenuProduct(draft),
       onSuccess: (product, variables) => {
         updateProductCache(product);
         return variables.refresh === false ? undefined : refreshProducts();
       },
     }),
     updateProduct: useMutation({
-      mutationFn: ({ id, draft }: { id: string; draft: MenuProductDraft; refresh?: boolean }) => updateMenuProduct(id, draft),
+      mutationFn: ({
+        id,
+        draft,
+      }: {
+        id: string;
+        draft: MenuProductDraft;
+        refresh?: boolean;
+      }) => updateMenuProduct(id, draft),
       onSuccess: (product, variables) => {
         updateProductCache(product);
         return variables.refresh === false ? undefined : refreshProducts();
       },
     }),
-    deleteProduct: useMutation({ mutationFn: deleteMenuProduct, onSuccess: refreshProducts }),
+    deleteProduct: useMutation({
+      mutationFn: deleteMenuProduct,
+      onSuccess: refreshProducts,
+    }),
     uploadPhoto: useMutation({
-      mutationFn: ({ id, photo }: { id: string; photo: Parameters<typeof uploadMenuProductPhoto>[1]; refresh?: boolean }) => uploadMenuProductPhoto(id, photo),
+      mutationFn: ({
+        id,
+        photo,
+      }: {
+        id: string;
+        photo: Parameters<typeof uploadMenuProductPhoto>[1];
+        refresh?: boolean;
+      }) => uploadMenuProductPhoto(id, photo),
       onSuccess: (product, variables) => {
         updateProductCache(product);
         return variables.refresh === false ? undefined : refreshProducts();
       },
     }),
     deletePhoto: useMutation({
-      mutationFn: ({ id }: { id: string; refresh?: boolean }) => deleteMenuProductPhoto(id),
+      mutationFn: ({ id }: { id: string; refresh?: boolean }) =>
+        deleteMenuProductPhoto(id),
       onSuccess: (_, variables) => {
-        queryClient.setQueryData<MenuProductRecord[]>(menuQueryKeys.products, (current) =>
-          current?.map((product) => product.id === variables.id
-            ? { ...product, photoUrl: undefined }
-            : product),
+        queryClient.setQueryData<MenuProductRecord[]>(
+          menuQueryKeys.products,
+          (current) =>
+            current?.map((product) =>
+              product.id === variables.id
+                ? { ...product, photoUrl: undefined }
+                : product,
+            ),
         );
         return variables.refresh === false ? undefined : refreshProducts();
       },

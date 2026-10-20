@@ -1,5 +1,5 @@
+import { useState } from "react";
 import {
-  HStack,
   Modal,
   ModalBackdrop,
   ModalBody,
@@ -7,308 +7,359 @@ import {
   ModalFooter,
   ModalHeader,
   Text,
-  VStack,
 } from "@gluestack-ui/themed";
-import { useState } from "react";
-import { ScrollView } from "react-native";
+import { colors } from "../../../theme";
+import { DropdownSelect } from "../../../components/dropdown-select";
 import {
-  DropdownSelect,
-  type DropdownOption,
-} from "../../../components/dropdown-select";
-import { useAppToast } from "../../../components/toast/useAppToast";
+  Field,
+  FormDialog,
+  NumberField,
+  ui,
+} from "../../../components/management";
 import {
-  AppIcon,
   AppInput,
   AppModalCloseButton,
-  AppPressable,
+  ModalFormActions,
 } from "../../../components/ui";
-import { colors } from "../../../theme";
+import type { StockItem } from "../../../types/stock";
 import {
-  digitsOnly,
-  decimalOnly,
-  formatDecimalInput,
+  formatCurrency,
   formatPreciseCurrency,
   formatQuantity,
-  formatThousands,
   isValidQuantity,
-  parseDecimal,
-  parseWholeNumber,
 } from "../../../utils/format";
-import type { StockItem } from "../../../types/stock";
-import type { StockItemDraft } from "../api";
-import { styles } from "../styles";
-import {
-  getPurchaseUnitPrice,
-  getStockUnitsPerPurchaseUnit,
-} from "../utils/stock";
-import {
-  calculateStockUnitsPerPurchaseUnit,
-  getPurchaseUnitOptions,
-} from "../utils/unitConversion";
+import type { StockAdjustmentDraft, StockItemDraft } from "../api";
+import { stockUnitOptions } from "../data/options";
+import { useFormSubmit } from "../../../hooks/useFormSubmit";
+import { calculateStockUnitsPerPurchaseUnit } from "../utils/unitConversion";
+import { stockUnitPriceChanged, toPurchaseUnitPrice } from "../utils/stockForm";
 
-export type StockItemFormDraft = StockItemDraft & {
-  actualStock: number;
-  purchaseUnitPriceRupiah: number;
-  purchaseUnitPriceEdited: boolean;
-  note: string;
-};
+type SettingsDraft = StockItemDraft & StockAdjustmentDraft;
 
-type Props = {
-  item: StockItem;
-  height: number;
+export function StockItemModal({
+  item,
+  onClose,
+  onSubmit,
+}: {
+  item?: StockItem;
   onClose: () => void;
-  onSubmit: (draft: StockItemFormDraft) => Promise<void>;
-};
-
-export function StockItemModal({ item, height, onClose, onSubmit }: Props) {
-  const [name, setName] = useState(item.name);
-  const [description, setDescription] = useState(item.description);
-  const unit = item.unit;
-  const [purchaseUnit, setPurchaseUnit] = useState(item.purchaseUnit ?? item.unit);
-  const [actualStockInput, setActualStockInput] = useState(String(item.stock));
-  const [purchaseUnitPriceInput, setPurchaseUnitPriceInput] = useState(() =>
-    String(Math.round(getPurchaseUnitPrice(item))),
-  );
-  const [purchaseUnitPriceEdited, setPurchaseUnitPriceEdited] = useState(false);
+  onSubmit: (
+    draft: SettingsDraft,
+    opening?: { quantity: number; totalCost: number },
+  ) => Promise<void>;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const description = item?.description ?? "";
+  const [unit, setUnit] = useState(item?.unit ?? "");
+  const purchaseUnit = item?.purchaseUnit ?? unit;
+  const [actualStock, setActualStock] = useState(String(item?.stock ?? ""));
+  const [priceDraft, setPriceDraft] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const toast = useAppToast();
-  const actualStock = parseDecimal(actualStockInput);
-  const purchaseUnitPrice = parseWholeNumber(purchaseUnitPriceInput);
-  const currentPurchaseUnitPrice = Math.round(getPurchaseUnitPrice(item));
-  const stockUnitsPerPurchaseUnit = calculateStockUnitsPerPurchaseUnit(purchaseUnit, unit) ?? 0;
-  const stockChanged =
-    actualStockInput.trim() !== "" && actualStock !== item.stock;
-  const priceChanged =
-    purchaseUnitPriceInput.trim() !== "" &&
-    purchaseUnitPrice !== currentPurchaseUnitPrice;
-  const metadataChanged =
-    name.trim() !== item.name ||
-    description.trim() !== item.description ||
-    unit !== item.unit ||
-    purchaseUnit !== (item.purchaseUnit ?? item.unit) ||
-    stockUnitsPerPurchaseUnit !== getStockUnitsPerPurchaseUnit(item);
-  const correctionDelta = Math.round((actualStock - item.stock) * 1_000_000_000) / 1_000_000_000;
-  const pricePreview = stockUnitsPerPurchaseUnit > 0
-    ? purchaseUnitPrice / stockUnitsPerPurchaseUnit
-    : 0;
-  const purchaseUnitOptions: DropdownOption<string>[] = getPurchaseUnitOptions(unit).map((option) => ({
-    value: option.value,
-    label: option.label,
-  }));
-  const canSubmit = Boolean(
-    name.trim() &&
-    unit &&
-    purchaseUnit &&
-    stockUnitsPerPurchaseUnit > 0 &&
-    purchaseUnitPriceInput.trim() &&
-    (metadataChanged || stockChanged || priceChanged) &&
-    isValidQuantity(actualStock) &&
-    (!stockChanged || note.trim()),
+  const [openingQuantity, setOpeningQuantity] = useState("");
+  const [openingCost, setOpeningCost] = useState("");
+  const [confirmingSave, setConfirmingSave] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const form = useFormSubmit();
+  const conversion =
+    calculateStockUnitsPerPurchaseUnit(purchaseUnit, unit) ??
+    (item && unit === item.unit && purchaseUnit === item.purchaseUnit
+      ? item.stockUnitsPerPurchaseUnit
+      : null);
+  const price =
+    priceDraft ?? (item?.avgPrice ? String(Math.round(item.avgPrice)) : "");
+  const purchaseUnitPrice = conversion
+    ? toPurchaseUnitPrice(price, conversion)
+    : null;
+  const quantity = Number(openingQuantity);
+  const hasOpening = !item && quantity > 0;
+  const validOpening =
+    Boolean(item) ||
+    (Number.isSafeInteger(quantity) && isValidQuantity(quantity));
+  const validOpeningCost = hasOpening
+    ? Number.isSafeInteger(Number(openingCost)) && Number(openingCost) > 0
+    : openingCost.trim() === "";
+  const validName =
+    name.trim().length > 0 &&
+    new TextEncoder().encode(name.trim()).length <= 120;
+  const validStock =
+    !item ||
+    (actualStock.trim() !== "" && isValidQuantity(Number(actualStock)));
+  const validPrice =
+    priceDraft === null ||
+    (price.trim() !== "" &&
+      Number.isSafeInteger(Number(price)) &&
+      Number(price) >= 0 &&
+      purchaseUnitPrice !== null);
+  const stockChanged = Boolean(
+    item && validStock && Number(actualStock) !== item.stock,
   );
+  const priceChanged = Boolean(
+    item && validPrice && stockUnitPriceChanged(priceDraft, item.avgPrice),
+  );
+  const correcting = stockChanged || priceChanged;
+  const changed = !item || name.trim() !== item.name || correcting;
 
-  const handleSubmit = async () => {
-    if (!canSubmit || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await onSubmit({
-        name: name.trim(),
-        description: description.trim(),
-        unit,
-        purchaseUnit,
-        stockUnitsPerPurchaseUnit,
-        actualStock: actualStockInput.trim() ? actualStock : item.stock,
-        purchaseUnitPriceRupiah: purchaseUnitPrice,
-        purchaseUnitPriceEdited,
-        note: note.trim(),
-      });
-    } catch (error) {
-      toast.error("Bahan gagal disimpan", error instanceof Error ? error.message : "Coba lagi.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const validNote =
+    (!correcting || note.trim().length > 0) &&
+    new TextEncoder().encode(note.trim()).length <= 500;
+  const submit = () => {
+    if (!conversion) return;
+    const validConversion = conversion;
+    void form.submit(() =>
+      onSubmit(
+        {
+          name: name.trim(),
+          description: description.trim(),
+          unit,
+          purchaseUnit,
+          stockUnitsPerPurchaseUnit: validConversion,
+          ...(stockChanged ? { actualStock: Number(actualStock) } : {}),
+          ...(priceChanged && purchaseUnitPrice !== null
+            ? {
+                purchaseUnitPriceRupiah: purchaseUnitPrice,
+              }
+            : {}),
+          ...(correcting ? { note: note.trim() } : {}),
+        },
+        hasOpening ? { quantity, totalCost: Number(openingCost) } : undefined,
+      ),
+    );
   };
 
+  const save = () => {
+    setAttempted(true);
+    if (
+      !validName ||
+      !unit ||
+      !conversion ||
+      !validOpening ||
+      !validOpeningCost ||
+      !validStock ||
+      !validPrice ||
+      !validNote
+    )
+      return;
+    if (!item) {
+      setConfirmingSave(true);
+      return;
+    }
+    submit();
+  };
   return (
-    <Modal isOpen onClose={onClose} size="md">
-      <ModalBackdrop />
-      <ModalContent
-        style={[styles.modal, { maxHeight: Math.max(500, height - 28) }]}
-      >
-        <ModalHeader style={styles.modalHeader}>
-          <HStack style={styles.modalIcon}>
-            <AppIcon name="pencil-outline" size={18} color={colors.primary} />
-          </HStack>
-          <VStack style={styles.modalHeading}>
-            <Text style={styles.modalTitle}>Ubah Bahan</Text>
-            <Text style={styles.modalSubtitle}>
-              Atur bahan, stok, dan harga modal
-            </Text>
-          </VStack>
-          <AppModalCloseButton
-            onPress={onClose}
-            accessibilityLabel="Tutup form bahan"
+    <>
+      <FormDialog
+        title={item ? "Edit Bahan" : "Bahan Baru"}
+        onClose={onClose}
+        busy={form.busy}
+        footer={
+          <ModalFormActions
+            primaryLabel={item ? "Simpan Perubahan" : "Simpan Bahan"}
+            onPrimary={save}
+            primaryBusy={form.busy}
+            primaryDisabled={!changed}
+            onSecondary={onClose}
+            secondaryDisabled={form.busy}
           />
-        </ModalHeader>
-
-        <ModalBody style={styles.modalBody}>
-          <ScrollView
-            style={styles.modalScroll}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.modalForm}
-          >
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Nama bahan</Text>
-              <AppInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Contoh: Air Minum"
-                autoCapitalize="words"
-                style={styles.formInput}
-                inputStyle={styles.formInputText}
-                accessibilityLabel="Nama bahan"
+        }
+      >
+        <Field
+          label="Nama bahan"
+          required
+          error={
+            attempted && !validName
+              ? "Isi nama bahan, maksimal 120 karakter."
+              : undefined
+          }
+        >
+          <AppInput
+            value={name}
+            onChangeText={setName}
+            accessibilityLabel="Nama bahan"
+            placeholder="Contoh: Susu segar"
+            autoCapitalize="words"
+          />
+        </Field>
+        <Field
+          label="Satuan stok"
+          required
+          error={attempted && !unit ? "Pilih satuan stok." : undefined}
+        >
+          {item ? (
+            <AppInput
+              value={unit}
+              onChangeText={() => undefined}
+              editable={false}
+              accessibilityLabel="Satuan stok"
+            />
+          ) : (
+            <DropdownSelect
+              options={[...stockUnitOptions]}
+              value={unit}
+              onChange={(value) => {
+                setUnit(value);
+              }}
+              placeholder="Pilih satuan stok"
+              accessibilityLabel="Satuan stok"
+            />
+          )}
+        </Field>
+        {item ? (
+          <>
+            <Field
+              label="Stok fisik saat ini"
+              required
+              hint={
+                stockChanged
+                  ? `Selisih ${Number(actualStock) > item.stock ? "+" : ""}${formatQuantity(Number(actualStock) - item.stock)} ${unit} dari catatan ${formatQuantity(item.stock)} ${unit}.`
+                  : "Ubah jika hasil hitung fisik berbeda dari catatan."
+              }
+              error={
+                attempted && !validStock
+                  ? "Isi jumlah 0 atau lebih, maksimal 9 angka desimal."
+                  : undefined
+              }
+            >
+              <NumberField
+                label="Stok fisik saat ini"
+                value={actualStock}
+                onChange={setActualStock}
+                unit={unit}
               />
-            </VStack>
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Deskripsi</Text>
-              <AppInput
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Keterangan bahan (opsional)"
-                style={styles.formInput}
-                inputStyle={styles.formInputText}
-                accessibilityLabel="Deskripsi bahan"
+            </Field>
+            <Field
+              label={`Harga modal per ${unit || "satuan stok"}`}
+              hint={
+                item.avgPrice > 0
+                  ? `Saat ini ${formatPreciseCurrency(item.avgPrice)} / ${unit}. Ubah hanya untuk mengoreksi harga modal.`
+                  : "Harga modal per satuan stok belum tercatat. Isi untuk menetapkannya."
+              }
+              error={
+                attempted && !validPrice
+                  ? `Isi harga modal yang menghasilkan rupiah bulat per ${purchaseUnit || "satuan pembelian"}.`
+                  : undefined
+              }
+            >
+              <NumberField
+                label="Harga modal"
+                value={price}
+                onChange={setPriceDraft}
+                money
               />
-            </VStack>
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Satuan stok</Text>
-              <AppInput
-                value={unit}
-                onChangeText={() => undefined}
-                editable={false}
-                accessibilityLabel="Satuan stok"
-              />
-              <Text style={styles.formHint}>
-                Takaran resep mengikuti satuan pembelian dan dikonversi otomatis ke satuan stok ini.
-              </Text>
-            </VStack>
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Satuan pembelian</Text>
-              <DropdownSelect
-                options={purchaseUnitOptions}
-                value={purchaseUnit}
-                onChange={(nextPurchaseUnit) => {
-                  const currentFactor = calculateStockUnitsPerPurchaseUnit(purchaseUnit, unit);
-                  const nextFactor = calculateStockUnitsPerPurchaseUnit(nextPurchaseUnit, unit);
-                  const enteredPrice = parseWholeNumber(purchaseUnitPriceInput);
-                  if (currentFactor && nextFactor && enteredPrice > 0) {
-                    setPurchaseUnitPriceInput(
-                      String(Math.round((enteredPrice / currentFactor) * nextFactor)),
-                    );
-                  }
-                  setPurchaseUnit(nextPurchaseUnit);
-                }}
-                placeholder="Pilih satuan pembelian"
-                accessibilityLabel="Pilih satuan pembelian"
-              />
-              {stockUnitsPerPurchaseUnit > 0 ? (
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Konversi otomatis</Text>
-                  <AppInput
-                    value={`1 ${purchaseUnit} = ${formatQuantity(stockUnitsPerPurchaseUnit)} ${unit}`}
-                    onChangeText={() => undefined}
-                    editable={false}
-                    accessibilityLabel="Konversi satuan otomatis"
-                  />
-                </VStack>
-              ) : null}
-            </VStack>
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>Stok fisik saat ini</Text>
-              <AppInput
-                value={formatDecimalInput(actualStockInput)}
-                onChangeText={(value) =>
-                  setActualStockInput(decimalOnly(value))
+            </Field>
+            {correcting ? (
+              <Field
+                label="Alasan perubahan"
+                required
+                error={
+                  attempted && !validNote
+                    ? "Isi alasan singkat, maksimal 500 karakter."
+                    : undefined
                 }
-                keyboardType="decimal-pad"
-                style={styles.formInput}
-                inputStyle={styles.formInputText}
-                trailing={<Text style={styles.inputPrefix}>{unit}</Text>}
-                accessibilityLabel={`Stok fisik saat ini dalam ${unit}`}
-              />
-            </VStack>
-            {stockChanged ? (
-              <>
-                <VStack style={styles.summaryBox}>
-                  <HStack style={styles.summaryLine}>
-                    <Text style={styles.summaryLineLabel}>Selisih stok</Text>
-                    <Text
-                      style={[
-                        styles.summaryLineValue,
-                        correctionDelta < 0 && styles.textWarning,
-                      ]}
-                    >
-                      {correctionDelta > 0
-                        ? "+"
-                        : correctionDelta < 0
-                          ? "−"
-                          : ""}
-                      {formatQuantity(Math.abs(correctionDelta))} {unit}
-                    </Text>
-                  </HStack>
-                </VStack>
-                <VStack style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Catatan (wajib)</Text>
-                  <AppInput
-                    value={note}
-                    onChangeText={setNote}
-                    placeholder="Tuliskan alasan perubahan stok"
-                    style={styles.formInput}
-                    inputStyle={styles.formInputText}
-                    accessibilityLabel="Catatan wajib untuk perubahan stok"
-                  />
-                </VStack>
-              </>
+                hint="Koreksi dicatat di riwayat stok; tidak mencatat pembelian atau kas keluar."
+              >
+                <AppInput
+                  value={note}
+                  onChangeText={setNote}
+                  accessibilityLabel="Alasan perubahan"
+                  placeholder="Contoh: Penyesuaian setelah hitung fisik"
+                />
+              </Field>
             ) : null}
-            <VStack style={styles.formGroup}>
-              <Text style={styles.formLabel}>
-                Harga modal per {purchaseUnit}
-              </Text>
-              <AppInput
-                value={formatThousands(purchaseUnitPriceInput)}
-                onChangeText={(value) => {
-                  setPurchaseUnitPriceInput(digitsOnly(value));
-                  setPurchaseUnitPriceEdited(true);
-                }}
-                placeholder="0"
-                keyboardType="number-pad"
-                style={styles.formInput}
-                inputStyle={styles.formInputText}
-                leading={<Text style={styles.inputPrefix}>Rp</Text>}
-                accessibilityLabel={`Harga modal per ${purchaseUnit}`}
+          </>
+        ) : (
+          <>
+            <Field
+              label="Stok awal"
+              error={
+                attempted && !validOpening
+                  ? "Isi jumlah pembelian bulat 0 atau lebih."
+                  : undefined
+              }
+            >
+              <NumberField
+                label="Stok awal"
+                value={openingQuantity}
+                onChange={setOpeningQuantity}
+                unit={unit || undefined}
+                whole
               />
-              <Text style={styles.formHint}>
-                Setara {formatPreciseCurrency(pricePreview)} / {unit}
+            </Field>
+            <Field
+              label="Total biaya stok awal"
+              required={hasOpening}
+              error={
+                attempted && !validOpeningCost
+                  ? hasOpening
+                    ? "Isi total biaya lebih dari Rp0."
+                    : "Isi stok awal agar total biaya dapat dicatat."
+                  : undefined
+              }
+            >
+              <NumberField
+                label="Total biaya stok awal"
+                value={openingCost}
+                onChange={setOpeningCost}
+                money
+              />
+            </Field>
+          </>
+        )}
+        {form.error ? (
+          <Text style={ui.error} accessibilityRole="alert">
+            {form.error}
+          </Text>
+        ) : null}
+      </FormDialog>
+      <Modal
+        isOpen={confirmingSave}
+        onClose={() => setConfirmingSave(false)}
+        size="md"
+      >
+        <ModalBackdrop />
+        <ModalContent style={[ui.dialog, { width: "100%", maxWidth: 440 }]}>
+          <ModalHeader style={ui.dialogHeader}>
+            <Text style={ui.heading}>Konfirmasi harga</Text>
+            <AppModalCloseButton
+              onPress={() => setConfirmingSave(false)}
+              accessibilityLabel="Tutup konfirmasi harga"
+            />
+          </ModalHeader>
+          <ModalBody style={ui.dialogBody}>
+            {hasOpening ? (
+              <>
+                <Text style={ui.muted}>
+                  Pastikan total biaya pembelian awal ini sudah sesuai.
+                </Text>
+                <Text style={[ui.total, { color: colors.ink }]}>
+                  {formatCurrency(Number(openingCost))}
+                </Text>
+                <Text style={ui.muted}>
+                  Nilai ini dicatat sebagai total biaya untuk{" "}
+                  {formatQuantity(quantity)} {unit} stok awal.
+                </Text>
+              </>
+            ) : (
+              <Text style={ui.muted}>
+                Bahan ini akan disimpan tanpa stok awal dan tanpa biaya
+                pembelian.
               </Text>
-            </VStack>
-          </ScrollView>
-        </ModalBody>
-
-        <ModalFooter style={styles.modalFooter}>
-          <AppPressable
-            onPress={handleSubmit}
-            disabled={!canSubmit || isSubmitting}
-            style={[
-              styles.saveButton,
-              (!canSubmit || isSubmitting) && styles.saveButtonDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canSubmit || isSubmitting }}
-          >
-            <Text style={styles.saveButtonText}>Simpan Perubahan</Text>
-          </AppPressable>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+            )}
+          </ModalBody>
+          <ModalFooter style={ui.dialogFooter}>
+            <ModalFormActions
+              primaryLabel="Ya, simpan bahan"
+              onPrimary={() => {
+                setConfirmingSave(false);
+                submit();
+              }}
+              primaryBusy={form.busy}
+              onSecondary={() => setConfirmingSave(false)}
+              secondaryLabel="Periksa kembali"
+              secondaryDisabled={form.busy}
+            />
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 }

@@ -12,7 +12,12 @@ import {
 } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { AppIcon, AppModalCloseButton, AppPressable as Pressable } from "../ui";
+import {
+  AppIcon,
+  AppModalCloseButton,
+  AppPressable as Pressable,
+  ModalFormActions,
+} from "../ui";
 import { colors } from "../../theme";
 import { dateFromKey, formatDateKey, getLocalDateKey } from "../../utils/date";
 import type { DateRange } from "../../types/dateRange";
@@ -74,7 +79,9 @@ export function DateRangePickerModal({
     return new Date(date.getFullYear(), date.getMonth(), 1, 12);
   });
   const [calendarView, setCalendarView] = useState<CalendarView>("calendar");
-  const [pickerYear, setPickerYear] = useState(() => visibleMonth.getFullYear());
+  const [pickerYear, setPickerYear] = useState(() =>
+    visibleMonth.getFullYear(),
+  );
   const monthDays = getMonthDays(visibleMonth);
   const monthLabel = new Intl.DateTimeFormat("id-ID", {
     month: "long",
@@ -142,7 +149,9 @@ export function DateRangePickerModal({
         <ModalHeader style={styles.header}>
           <VStack style={styles.heading}>
             <Text style={styles.title}>Pilih Rentang Tanggal</Text>
-            <Text style={styles.subtitle}>Pilih tanggal awal dan akhir transaksi.</Text>
+            <Text style={styles.subtitle}>
+              Pilih tanggal awal dan akhir transaksi.
+            </Text>
           </VStack>
           <AppModalCloseButton
             onPress={onClose}
@@ -224,9 +233,9 @@ export function DateRangePickerModal({
                     const isSelected = isStart || isEnd;
                     const isInRange = Boolean(
                       draftRange.startDate &&
-                        draftRange.endDate &&
-                        dateKey > draftRange.startDate &&
-                        dateKey < draftRange.endDate,
+                      draftRange.endDate &&
+                      dateKey > draftRange.startDate &&
+                      dateKey < draftRange.endDate,
                     );
                     const dayNumber = dateFromKey(dateKey).getDate();
 
@@ -308,8 +317,7 @@ export function DateRangePickerModal({
                             <Text
                               style={[
                                 styles.selectorOptionText,
-                                isSelected &&
-                                  styles.selectorOptionTextSelected,
+                                isSelected && styles.selectorOptionTextSelected,
                               ]}
                             >
                               {year}
@@ -341,8 +349,7 @@ export function DateRangePickerModal({
                             <Text
                               style={[
                                 styles.selectorOptionText,
-                                isSelected &&
-                                  styles.selectorOptionTextSelected,
+                                isSelected && styles.selectorOptionTextSelected,
                               ]}
                             >
                               {label}
@@ -359,18 +366,12 @@ export function DateRangePickerModal({
         </ModalBody>
 
         <ModalFooter style={styles.footer}>
-          <Pressable
-            onPress={applyRange}
-            disabled={!hasCompleteRange}
-            style={[
-              styles.applyButton,
-              !hasCompleteRange && styles.applyButtonDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !hasCompleteRange }}
-          >
-            <Text style={styles.applyText}>Terapkan</Text>
-          </Pressable>
+          <ModalFormActions
+            primaryLabel="Terapkan"
+            onPrimary={applyRange}
+            primaryDisabled={!hasCompleteRange}
+            onSecondary={onClose}
+          />
         </ModalFooter>
       </ModalContent>
     </Modal>

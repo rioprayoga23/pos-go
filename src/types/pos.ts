@@ -1,8 +1,8 @@
-import { ImageSourcePropType } from 'react-native';
+import { ImageSourcePropType } from "react-native";
 
-export type PaymentMethod = 'QRIS' | 'Tunai';
-export type OrderStatus = 'waiting' | 'preparing' | 'ready' | 'completed';
-export type OrderType = 'Dine in' | 'Take away';
+export type PaymentMethod = "QRIS" | "Tunai";
+export type OrderStatus = "waiting" | "preparing" | "ready" | "completed";
+export type OrderType = "Dine in" | "Take away";
 
 export type Category = {
   id: string;

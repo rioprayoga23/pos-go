@@ -1,8 +1,7 @@
 import type { StockItem } from "../types";
 
-export const isLowStock = (item: StockItem) => item.stock <= 12;
-
-export const getPurchaseUnit = (item: StockItem) => item.purchaseUnit ?? item.unit;
+export const getPurchaseUnit = (item: StockItem) =>
+  item.purchaseUnit ?? item.unit;
 
 export const getStockUnitsPerPurchaseUnit = (item: StockItem) => {
   const conversion = item.stockUnitsPerPurchaseUnit ?? 1;

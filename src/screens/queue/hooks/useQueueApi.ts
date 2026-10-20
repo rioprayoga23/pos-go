@@ -16,16 +16,25 @@ function saveQueueOrder(
   queryClient: ReturnType<typeof useQueryClient>,
   order: QueueOrder,
 ) {
-  queryClient.setQueryData<ApiEnvelope<QueueOrder[]>>(queueQueryKeys.active, (current) => {
-    if (!current) return current;
-    const data = order.status === "completed"
-      ? current.data.filter((entry) => entry.id !== order.id)
-      : current.data.some((entry) => entry.id === order.id)
-        ? current.data.map((entry) => entry.id === order.id ? order : entry)
-        : [...current.data, order];
-    data.sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
-    return { ...current, data };
-  });
+  queryClient.setQueryData<ApiEnvelope<QueueOrder[]>>(
+    queueQueryKeys.active,
+    (current) => {
+      if (!current) return current;
+      const data =
+        order.status === "completed"
+          ? current.data.filter((entry) => entry.id !== order.id)
+          : current.data.some((entry) => entry.id === order.id)
+            ? current.data.map((entry) =>
+                entry.id === order.id ? order : entry,
+              )
+            : [...current.data, order];
+      data.sort(
+        (left, right) =>
+          Date.parse(left.createdAt) - Date.parse(right.createdAt),
+      );
+      return { ...current, data };
+    },
+  );
 }
 
 export function useQueueOrders(enabled: boolean) {
@@ -48,7 +57,11 @@ export function useQueueMutations() {
     onSuccess: (order) => saveQueueOrder(queryClient, order),
   });
   const itemPrepared = useMutation({
-    mutationFn: ({ orderId, itemId, isPrepared }: {
+    mutationFn: ({
+      orderId,
+      itemId,
+      isPrepared,
+    }: {
       orderId: string;
       itemId: string;
       isPrepared: boolean;

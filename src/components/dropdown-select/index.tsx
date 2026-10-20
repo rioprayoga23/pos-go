@@ -52,7 +52,8 @@ export function DropdownSelect<Value extends string>({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [triggerWidth, setTriggerWidth] = useState(0);
-  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  const { width: viewportWidth, height: viewportHeight } =
+    useWindowDimensions();
   const selected = options.find((option) => option.value === value);
   const label = selected?.label ?? (value || placeholder);
   const showSearch = true;
@@ -138,7 +139,10 @@ export function DropdownSelect<Value extends string>({
     >
       <PopoverBackdrop style={styles.backdrop} />
       <PopoverContent
-        style={[styles.popup, { width: popupWidth || availableWidth, maxHeight: popupMaxHeight }]}
+        style={[
+          styles.popup,
+          { width: popupWidth || availableWidth, maxHeight: popupMaxHeight },
+        ]}
       >
         <PopoverBody style={styles.popupBody}>
           {showSearch ? (
@@ -149,7 +153,9 @@ export function DropdownSelect<Value extends string>({
               accessibilityLabel="Cari pilihan"
               variant="search"
               style={styles.searchInput}
-              leading={<AppIcon name="magnify" size={16} color={colors.inkSubtle} />}
+              leading={
+                <AppIcon name="magnify" size={16} color={colors.inkSubtle} />
+              }
             />
           ) : null}
           <ScrollView
@@ -159,40 +165,47 @@ export function DropdownSelect<Value extends string>({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={filteredOptions.length > 6}
           >
-            {filteredOptions.length ? filteredOptions.map((option) => {
-              const isSelected = option.value === value;
-              return (
-                <AppPressable
-                  key={option.value}
-                  onPress={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                    setQuery("");
-                  }}
-                  style={[styles.option, isSelected && styles.optionSelected]}
-                  accessibilityRole="button"
-                  accessibilityLabel={option.accessibilityLabel ?? option.label}
-                  accessibilityState={{ selected: isSelected }}
-                >
-                  <Text
-                    style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}
-                    numberOfLines={1}
+            {filteredOptions.length ? (
+              filteredOptions.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <AppPressable
+                    key={option.value}
+                    onPress={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                      setQuery("");
+                    }}
+                    style={[styles.option, isSelected && styles.optionSelected]}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      option.accessibilityLabel ?? option.label
+                    }
+                    accessibilityState={{ selected: isSelected }}
                   >
-                    {option.label}
-                  </Text>
-                  {option.detail ? (
-                    <Text style={styles.optionDetail} numberOfLines={1}>
-                      {option.detail}
+                    <Text
+                      style={[
+                        styles.optionLabel,
+                        isSelected && styles.optionLabelSelected,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {option.label}
                     </Text>
-                  ) : null}
-                  <AppIcon
-                    name={isSelected ? "check-circle" : "circle-outline"}
-                    size={18}
-                    color={isSelected ? colors.primary : colors.inkSubtle}
-                  />
-                </AppPressable>
-              );
-            }) : (
+                    {option.detail ? (
+                      <Text style={styles.optionDetail} numberOfLines={1}>
+                        {option.detail}
+                      </Text>
+                    ) : null}
+                    <AppIcon
+                      name={isSelected ? "check-circle" : "circle-outline"}
+                      size={18}
+                      color={isSelected ? colors.primary : colors.inkSubtle}
+                    />
+                  </AppPressable>
+                );
+              })
+            ) : (
               <Text style={styles.emptyResult}>
                 {normalizedQuery ? "Tidak ada hasil" : "Belum ada pilihan"}
               </Text>

@@ -43,7 +43,8 @@ export const MenuCatalog = memo(function MenuCatalog({
   selectedCategory,
   wide,
 }: Props) {
-  const hasAnyProducts = categories.find((category) => category.id === "all")?.count ?? 0;
+  const hasAnyProducts =
+    categories.find((category) => category.id === "all")?.count ?? 0;
   const menuContent =
     filteredProducts.length === 0 ? (
       <Panel>
@@ -163,17 +164,29 @@ export const MenuCatalog = memo(function MenuCatalog({
           </Input>
           <Pressable
             onPress={onToggleRecommended}
-            style={[styles.recommendationFilter, recommendedOnly && styles.recommendationFilterActive]}
+            style={[
+              styles.recommendationFilter,
+              recommendedOnly && styles.recommendationFilterActive,
+            ]}
             accessibilityRole="button"
             accessibilityState={{ selected: recommendedOnly }}
-            accessibilityLabel={recommendedOnly ? "Matikan filter Rekomendasi" : "Filter Rekomendasi"}
+            accessibilityLabel={
+              recommendedOnly
+                ? "Matikan filter Rekomendasi"
+                : "Filter Rekomendasi"
+            }
           >
             <AppIcon
               name="star"
               size={17}
               color={recommendedOnly ? colors.white : colors.primary}
             />
-            <Text style={[styles.recommendationFilterText, recommendedOnly && styles.recommendationFilterTextActive]}>
+            <Text
+              style={[
+                styles.recommendationFilterText,
+                recommendedOnly && styles.recommendationFilterTextActive,
+              ]}
+            >
               Rekomendasi
             </Text>
           </Pressable>
@@ -227,7 +240,10 @@ const ProductCard = memo(function ProductCard({
         {product.image ? (
           <Image
             source={product.image}
-            style={[styles.productImage, disabled && styles.productImageDisabled]}
+            style={[
+              styles.productImage,
+              disabled && styles.productImageDisabled,
+            ]}
             resizeMode="cover"
           />
         ) : (
@@ -248,18 +264,14 @@ const ProductCard = memo(function ProductCard({
             />
           </View>
         )}
-        <View style={[styles.stockBadge, disabled && styles.stockBadgeDisabled]}>
+        <View
+          style={[styles.stockBadge, disabled && styles.stockBadgeDisabled]}
+        >
           <View
-            style={[
-              styles.stockDot,
-              disabled && styles.stockDotDisabled,
-            ]}
+            style={[styles.stockDot, disabled && styles.stockDotDisabled]}
           />
           <Text
-            style={[
-              styles.stockText,
-              disabled && styles.stockTextDisabled,
-            ]}
+            style={[styles.stockText, disabled && styles.stockTextDisabled]}
           >
             {product.stock <= 0
               ? "Habis"
@@ -281,14 +293,22 @@ const ProductCard = memo(function ProductCard({
         </Text>
         {product.description ? (
           <Text
-            style={[styles.productDescription, disabled && styles.productTextDisabled]}
+            style={[
+              styles.productDescription,
+              disabled && styles.productTextDisabled,
+            ]}
             numberOfLines={1}
           >
             {product.description}
           </Text>
         ) : null}
         <HStack style={styles.productBottom}>
-          <Text style={[styles.productPrice, disabled && styles.productTextDisabled]}>
+          <Text
+            style={[
+              styles.productPrice,
+              disabled && styles.productTextDisabled,
+            ]}
+          >
             {formatCurrency(product.price)}
           </Text>
           {!disabled ? (

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { demoNotifications } from '../data/demoData';
+import { create } from "zustand";
+import { demoNotifications } from "../data/demoData";
 
 export type PosNotification = {
   id: string;
@@ -13,7 +13,7 @@ type NotificationState = {
   notifications: PosNotification[];
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  addNotification: (notification: Omit<PosNotification, 'unread'>) => void;
+  addNotification: (notification: Omit<PosNotification, "unread">) => void;
 };
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -34,6 +34,9 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     })),
   addNotification: (notification) =>
     set((state) => ({
-      notifications: [{ ...notification, unread: true }, ...state.notifications].slice(0, 50),
+      notifications: [
+        { ...notification, unread: true },
+        ...state.notifications,
+      ].slice(0, 50),
     })),
 }));

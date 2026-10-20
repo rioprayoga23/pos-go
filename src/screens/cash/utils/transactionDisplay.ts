@@ -1,12 +1,17 @@
-import { dateFromKey, formatDateKey, getLocalDateKey } from "../../../utils/date";
+import {
+  dateFromKey,
+  formatDateKey,
+  getLocalDateKey,
+} from "../../../utils/date";
 
 export function getCashDateLabel(dateKey: string, time: string) {
-  const dateLabel = dateKey === getLocalDateKey()
-    ? "Hari ini"
-    : new Intl.DateTimeFormat("id-ID", {
-        day: "numeric",
-        month: "short",
-      }).format(dateFromKey(dateKey));
+  const dateLabel =
+    dateKey === getLocalDateKey()
+      ? "Hari ini"
+      : new Intl.DateTimeFormat("id-ID", {
+          day: "numeric",
+          month: "short",
+        }).format(dateFromKey(dateKey));
   return `${dateLabel}, ${time} WIB`;
 }
 

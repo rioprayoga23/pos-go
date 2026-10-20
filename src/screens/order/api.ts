@@ -1,6 +1,12 @@
 import { apiClient } from "../../services/apiClient";
 import type { ApiEnvelope } from "../../services/apiTypes";
-import type { CartItem, Order, OrderStatus, OrderType, PaymentMethod } from "../../types/pos";
+import type {
+  CartItem,
+  Order,
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
+} from "../../types/pos";
 import { getLocalDateKey } from "../../utils/date";
 
 export type OrderPaymentMethod = "cash" | "qris";
@@ -42,7 +48,10 @@ export type OrderRecord = {
 };
 
 export async function createOrder(draft: CreateOrderDraft) {
-  const response = await apiClient.post<ApiEnvelope<OrderRecord>>("/orders", draft);
+  const response = await apiClient.post<ApiEnvelope<OrderRecord>>(
+    "/orders",
+    draft,
+  );
   return response.data;
 }
 
@@ -52,13 +61,18 @@ export function orderRecordToLocalOrder(
 ): Order {
   const cartByID = new Map(cartItems.map((item) => [item.product.id, item]));
   const createdAt = new Date(record.createdAt);
-  const orderType: OrderType = record.orderType === "dine_in" ? "Dine in" : "Take away";
-  const paymentMethod: PaymentMethod = record.paymentMethod === "cash" ? "Tunai" : "QRIS";
+  const orderType: OrderType =
+    record.orderType === "dine_in" ? "Dine in" : "Take away";
+  const paymentMethod: PaymentMethod =
+    record.paymentMethod === "cash" ? "Tunai" : "QRIS";
 
   return {
     id: record.id,
     number: record.number,
-    createdAt: createdAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+    createdAt: createdAt.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
     createdOn: getLocalDateKey(createdAt),
     customer: "Pelanggan umum",
     items: record.items.map((item, index) => {

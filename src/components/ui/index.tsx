@@ -7,6 +7,7 @@ export {
   type IconName,
 } from "./interactive";
 export { AppInput, FieldLabel } from "./forms";
+export { ModalFormActions } from "./ModalFormActions";
 export {
   Divider,
   EmptyState,

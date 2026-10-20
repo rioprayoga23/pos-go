@@ -15,7 +15,7 @@ export type StockItemDraft = {
   stockUnitsPerPurchaseUnit: number;
 };
 
-export type StockItemPatch = Partial<StockItemDraft>;
+export type StockItemPatch = Partial<StockItemDraft> & StockAdjustmentDraft;
 
 export type StockPurchaseDraft = {
   stockItemId?: string;
@@ -63,6 +63,7 @@ function itemFromApi(item: ApiStockItem): StockItem {
     purchaseUnit: item.purchaseUnit,
     stockUnitsPerPurchaseUnit: item.stockUnitsPerPurchaseUnit,
     avgPrice: item.avgPrice,
+    initialPurchaseTotalCostRupiah: item.initialPurchaseTotalCostRupiah,
   };
 }
 
@@ -89,6 +90,16 @@ function movementFromApi(movement: ApiStockMovement): StockMovement {
   };
 }
 
+export async function createStockItem(
+  draft: StockItemDraft,
+): Promise<StockItem> {
+  const result = await apiClient.post<ApiEnvelope<ApiStockItem>>(
+    "/stock-items",
+    draft,
+  );
+  return itemFromApi(result.data);
+}
+
 export async function listStockItems(
   filters: StockItemFilters,
   signal?: AbortSignal,
@@ -100,7 +111,9 @@ export async function listStockItems(
   return { ...result, data: result.data.map(itemFromApi) };
 }
 
-export async function listAllStockItems(signal?: AbortSignal): Promise<StockItem[]> {
+export async function listAllStockItems(
+  signal?: AbortSignal,
+): Promise<StockItem[]> {
   const limit = 100;
   const firstPage = await listStockItems({ page: 1, limit }, signal);
   const items = [...firstPage.data];

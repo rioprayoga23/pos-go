@@ -1,5 +1,4 @@
 import {
-  ButtonText,
   HStack,
   Modal,
   ModalBackdrop,
@@ -12,10 +11,11 @@ import {
 } from "@gluestack-ui/themed";
 import { useWindowDimensions } from "react-native";
 import {
-  AppButton as Button,
   AppIcon,
   AppInput,
   AppModalCloseButton,
+  FieldLabel,
+  ModalFormActions,
 } from "../../ui";
 import { colors } from "../../../theme";
 import { productFormStyles } from "../styles/form";
@@ -82,13 +82,16 @@ export function CategoryModal({
         <ModalBody>
           <VStack style={productFormStyles.formGap}>
             <VStack>
-              <Text style={productFormStyles.fieldLabel}>
-                Nama Kategori <Text style={productFormStyles.required}>*</Text>
-              </Text>
+              <FieldLabel
+                required
+                style={[productFormStyles.fieldLabel, { marginBottom: 0 }]}
+              >
+                Nama Kategori
+              </FieldLabel>
               <AppInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Contoh: Mocktail"
+                placeholder="Kategori"
                 accessibilityLabel="Nama kategori"
               />
               {error ? (
@@ -97,15 +100,16 @@ export function CategoryModal({
             </VStack>
           </VStack>
         </ModalBody>
-        <ModalFooter>
-          <VStack style={styles.categoryModalActions}>
-            <Button onPress={onSave} isDisabled={isSaving} style={styles.categorySaveButton}>
-              <AppIcon name="check" size={17} color={colors.white} />
-              <ButtonText style={productFormStyles.publishText}>
-                {isSaving ? "Menyimpan..." : "Simpan Kategori"}
-              </ButtonText>
-            </Button>
-          </VStack>
+        <ModalFooter style={styles.categoryModalActions}>
+          <ModalFormActions
+            primaryLabel="Simpan Kategori"
+            onPrimary={onSave}
+            primaryBusy={Boolean(isSaving)}
+            primaryBusyLabel="Menyimpan..."
+            primaryIcon="check"
+            onSecondary={onClose}
+            secondaryDisabled={Boolean(isSaving)}
+          />
         </ModalFooter>
       </ModalContent>
     </Modal>

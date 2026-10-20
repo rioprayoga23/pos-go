@@ -11,7 +11,9 @@ type ApiErrorBody = {
 };
 
 let onUnauthorized: (() => void) | null = null;
-export function setUnauthorizedHandler(handler: (() => void) | null) { onUnauthorized = handler; }
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -73,7 +75,8 @@ async function request<T>(
   const token = getAuthToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const multipart = typeof FormData !== "undefined" && body instanceof FormData;
-  if (body !== undefined && !multipart) headers.set("Content-Type", "application/json");
+  if (body !== undefined && !multipart)
+    headers.set("Content-Type", "application/json");
 
   let response: Response;
   try {
@@ -81,7 +84,9 @@ async function request<T>(
     response = await fetch(`${getApiRoot()}${endpoint}`, {
       method,
       headers,
-      ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
+      ...(body === undefined
+        ? {}
+        : { body: multipart ? body : JSON.stringify(body) }),
       signal,
     });
   } catch (error) {
@@ -92,9 +97,17 @@ async function request<T>(
 
   if (response.status === 204) return undefined as T;
 
-  const payload = await response.json().catch(() => null) as ApiErrorBody | null;
+  const payload = (await response
+    .json()
+    .catch(() => null)) as ApiErrorBody | null;
   if (!response.ok) {
-    if (response.status === 401 && token && token === getAuthToken() && path !== "/auth/login") onUnauthorized?.();
+    if (
+      response.status === 401 &&
+      token &&
+      token === getAuthToken() &&
+      path !== "/auth/login"
+    )
+      onUnauthorized?.();
     throw new ApiError(
       payload?.error?.message ?? "Permintaan tidak dapat diproses.",
       response.status,

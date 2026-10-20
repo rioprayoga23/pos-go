@@ -42,7 +42,10 @@ export type ProductEditorModel = {
   };
   recipeActions: {
     create: (draft: MenuRecipeDraft) => Promise<Recipe>;
-    update: (id: string, draft: Pick<MenuRecipeDraft, "name" | "ingredients">) => Promise<Recipe>;
+    update: (
+      id: string,
+      draft: Pick<MenuRecipeDraft, "name" | "ingredients">,
+    ) => Promise<Recipe>;
     delete: (id: string) => Promise<void>;
   };
   recipeCostLines: RecipeCostLine[] | null;

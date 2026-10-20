@@ -1,5 +1,5 @@
-import { config as gluestackBaseConfig } from '@gluestack-ui/config';
-import { colors } from './tokens';
+import { config as gluestackBaseConfig } from "@gluestack-ui/config";
+import { colors } from "./tokens";
 
 export const posGluestackConfig = {
   ...gluestackBaseConfig,
@@ -14,15 +14,18 @@ export const posGluestackConfig = {
       posPrimaryDark: colors.primaryDark,
       posLine: colors.line,
       posSuccess: colors.success,
+      posSuccessText: colors.successText,
       posWarning: colors.warning,
+      posWarningText: colors.warningText,
       posDanger: colors.danger,
+      posDangerText: colors.dangerText,
     },
     fonts: {
       ...gluestackBaseConfig.tokens.fonts,
-      body: 'Inter_400Regular',
-      heading: 'Inter_600SemiBold',
+      body: "Inter_400Regular",
+      heading: "Inter_600SemiBold",
     },
   },
 };
 
-export * from './tokens';
+export * from "./tokens";

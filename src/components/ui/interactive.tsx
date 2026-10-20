@@ -35,10 +35,10 @@ type PressHandlers = Pick<
 function hasPressHandler(props: PressHandlers) {
   return Boolean(
     props.onPress ||
-      props.onLongPress ||
-      props.onPressIn ||
-      props.onPressOut ||
-      props.onPressMove,
+    props.onLongPress ||
+    props.onPressIn ||
+    props.onPressOut ||
+    props.onPressMove,
   );
 }
 
@@ -83,10 +83,10 @@ function hasOversizedMobileTouchStyle(
   const flattenedStyle = StyleSheet.flatten(style);
   return Boolean(
     flattenedStyle &&
-      ((typeof flattenedStyle.height === "number" &&
-        flattenedStyle.height > mobileButtonHeight) ||
-        (typeof flattenedStyle.minHeight === "number" &&
-          flattenedStyle.minHeight > mobileButtonHeight)),
+    ((typeof flattenedStyle.height === "number" &&
+      flattenedStyle.height > mobileButtonHeight) ||
+      (typeof flattenedStyle.minHeight === "number" &&
+        flattenedStyle.minHeight > mobileButtonHeight)),
   );
 }
 
@@ -100,20 +100,23 @@ function getAndroidRipple(
 
 export function AppPressable({
   style,
+  preserveTouchSize = false,
   android_ripple,
   disabled,
   onPressIn,
   onPressOut,
   ...props
-}: ComponentProps<typeof GluestackPressable>) {
+}: ComponentProps<typeof GluestackPressable> & {
+  preserveTouchSize?: boolean;
+}) {
   const { width } = useWindowDimensions();
   const [pressed, setPressed] = useState(false);
-  const resolvedStyle = typeof style === "function" ? style({ pressed }) : style;
-  const compactedForMobile = hasOversizedMobileTouchStyle(
-    resolvedStyle,
-    width,
-  );
-  const touchStyle = compactMobileTouchStyle(resolvedStyle, width);
+  const resolvedStyle =
+    typeof style === "function" ? style({ pressed }) : style;
+  const compactedForMobile = hasOversizedMobileTouchStyle(resolvedStyle, width);
+  const touchStyle = preserveTouchSize
+    ? resolvedStyle
+    : compactMobileTouchStyle(resolvedStyle, width);
   const feedbackEnabled =
     hasPressHandler({ ...props, onPressIn, onPressOut }) && !disabled;
 
@@ -134,7 +137,9 @@ export function AppPressable({
       onPressIn={feedbackEnabled ? handlePressIn : onPressIn}
       onPressOut={feedbackEnabled ? handlePressOut : onPressOut}
       android_ripple={getAndroidRipple(android_ripple, feedbackEnabled)}
-      style={feedbackEnabled ? withPressedOpacity(touchStyle, pressed) : touchStyle}
+      style={
+        feedbackEnabled ? withPressedOpacity(touchStyle, pressed) : touchStyle
+      }
     />
   );
 }

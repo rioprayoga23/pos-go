@@ -31,8 +31,13 @@ export function useCreateOrder() {
           const newOrder = orderRecordToQueueOrder(order);
           return {
             ...current,
-            data: [...current.data.filter((entry) => entry.id !== newOrder.id), newOrder]
-              .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt)),
+            data: [
+              ...current.data.filter((entry) => entry.id !== newOrder.id),
+              newOrder,
+            ].sort(
+              (left, right) =>
+                Date.parse(left.createdAt) - Date.parse(right.createdAt),
+            ),
           };
         },
       );
@@ -45,7 +50,8 @@ export function useCreateOrder() {
               ...current,
               data: {
                 ...current.data,
-                cashSalesRupiah: current.data.cashSalesRupiah + order.totalRupiah,
+                cashSalesRupiah:
+                  current.data.cashSalesRupiah + order.totalRupiah,
                 expectedAmountRupiah:
                   current.data.expectedAmountRupiah + order.totalRupiah,
               },
@@ -66,10 +72,17 @@ export function useCreateOrder() {
       if (!(error instanceof ApiError)) return;
       const refresh: Promise<unknown>[] = [];
       if (error.code === "cash_register_closed") {
-        refresh.push(queryClient.invalidateQueries({ queryKey: cashQueryKeys.register }));
+        refresh.push(
+          queryClient.invalidateQueries({ queryKey: cashQueryKeys.register }),
+        );
       }
-      if (error.code === "menu_price_changed" || error.code === "product_unavailable") {
-        refresh.push(queryClient.invalidateQueries({ queryKey: menuQueryKeys.products }));
+      if (
+        error.code === "menu_price_changed" ||
+        error.code === "product_unavailable"
+      ) {
+        refresh.push(
+          queryClient.invalidateQueries({ queryKey: menuQueryKeys.products }),
+        );
       }
       await Promise.all(refresh);
     },

@@ -147,8 +147,12 @@ export const SalesSummary = memo(function SalesSummary({
                 ? "—"
                 : formatCurrency(grossProfit)
             }
-            success={summary !== undefined && grossProfit !== null && grossProfit >= 0}
-            negative={summary !== undefined && grossProfit !== null && grossProfit < 0}
+            success={
+              summary !== undefined && grossProfit !== null && grossProfit >= 0
+            }
+            negative={
+              summary !== undefined && grossProfit !== null && grossProfit < 0
+            }
             adaptive={responsiveText}
             tablet={isTablet}
             compact={isCompact}
@@ -182,12 +186,16 @@ export const SalesSummary = memo(function SalesSummary({
             </Text>
           </VStack>
           {!isCompact ? (
-            <Text style={styles.datePill}>{summary ? `${cups} Cup Total` : "Ringkasan —"}</Text>
+            <Text style={styles.datePill}>
+              {summary ? `${cups} Cup Total` : "Ringkasan —"}
+            </Text>
           ) : null}
         </HStack>
         {isCompact ? (
           <HStack style={styles.compactHeaderMeta}>
-            <Text style={styles.datePill}>{summary ? `${cups} Cup Total` : "Ringkasan —"}</Text>
+            <Text style={styles.datePill}>
+              {summary ? `${cups} Cup Total` : "Ringkasan —"}
+            </Text>
           </HStack>
         ) : null}
         <View style={styles.rule} />
@@ -195,7 +203,7 @@ export const SalesSummary = memo(function SalesSummary({
         {soldMenu.length > 0 && !isCompact ? (
           <HStack style={styles.menuHead}>
             <Text style={[styles.menuCell, styles.menuName]}>MENU MINUMAN</Text>
-            <Text style={[styles.menuCell, styles.menuQty]}>VOLUME</Text>
+            <Text style={[styles.menuCell, styles.menuQty]}>QTY</Text>
             <Text style={[styles.menuCell, styles.menuAmount]}>
               TOTAL HARGA
             </Text>

@@ -2,7 +2,12 @@ import { HStack, Text, VStack } from "@gluestack-ui/themed";
 import { useRef, useState } from "react";
 import { Image, ScrollView, View, type TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppIcon, AppInput, AppPressable } from "../../components/ui";
+import {
+  AppIcon,
+  AppInput,
+  AppPressable,
+  FieldLabel,
+} from "../../components/ui";
 import { colors } from "../../theme";
 import { styles } from "./styles";
 import { useAuth } from "../../auth/AuthProvider";
@@ -29,7 +34,9 @@ export function LoginScreen() {
       await login(identity.trim(), password);
       setPassword("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Login gagal. Coba lagi.");
+      setError(
+        cause instanceof Error ? cause.message : "Login gagal. Coba lagi.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -72,7 +79,12 @@ export function LoginScreen() {
 
           <VStack style={styles.form}>
             <VStack style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Username</Text>
+              <FieldLabel
+                required
+                style={[styles.fieldLabel, { marginBottom: 0 }]}
+              >
+                Username
+              </FieldLabel>
               <AppInput
                 value={identity}
                 onChangeText={(value) => {
@@ -89,7 +101,12 @@ export function LoginScreen() {
             </VStack>
 
             <VStack style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Kata sandi</Text>
+              <FieldLabel
+                required
+                style={[styles.fieldLabel, { marginBottom: 0 }]}
+              >
+                Kata sandi
+              </FieldLabel>
               <AppInput
                 value={password}
                 onChangeText={(value) => {
@@ -133,7 +150,9 @@ export function LoginScreen() {
               accessibilityRole="button"
               accessibilityLabel="Masuk ke aplikasi kasir"
             >
-              <Text style={styles.submitText}>{submitting ? "Memproses..." : "Masuk"}</Text>
+              <Text style={styles.submitText}>
+                {submitting ? "Memproses..." : "Masuk"}
+              </Text>
               <AppIcon name="arrow-right" size={18} color={colors.white} />
             </AppPressable>
           </VStack>

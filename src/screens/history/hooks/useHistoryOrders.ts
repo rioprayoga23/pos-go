@@ -14,7 +14,8 @@ const pageSize = 10;
 
 export const historyQueryKeys = {
   historyRoot: ["orders", "history"] as const,
-  history: (filters: OrderHistoryFilters) => ["orders", "history", filters] as const,
+  history: (filters: OrderHistoryFilters) =>
+    ["orders", "history", filters] as const,
   summaryRoot: ["orders", "summary"] as const,
   summary: (range: DateRange) => ["orders", "summary", range] as const,
 };
@@ -22,17 +23,19 @@ export const historyQueryKeys = {
 export function useHistoryOrders(enabled = true) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("Semua metode");
+  const [paymentFilter, setPaymentFilter] =
+    useState<PaymentFilter>("Semua metode");
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const today = getLocalDateKey();
     return { startDate: today, endDate: today };
   });
   const [page, setPage] = useState(1);
   const updateDebouncedQuery = useMemo(
-    () => debounce((value: string) => {
-      setDebouncedQuery(value);
-      setPage(1);
-    }, 250),
+    () =>
+      debounce((value: string) => {
+        setDebouncedQuery(value);
+        setPage(1);
+      }, 250),
     [],
   );
 
@@ -46,15 +49,22 @@ export function useHistoryOrders(enabled = true) {
       startDate: dateRange.startDate,
       endDate: dateRange.endDate,
       search: debouncedQuery,
-      paymentMethod: paymentFilter === "Semua metode"
-        ? "all"
-        : paymentFilter === "Tunai"
-          ? "cash"
-          : "qris",
+      paymentMethod:
+        paymentFilter === "Semua metode"
+          ? "all"
+          : paymentFilter === "Tunai"
+            ? "cash"
+            : "qris",
       page,
       limit: pageSize,
     }),
-    [dateRange.endDate, dateRange.startDate, debouncedQuery, page, paymentFilter],
+    [
+      dateRange.endDate,
+      dateRange.startDate,
+      debouncedQuery,
+      page,
+      paymentFilter,
+    ],
   );
   const summaryRange = useMemo<DateRange>(
     () => ({ startDate: dateRange.startDate, endDate: dateRange.endDate }),
@@ -111,6 +121,7 @@ export function useHistoryOrders(enabled = true) {
     isLoading: historyQuery.isLoading || summaryQuery.isLoading,
     isFetching: historyQuery.isFetching || summaryQuery.isFetching,
     isError: historyQuery.isError || summaryQuery.isError,
-    refetch: () => Promise.all([historyQuery.refetch(), summaryQuery.refetch()]),
+    refetch: () =>
+      Promise.all([historyQuery.refetch(), summaryQuery.refetch()]),
   };
 }

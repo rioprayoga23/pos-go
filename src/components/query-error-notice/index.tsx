@@ -19,9 +19,7 @@ export function QueryErrorNotice({
         backgroundColor: colors.dangerSoft,
       }}
     >
-      <Text style={{ color: colors.danger, flex: 1 }}>
-        {message}
-      </Text>
+      <Text style={{ color: colors.danger, flex: 1 }}>{message}</Text>
       <AppPressable
         onPress={onRetry}
         accessibilityRole="button"

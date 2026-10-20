@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, elevation, radius, spacing, type, typography } from "../../../../theme";
+import { colors, radius, spacing, type, typography } from "../../../../theme";
 
 export const categoryModalStyles = StyleSheet.create({
   categoryModal: {
@@ -35,16 +35,5 @@ export const categoryModalStyles = StyleSheet.create({
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-  },
-  categorySaveButton: {
-    width: "100%",
-    minHeight: 52,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 6,
-    ...elevation.button,
   },
 });

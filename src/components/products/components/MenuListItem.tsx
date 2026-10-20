@@ -29,10 +29,14 @@ export const MenuListItem = memo(function MenuListItem({
   const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
   const isNarrow = itemWidth > 0 && itemWidth < inlineCardBreakpoint;
   const photoUrl =
-    product.image && typeof product.image === "object" && !Array.isArray(product.image) && "uri" in product.image
+    product.image &&
+    typeof product.image === "object" &&
+    !Array.isArray(product.image) &&
+    "uri" in product.image
       ? product.image.uri
       : undefined;
-  const showPhoto = Boolean(product.image) && (!photoUrl || failedPhotoUrl !== photoUrl);
+  const showPhoto =
+    Boolean(product.image) && (!photoUrl || failedPhotoUrl !== photoUrl);
   const profit = hpp !== null && product.price > 0 ? product.price - hpp : null;
   const profitPercent = profit !== null ? (profit / product.price) * 100 : null;
   const profitLabel =
@@ -55,7 +59,9 @@ export const MenuListItem = memo(function MenuListItem({
         <Image
           source={product.image}
           style={styles.image}
-          onError={() => setFailedPhotoUrl(photoUrl ?? "unreadable-local-photo")}
+          onError={() =>
+            setFailedPhotoUrl(photoUrl ?? "unreadable-local-photo")
+          }
         />
       ) : (
         <AppIcon name="cup-outline" size={17} color={colors.primary} />
@@ -76,7 +82,8 @@ export const MenuListItem = memo(function MenuListItem({
         <Text
           style={[
             styles.availability,
-            (!product.isAvailable || product.stock <= 0) && styles.availabilityMuted,
+            (!product.isAvailable || product.stock <= 0) &&
+              styles.availabilityMuted,
           ]}
           numberOfLines={1}
         >
@@ -109,9 +116,17 @@ export const MenuListItem = memo(function MenuListItem({
   );
 
   const actions = (
-    <DataTableActions compact>
-      <DataTableActionButton compact action="edit" label={`Edit ${product.name}`} onPress={() => onEdit(product)} />
-      <DataTableActionButton compact action="delete" label={`Hapus ${product.name}`} onPress={() => onDelete(product)} />
+    <DataTableActions>
+      <DataTableActionButton
+        action="edit"
+        label={`Edit ${product.name}`}
+        onPress={() => onEdit(product)}
+      />
+      <DataTableActionButton
+        action="delete"
+        label={`Hapus ${product.name}`}
+        onPress={() => onDelete(product)}
+      />
     </DataTableActions>
   );
 
@@ -119,7 +134,11 @@ export const MenuListItem = memo(function MenuListItem({
     return (
       <VStack
         onLayout={handleLayout}
-        style={[styles.card, styles.cardNarrow, selected && styles.cardSelected]}
+        style={[
+          styles.card,
+          styles.cardNarrow,
+          selected && styles.cardSelected,
+        ]}
       >
         <HStack style={styles.narrowMain}>
           {thumbnail}
@@ -194,9 +213,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   subtitle: { alignItems: "center", minWidth: 0, gap: 5 },
-  category: { flexShrink: 1, minWidth: 0, color: colors.inkMuted, fontSize: type.micro, lineHeight: 16 },
-  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.inkMuted },
-  availability: { flexShrink: 0, color: colors.success, fontSize: type.micro, lineHeight: 16, fontWeight: "600" },
+  category: {
+    flexShrink: 1,
+    minWidth: 0,
+    color: colors.inkMuted,
+    fontSize: type.micro,
+    lineHeight: 16,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.inkMuted,
+  },
+  availability: {
+    flexShrink: 0,
+    color: colors.success,
+    fontSize: type.micro,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
   availabilityMuted: { color: colors.inkMuted },
   financials: {
     width: 226,
@@ -212,10 +248,25 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: "600",
   },
-  financialDetails: { alignItems: "center", justifyContent: "flex-end", gap: 5, minWidth: 0 },
-  cost: { flexShrink: 1, color: colors.inkMuted, fontSize: type.overline, lineHeight: 14 },
+  financialDetails: {
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 5,
+    minWidth: 0,
+  },
+  cost: {
+    flexShrink: 1,
+    color: colors.inkMuted,
+    fontSize: type.overline,
+    lineHeight: 14,
+  },
   financialDivider: { width: 1, height: 12, backgroundColor: colors.line },
-  profit: { flexShrink: 1, fontSize: type.overline, lineHeight: 14, fontWeight: "600" },
+  profit: {
+    flexShrink: 1,
+    fontSize: type.overline,
+    lineHeight: 14,
+    fontWeight: "600",
+  },
   profitNeutral: { color: colors.inkMuted },
   profitPositive: { color: colors.success },
   profitNegative: { color: colors.danger },

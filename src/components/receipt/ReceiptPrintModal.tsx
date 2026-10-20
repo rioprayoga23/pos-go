@@ -11,11 +11,7 @@ import {
 import * as Print from "expo-print";
 import { useState } from "react";
 import { Platform, ScrollView, useWindowDimensions } from "react-native";
-import {
-  AppButton as Button,
-  AppIcon,
-  AppModalCloseButton,
-} from "../ui";
+import { AppButton as Button, AppIcon, AppModalCloseButton } from "../ui";
 import { createReceiptHtml } from "./receiptHtml";
 import { ReceiptPaper } from "./ReceiptPaper";
 import { receiptModalStyles as styles } from "./styles";

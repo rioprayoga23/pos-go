@@ -19,7 +19,10 @@ export type QueueOrder = {
 };
 
 export async function listActiveOrders(signal?: AbortSignal) {
-  return apiClient.get<ApiEnvelope<QueueOrder[]>>("/orders?status=active", signal);
+  return apiClient.get<ApiEnvelope<QueueOrder[]>>(
+    "/orders?status=active",
+    signal,
+  );
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {

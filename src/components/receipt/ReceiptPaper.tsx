@@ -45,7 +45,9 @@ export function ReceiptPaper({ data }: { data: ReceiptData }) {
             <Text style={styles.receiptLineName}>
               {item.quantity}x {item.name}
             </Text>
-            <Text style={styles.receiptBold}>{formatCurrency(item.amount)}</Text>
+            <Text style={styles.receiptBold}>
+              {formatCurrency(item.amount)}
+            </Text>
           </HStack>
         ))}
       </VStack>
@@ -53,21 +55,28 @@ export function ReceiptPaper({ data }: { data: ReceiptData }) {
       <VStack style={styles.receiptTotals}>
         <HStack style={styles.receiptLine}>
           <Text style={styles.receiptSmall}>Subtotal</Text>
-          <Text style={styles.receiptBold}>{formatCurrency(data.subtotal)}</Text>
+          <Text style={styles.receiptBold}>
+            {formatCurrency(data.subtotal)}
+          </Text>
         </HStack>
         <HStack style={styles.receiptLine}>
           <Text style={styles.receiptSmall}>Pembayaran</Text>
           <Text style={styles.receiptBold}>{data.paymentMethod}</Text>
         </HStack>
-        {data.paymentMethod === "Tunai" && data.cashReceivedRupiah !== undefined ? (
+        {data.paymentMethod === "Tunai" &&
+        data.cashReceivedRupiah !== undefined ? (
           <>
             <HStack style={styles.receiptLine}>
               <Text style={styles.receiptSmall}>Uang diterima</Text>
-              <Text style={styles.receiptBold}>{formatCurrency(data.cashReceivedRupiah)}</Text>
+              <Text style={styles.receiptBold}>
+                {formatCurrency(data.cashReceivedRupiah)}
+              </Text>
             </HStack>
             <HStack style={styles.receiptLine}>
               <Text style={styles.receiptSmall}>Kembalian</Text>
-              <Text style={styles.receiptBold}>{formatCurrency(data.changeRupiah ?? 0)}</Text>
+              <Text style={styles.receiptBold}>
+                {formatCurrency(data.changeRupiah ?? 0)}
+              </Text>
             </HStack>
           </>
         ) : null}

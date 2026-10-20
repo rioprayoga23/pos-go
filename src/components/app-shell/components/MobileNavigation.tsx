@@ -53,7 +53,9 @@ export function MobileBottomNavigation({
               />
               {item.route === "Queue" && queueCount > 0 ? (
                 <View style={styles.mobileQueueBadge}>
-                  <Text style={styles.queueBadgeText}>{queueCount > 99 ? "99+" : queueCount}</Text>
+                  <Text style={styles.queueBadgeText}>
+                    {queueCount > 99 ? "99+" : queueCount}
+                  </Text>
                 </View>
               ) : null}
             </View>

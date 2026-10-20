@@ -57,7 +57,9 @@ export function CashTransactionDetailModal({
           </HStack>
           <VStack style={styles.modalHeading}>
             <Text style={styles.modalTitle}>Detail Transaksi</Text>
-            <Text style={styles.modalSubtitle}>Rincian arus kas keluar outlet.</Text>
+            <Text style={styles.modalSubtitle}>
+              Rincian arus kas keluar outlet.
+            </Text>
           </VStack>
           <AppModalCloseButton
             onPress={onClose}
@@ -66,16 +68,21 @@ export function CashTransactionDetailModal({
         </ModalHeader>
         <ModalBody>
           <VStack style={styles.detailRows}>
-            <Text style={styles.transactionDescription}>
-              {transaction.description}
-            </Text>
-            <Text style={styles.detailAmount}>
-              {formatCurrency(transaction.amount)}
-            </Text>
+            <HStack style={styles.transactionSummary}>
+              <Text style={styles.transactionSummaryDescription}>
+                {transaction.description}
+              </Text>
+              <Text style={styles.detailAmount}>
+                {formatCurrency(transaction.amount)}
+              </Text>
+            </HStack>
             <ViewDivider />
             <DetailLine
               label="Tanggal & waktu"
-              value={getCashDateTimeLabel(transaction.dateKey, transaction.time)}
+              value={getCashDateTimeLabel(
+                transaction.dateKey,
+                transaction.time,
+              )}
             />
             <DetailLine label="Kategori" value={transaction.category} />
             {transaction.categoryKind === "operational" ? (
@@ -97,10 +104,10 @@ export function CashTransactionDetailModal({
         <ModalFooter style={styles.modalFooter}>
           <AppPressable
             onPress={onClose}
-            style={styles.saveButton}
+            style={styles.detailCloseButton}
             accessibilityRole="button"
           >
-            <Text style={styles.saveButtonText}>Tutup</Text>
+            <Text style={styles.detailCloseButtonText}>Tutup</Text>
           </AppPressable>
         </ModalFooter>
       </ModalContent>

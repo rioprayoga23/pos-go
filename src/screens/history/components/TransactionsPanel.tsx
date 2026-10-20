@@ -1,14 +1,16 @@
-import {
-  HStack,
-  Input,
-  InputField,
-  Text,
-  VStack,
-} from "@gluestack-ui/themed";
+import { HStack, Input, InputField, Text, VStack } from "@gluestack-ui/themed";
 import { useState } from "react";
 import { FlatList, View, type ListRenderItem } from "react-native";
-import { DropdownSelect, type DropdownOption } from "../../../components/dropdown-select";
-import { AppIcon, AppPressable as Pressable, EmptyState, Panel } from "../../../components/ui";
+import {
+  DropdownSelect,
+  type DropdownOption,
+} from "../../../components/dropdown-select";
+import {
+  AppIcon,
+  AppPressable as Pressable,
+  EmptyState,
+  Panel,
+} from "../../../components/ui";
 import { colors } from "../../../theme";
 import type { DateRange, HistoryOrder, PaymentFilter } from "../types";
 import { formatDateRangeLabel } from "../utils/dateRange";
@@ -35,7 +37,9 @@ type Props = {
 };
 
 const keyExtractor = (order: HistoryOrder) => order.id;
-const renderTransaction: ListRenderItem<HistoryOrder> = ({ item }) => <TransactionCard order={item} />;
+const renderTransaction: ListRenderItem<HistoryOrder> = ({ item }) => (
+  <TransactionCard order={item} />
+);
 const renderSeparator = () => <View style={styles.transactionSeparator} />;
 const renderEmpty = () => (
   <EmptyState
@@ -81,7 +85,13 @@ export function TransactionsPanel({
       accessibilityState={{ expanded: isDatePickerOpen }}
     >
       <AppIcon name="calendar-outline" size={15} color={colors.primary} />
-      <Text style={[styles.dateText, (isMobile || isTablet) && styles.readableTextAdaptive]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.dateText,
+          (isMobile || isTablet) && styles.readableTextAdaptive,
+        ]}
+        numberOfLines={1}
+      >
         {formatDateRangeLabel(dateRange)}
       </Text>
       <AppIcon name="chevron-down" size={14} color={colors.inkMuted} />
@@ -89,7 +99,10 @@ export function TransactionsPanel({
   );
 
   return (
-    <Panel style={[styles.historyPanel, isWide && styles.panelFill]} padding={14}>
+    <Panel
+      style={[styles.historyPanel, isWide && styles.panelFill]}
+      padding={14}
+    >
       <HStack style={styles.historyHeader}>
         <HStack style={styles.titleIcon}>
           <AppIcon
@@ -104,7 +117,9 @@ export function TransactionsPanel({
       <HStack
         style={[
           styles.filterRow,
-          useFilterGrid ? styles.filterRowThreeColumns : styles.filterRowStacked,
+          useFilterGrid
+            ? styles.filterRowThreeColumns
+            : styles.filterRowStacked,
         ]}
         onLayout={({ nativeEvent }) => {
           const nextWidth = nativeEvent.layout.width;
@@ -114,10 +129,7 @@ export function TransactionsPanel({
         }}
       >
         <View
-          style={[
-            styles.filterCell,
-            useFilterGrid && styles.filterCellGrid,
-          ]}
+          style={[styles.filterCell, useFilterGrid && styles.filterCellGrid]}
         >
           <Input style={styles.searchInput}>
             <AppIcon name="magnify" size={17} color={colors.inkMuted} />
@@ -126,23 +138,20 @@ export function TransactionsPanel({
               onChangeText={onQueryChange}
               placeholder="Cari transaksi"
               placeholderTextColor={colors.inkSubtle}
-              style={[styles.searchText, (isMobile || isTablet) && styles.readableTextAdaptive]}
+              style={[
+                styles.searchText,
+                (isMobile || isTablet) && styles.readableTextAdaptive,
+              ]}
             />
           </Input>
         </View>
         <View
-          style={[
-            styles.filterCell,
-            useFilterGrid && styles.filterCellGrid,
-          ]}
+          style={[styles.filterCell, useFilterGrid && styles.filterCellGrid]}
         >
           {dateButton}
         </View>
         <View
-          style={[
-            styles.filterCell,
-            useFilterGrid && styles.filterCellGrid,
-          ]}
+          style={[styles.filterCell, useFilterGrid && styles.filterCellGrid]}
         >
           <DropdownSelect
             options={paymentOptions}
@@ -171,13 +180,17 @@ export function TransactionsPanel({
         />
       ) : (
         <VStack style={styles.transactions}>
-          {orders.length ? (
-            orders.map((order) => (
-              <TransactionCard key={order.id} order={order} density={isMobile ? "mobile" : isTablet ? "tablet" : "desktop"} />
-            ))
-          ) : (
-            renderEmpty()
-          )}
+          {orders.length
+            ? orders.map((order) => (
+                <TransactionCard
+                  key={order.id}
+                  order={order}
+                  density={
+                    isMobile ? "mobile" : isTablet ? "tablet" : "desktop"
+                  }
+                />
+              ))
+            : renderEmpty()}
         </VStack>
       )}
 
@@ -191,17 +204,25 @@ export function TransactionsPanel({
           <Pressable
             onPress={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            style={[styles.historyPageButton, page <= 1 && styles.historyPageButtonDisabled]}
+            style={[
+              styles.historyPageButton,
+              page <= 1 && styles.historyPageButtonDisabled,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Halaman sebelumnya"
           >
             <AppIcon name="chevron-left" size={15} color={colors.inkMuted} />
           </Pressable>
-          <Text style={styles.historyPageText}>{page} / {pageCount}</Text>
+          <Text style={styles.historyPageText}>
+            {page} / {pageCount}
+          </Text>
           <Pressable
             onPress={() => onPageChange(page + 1)}
             disabled={page >= pageCount}
-            style={[styles.historyPageButton, page >= pageCount && styles.historyPageButtonDisabled]}
+            style={[
+              styles.historyPageButton,
+              page >= pageCount && styles.historyPageButtonDisabled,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Halaman berikutnya"
           >

@@ -1,10 +1,7 @@
 import type { ReceiptData } from "../../../components/receipt/types";
 import type { CartItem, OrderType } from "../../../types/pos";
 import { getLocalDateKey } from "../../../utils/date";
-import {
-  getCartLineTotal,
-  getCartSubtotal,
-} from "../../../utils/cartPricing";
+import { getCartLineTotal, getCartSubtotal } from "../../../utils/cartPricing";
 
 export function createPaymentReceiptData(
   items: CartItem[],
@@ -19,7 +16,11 @@ export function createPaymentReceiptData(
     cashier: "Kasir",
     customer: "Pelanggan umum",
     date,
-    time: now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    time: now.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
     itemCount: items.reduce((total, item) => total + item.quantity, 0),
     orderType,
     paymentMethod,
