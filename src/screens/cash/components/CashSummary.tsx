@@ -58,13 +58,13 @@ export function CashSummary({
         label="Pembelian Stok"
         count={stockCount}
         amount={stockAmount}
-        hint="Pembelian bahan dan kemasan yang tercatat"
+        hint=""
       />
       <SummaryCard
         label="Pengeluaran Operasional"
         count={operationalCount}
         amount={operationalAmount}
-        hint="Beban rutin outlet seperti listrik, iuran, dan kebersihan"
+        hint=""
         operational
       />
     </HStack>
